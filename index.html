@@ -2302,7 +2302,6 @@ const MENU_CLICK_VOLUME = .28;
 
 const SOUND_FILES = {
 
-  move:"./Move.wav",
   capture:"./Capture.wav",
   check:"./Check.wav",
   checkmate:"./Checkmate.wav",
@@ -2312,6 +2311,19 @@ const SOUND_FILES = {
   stacking:"./stackingpieces.wav"
 
 };
+
+
+const MOVE_SOUND_FILES = [
+  "./move1.wav",
+  "./move2.wav",
+  "./move3.wav",
+  "./move4.wav",
+  "./move5.wav"
+];
+
+
+const OPENING_THEME_FILE =
+  "./openingtheme.wav";
 
 
 const SOUND_CACHE =
@@ -2336,6 +2348,61 @@ Object.entries(SOUND_FILES).forEach(
 
   }
 );
+
+
+const MOVE_SOUND_CACHE =
+  MOVE_SOUND_FILES.map(
+    file => {
+
+      const audio =
+        new Audio(file);
+
+      audio.preload =
+        "auto";
+
+      audio.load();
+
+      return audio;
+
+    }
+  );
+
+
+let lastMoveSoundIndex =
+  -1;
+
+
+const openingThemeAudio =
+  new Audio(
+    OPENING_THEME_FILE
+  );
+
+
+openingThemeAudio.preload =
+  "auto";
+
+
+openingThemeAudio.loop =
+  false;
+
+
+openingThemeAudio.volume =
+  1;
+
+
+openingThemeAudio.load();
+
+
+let openingThemeStarted =
+  false;
+
+
+let openingThemeDismissed =
+  false;
+
+
+let openingThemeFadeFrame =
+  null;
 
 
 
@@ -2735,6 +2802,365 @@ function playMenuClick() {
 }
 
 
+function playRandomMoveSound() {
+
+  if (
+    !soundEnabled ||
+    MOVE_SOUND_CACHE.length === 0
+  ) {
+
+    return;
+
+  }
+
+
+  let nextIndex =
+    0;
+
+
+  if (
+    MOVE_SOUND_CACHE.length === 1
+  ) {
+
+    nextIndex =
+      0;
+
+  }
+
+  else {
+
+    do {
+
+      nextIndex =
+        Math.floor(
+          Math.random() *
+          MOVE_SOUND_CACHE.length
+        );
+
+    }
+    while (
+      nextIndex ===
+      lastMoveSoundIndex
+    );
+
+  }
+
+
+  lastMoveSoundIndex =
+    nextIndex;
+
+
+  const audio =
+    MOVE_SOUND_CACHE[
+      nextIndex
+    ].cloneNode(true);
+
+
+  audio.volume =
+    1;
+
+
+  activeSounds.add(
+    audio
+  );
+
+
+  const releaseAudio =
+    () => {
+
+      activeSounds.delete(
+        audio
+      );
+
+    };
+
+
+  audio.addEventListener(
+    "ended",
+    releaseAudio,
+    {once:true}
+  );
+
+
+  audio.addEventListener(
+    "error",
+    releaseAudio,
+    {once:true}
+  );
+
+
+  audio.play().catch(
+    error => {
+
+      releaseAudio();
+
+      console.log(
+        "Move audio playback blocked:",
+        error
+      );
+
+    }
+  );
+
+}
+
+
+function attemptOpeningThemePlayback() {
+
+  if (
+    openingThemeDismissed ||
+    openingThemeStarted ||
+    gameStarted ||
+    !soundEnabled
+  ) {
+
+    return;
+
+  }
+
+
+  openingThemeAudio.play()
+    .then(
+      () => {
+
+        openingThemeStarted =
+          true;
+
+      }
+    )
+    .catch(
+      () => {
+
+        /* Browser may require a user gesture. */
+      }
+    );
+
+}
+
+
+function stopOpeningThemeImmediately() {
+
+  if (
+    openingThemeFadeFrame
+  ) {
+
+    cancelAnimationFrame(
+      openingThemeFadeFrame
+    );
+
+    openingThemeFadeFrame =
+      null;
+
+  }
+
+
+  openingThemeAudio.pause();
+
+}
+
+
+function fadeOutOpeningTheme(
+  duration = 7000
+) {
+
+  openingThemeDismissed =
+    true;
+
+
+  if (
+    openingThemeFadeFrame
+  ) {
+
+    cancelAnimationFrame(
+      openingThemeFadeFrame
+    );
+
+    openingThemeFadeFrame =
+      null;
+
+  }
+
+
+  if (
+    openingThemeAudio.paused ||
+    openingThemeAudio.ended
+  ) {
+
+    openingThemeAudio.pause();
+
+    openingThemeAudio.currentTime =
+      0;
+
+    openingThemeAudio.volume =
+      1;
+
+    return;
+
+  }
+
+
+  const startVolume =
+    openingThemeAudio.volume;
+
+
+  const startTime =
+    performance.now();
+
+
+  const fadeStep =
+    now => {
+
+      const progress =
+        Math.min(
+          1,
+          (
+            now -
+            startTime
+          ) /
+          duration
+        );
+
+
+      const eased =
+        progress *
+        progress *
+        (
+          3 -
+          2 *
+          progress
+        );
+
+
+      openingThemeAudio.volume =
+        Math.max(
+          0,
+          startVolume *
+          (
+            1 -
+            eased
+          )
+        );
+
+
+      if (
+        progress < 1
+      ) {
+
+        openingThemeFadeFrame =
+          requestAnimationFrame(
+            fadeStep
+          );
+
+      }
+
+      else {
+
+        openingThemeAudio.pause();
+
+        openingThemeAudio.currentTime =
+          0;
+
+        openingThemeAudio.volume =
+          1;
+
+        openingThemeFadeFrame =
+          null;
+
+      }
+
+    };
+
+
+  openingThemeFadeFrame =
+    requestAnimationFrame(
+      fadeStep
+    );
+
+}
+
+
+function enableOpeningThemeFallback() {
+
+  const retryFromGesture =
+    event => {
+
+      if (
+        openingThemeDismissed ||
+        gameStarted
+      ) {
+
+        cleanup();
+
+        return;
+
+      }
+
+
+      const target =
+        event.target;
+
+
+      if (
+        target &&
+        target.closest &&
+        target.closest(
+          "#newGameBtn"
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      attemptOpeningThemePlayback();
+
+
+      if (
+        openingThemeStarted
+      ) {
+
+        cleanup();
+
+      }
+
+    };
+
+
+  const cleanup =
+    () => {
+
+      window.removeEventListener(
+        "pointerdown",
+        retryFromGesture,
+        true
+      );
+
+      window.removeEventListener(
+        "keydown",
+        retryFromGesture,
+        true
+      );
+
+    };
+
+
+  window.addEventListener(
+    "pointerdown",
+    retryFromGesture,
+    true
+  );
+
+
+  window.addEventListener(
+    "keydown",
+    retryFromGesture,
+    true
+  );
+
+}
+
+
 function playSoundForMove(move) {
 
   if (
@@ -2784,9 +3210,7 @@ function playSoundForMove(move) {
 
   else {
 
-    playSound(
-      "move"
-    );
+    playRandomMoveSound();
 
   }
 
@@ -4689,6 +5113,21 @@ function initializeControls() {
 
         playMenuClick();
 
+        if (
+          !gameStarted &&
+          !openingThemeDismissed
+        ) {
+
+          attemptOpeningThemePlayback();
+
+        }
+
+      }
+
+      else {
+
+        stopOpeningThemeImmediately();
+
       }
 
     }
@@ -5780,6 +6219,11 @@ function endCurrentGame() {
 
 
 function beginGame() {
+
+  fadeOutOpeningTheme(
+    7000
+  );
+
 
   clearMoveGhost();
 
@@ -10358,6 +10802,11 @@ window.addEventListener(
 engine.postMessage(
   "uci"
 );
+
+
+attemptOpeningThemePlayback();
+
+enableOpeningThemeFallback();
 
 
 initializeControls();
