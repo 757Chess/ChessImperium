@@ -4815,6 +4815,8 @@ function initializeControls() {
         "click",
         function() {
 
+          playMenuClick();
+
           playerFormationChoice =
             formation.code;
 
@@ -4886,6 +4888,8 @@ function initializeControls() {
     "click",
     function() {
 
+      playMenuClick();
+
       playerFormationChoice =
         "RANDOM";
 
@@ -4911,6 +4915,8 @@ function initializeControls() {
   computerFormationSelect.addEventListener(
     "change",
     function() {
+
+      playMenuClick();
 
       computerFormationChoice =
         computerFormationSelect.value;
