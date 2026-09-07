@@ -672,6 +672,53 @@ select {
   }
 }
 
+
+.piece.checkmate-attacker-piece {
+  animation:checkmateAttackerPulse 1.35s ease-in-out infinite;
+  transform-origin:center;
+}
+
+@keyframes checkmateAttackerPulse {
+  0%,100% {
+    transform:scale(1);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 6px rgba(41,136,71,.58))
+      drop-shadow(0 0 12px rgba(41,136,71,.34));
+  }
+
+  50% {
+    transform:scale(1.085);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 13px rgba(54,176,92,.92))
+      drop-shadow(0 0 24px rgba(41,136,71,.62));
+  }
+}
+
+.piece.checkmated-king-piece {
+  animation:checkmatedKingPulse 1.35s ease-in-out infinite;
+  transform-origin:center;
+}
+
+@keyframes checkmatedKingPulse {
+  0%,100% {
+    transform:scale(1);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 6px rgba(142,32,38,.58))
+      drop-shadow(0 0 12px rgba(142,32,38,.34));
+  }
+
+  50% {
+    transform:scale(1.085);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 13px rgba(186,41,48,.95))
+      drop-shadow(0 0 25px rgba(142,32,38,.65));
+  }
+}
+
 @media (prefers-reduced-motion:reduce) {
   .piece.capture-target-piece {
     animation:none;
@@ -687,6 +734,22 @@ select {
       drop-shadow(0 1px 2px rgba(0,0,0,.18))
       drop-shadow(0 0 8px rgba(201,158,61,.76))
       drop-shadow(0 0 16px rgba(201,158,61,.46));
+  }
+
+  .piece.checkmate-attacker-piece {
+    animation:none;
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 9px rgba(41,136,71,.82))
+      drop-shadow(0 0 18px rgba(41,136,71,.48));
+  }
+
+  .piece.checkmated-king-piece {
+    animation:none;
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 9px rgba(142,32,38,.82))
+      drop-shadow(0 0 18px rgba(142,32,38,.48));
   }
 }
 
@@ -809,6 +872,25 @@ select {
   color:#7c2026;
   background:linear-gradient(180deg,#fffafa 0%,#f4e4e4 100%);
   border:2px solid rgba(142,32,38,.55);
+}
+
+
+.status-box.draw {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-family:Georgia, "Times New Roman", serif;
+  font-size:19px;
+  line-height:1.15;
+  font-weight:750;
+  letter-spacing:.5px;
+  color:#5d4a22;
+  background:linear-gradient(180deg,#fffdf8 0%,#eee4cf 100%);
+  border:2px solid rgba(166,132,66,.62);
+  box-shadow:
+    0 0 0 2px rgba(166,132,66,.08),
+    0 4px 12px rgba(72,57,29,.09);
 }
 
 .engine {
@@ -5986,6 +6068,12 @@ function drawBoard() {
   const checkedSquare =
     findCheckedKingSquare();
 
+  const checkmateAttackerSquare =
+    findCheckmateAttackerSquare();
+
+  const checkmatedKingSquare =
+    findCheckmatedKingSquare();
+
 
   for (
     let row=0;
@@ -6186,15 +6274,45 @@ function drawBoard() {
             "img"
           );
 
+        let pieceClassName =
+          "piece";
+
+        if (
+          isActiveDragSource
+        ) {
+
+          pieceClassName +=
+            " drag-source-piece";
+
+        }
+
+        else {
+
+          if (
+            isCaptureTarget
+          ) {
+            pieceClassName +=
+              " capture-target-piece";
+          }
+
+          if (
+            squareName === checkmateAttackerSquare
+          ) {
+            pieceClassName +=
+              " checkmate-attacker-piece";
+          }
+
+          if (
+            squareName === checkmatedKingSquare
+          ) {
+            pieceClassName +=
+              " checkmated-king-piece";
+          }
+
+        }
 
         image.className =
-          isActiveDragSource
-            ? "piece drag-source-piece"
-            : (
-                isCaptureTarget
-                  ? "piece capture-target-piece"
-                  : "piece"
-              );
+          pieceClassName;
 
 
         image.src =
@@ -8676,6 +8794,104 @@ function findCheckedKingSquare() {
 }
 
 
+function findKingSquareForColor(
+  color
+) {
+
+  if (
+    !game ||
+    !color
+  ) {
+
+    return null;
+
+  }
+
+
+  const board =
+    game.board();
+
+
+  for (
+    let row=0;
+    row<8;
+    row++
+  ) {
+
+    for (
+      let column=0;
+      column<8;
+      column++
+    ) {
+
+      const piece =
+        board[row][column];
+
+
+      if (
+        piece &&
+        piece.type === "k" &&
+        piece.color === color
+      ) {
+
+        return (
+
+          "abcdefgh"[column] +
+          (
+            8 - row
+          )
+
+        );
+
+      }
+
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+function findCheckmatedKingSquare() {
+
+  if (
+    !game ||
+    !game.isCheckmate()
+  ) {
+
+    return null;
+
+  }
+
+
+  return findKingSquareForColor(
+    game.turn()
+  );
+
+}
+
+
+function findCheckmateAttackerSquare() {
+
+  if (
+    !game ||
+    !game.isCheckmate() ||
+    !lastMove
+  ) {
+
+    return null;
+
+  }
+
+
+  return lastMove.to;
+
+}
+
+
 
 /* ===================================================== */
 /* MOVE HISTORY                                          */
@@ -9272,7 +9488,8 @@ function updateStatus() {
     ) {
 
       setStatus(
-        "Draw by stalemate."
+        "DRAW — STALEMATE",
+        "draw"
       );
 
 
@@ -9286,7 +9503,8 @@ function updateStatus() {
     ) {
 
       setStatus(
-        "Draw by repetition."
+        "DRAW — THREEFOLD REPETITION",
+        "draw"
       );
 
 
@@ -9300,7 +9518,8 @@ function updateStatus() {
     ) {
 
       setStatus(
-        "Draw by insufficient material."
+        "DRAW — INSUFFICIENT MATERIAL",
+        "draw"
       );
 
 
@@ -9310,7 +9529,8 @@ function updateStatus() {
 
 
     setStatus(
-      "Draw."
+      "DRAW",
+      "draw"
     );
 
 
@@ -9382,7 +9602,8 @@ function setStatus(
 
   statusBox.classList.remove(
     "victory",
-    "defeat"
+    "defeat",
+    "draw"
   );
 
   if (
