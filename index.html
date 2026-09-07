@@ -2298,6 +2298,8 @@ const PROMOTION_NAMES = {
 /* ===================================================== */
 
 const MENU_CLICK_VOLUME = 1;
+const MOVE_SOUND_VOLUME = .68;
+const CAPTURE_SOUND_VOLUME = .68;
 
 
 const SOUND_FILES = {
@@ -2332,64 +2334,23 @@ const OPENING_THEME_FILE =
   "./openingtheme.mp3";
 
 
-const SOUND_CACHE =
-  {};
-
-const activeSounds =
-  new Set();
-
-Object.entries(SOUND_FILES).forEach(
-  ([name,file]) => {
-
-    const audio =
-      new Audio(file);
-
-    audio.preload =
-      "auto";
-
-    audio.load();
-
-    SOUND_CACHE[name] =
-      audio;
-
-  }
-);
+const AudioContextClass =
+  window.AudioContext ||
+  window.webkitAudioContext;
 
 
-const MOVE_SOUND_CACHE =
-  MOVE_SOUND_FILES.map(
-    file => {
-
-      const audio =
-        new Audio(file);
-
-      audio.preload =
-        "auto";
-
-      audio.load();
-
-      return audio;
-
-    }
-  );
+const audioContext =
+  AudioContextClass
+    ? new AudioContextClass()
+    : null;
 
 
-const CHECK_SOUND_CACHE =
-  CHECK_SOUND_FILES.map(
-    file => {
+const audioBuffers =
+  new Map();
 
-      const audio =
-        new Audio(file);
 
-      audio.preload =
-        "auto";
-
-      audio.load();
-
-      return audio;
-
-    }
-  );
+const audioLoadPromises =
+  new Map();
 
 
 let lastMoveSoundIndex =
@@ -2402,32 +2363,300 @@ const checkSequenceIndexBySide = {
 };
 
 
-const openingThemeAudio =
-  new Audio(
-    OPENING_THEME_FILE
-  );
-
-
-openingThemeAudio.preload =
-  "auto";
-
-
-openingThemeAudio.loop =
-  false;
-
-
-openingThemeAudio.volume =
-  1;
-
-
-openingThemeAudio.load();
-
-
-let openingThemeFadeFrame =
+let openingThemeSource =
   null;
 
 
-function playOpeningTheme() {
+let openingThemeGain =
+  null;
+
+
+function registerAudioBuffer(
+  key,
+  file
+) {
+
+  if (
+    !audioContext
+  ) {
+
+    return;
+
+  }
+
+
+  const loadPromise =
+    fetch(file)
+      .then(
+        response => {
+
+          if (
+            !response.ok
+          ) {
+
+            throw new Error(
+              "Failed to load audio: " +
+              file
+            );
+
+          }
+
+
+          return response.arrayBuffer();
+
+        }
+      )
+      .then(
+        arrayBuffer =>
+          audioContext.decodeAudioData(
+            arrayBuffer
+          )
+      )
+      .then(
+        buffer => {
+
+          audioBuffers.set(
+            key,
+            buffer
+          );
+
+
+          return buffer;
+
+        }
+      )
+      .catch(
+        error => {
+
+          console.log(
+            "Audio preload failed:",
+            file,
+            error
+          );
+
+
+          return null;
+
+        }
+      );
+
+
+  audioLoadPromises.set(
+    key,
+    loadPromise
+  );
+
+}
+
+
+Object.entries(SOUND_FILES).forEach(
+  ([name,file]) => {
+
+    registerAudioBuffer(
+      name,
+      file
+    );
+
+  }
+);
+
+
+MOVE_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "move" + index,
+      file
+    );
+
+  }
+);
+
+
+CHECK_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "check" + index,
+      file
+    );
+
+  }
+);
+
+
+registerAudioBuffer(
+  "openingtheme",
+  OPENING_THEME_FILE
+);
+
+
+async function ensureAudioContextReady() {
+
+  if (
+    !audioContext
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    audioContext.state === "suspended"
+  ) {
+
+    try {
+
+      await audioContext.resume();
+
+    }
+    catch(error) {
+
+      console.log(
+        "Audio context resume failed:",
+        error
+      );
+
+      return false;
+
+    }
+
+  }
+
+
+  return (
+    audioContext.state === "running"
+  );
+
+}
+
+
+async function getAudioBuffer(
+  key
+) {
+
+  if (
+    audioBuffers.has(
+      key
+    )
+  ) {
+
+    return audioBuffers.get(
+      key
+    );
+
+  }
+
+
+  const loadPromise =
+    audioLoadPromises.get(
+      key
+    );
+
+
+  if (
+    !loadPromise
+  ) {
+
+    return null;
+
+  }
+
+
+  return await loadPromise;
+
+}
+
+
+async function playBufferedSound(
+  key,
+  volume = 1
+) {
+
+  if (
+    !soundEnabled
+  ) {
+
+    return null;
+
+  }
+
+
+  const ready =
+    await ensureAudioContextReady();
+
+
+  if (
+    !ready
+  ) {
+
+    return null;
+
+  }
+
+
+  const buffer =
+    await getAudioBuffer(
+      key
+    );
+
+
+  if (
+    !buffer
+  ) {
+
+    return null;
+
+  }
+
+
+  const source =
+    audioContext.createBufferSource();
+
+
+  const gain =
+    audioContext.createGain();
+
+
+  source.buffer =
+    buffer;
+
+
+  gain.gain.value =
+    Math.max(
+      0,
+      Math.min(
+        1,
+        volume
+      )
+    );
+
+
+  source.connect(
+    gain
+  );
+
+
+  gain.connect(
+    audioContext.destination
+  );
+
+
+  source.start(
+    0
+  );
+
+
+  return {
+    source,
+    gain
+  };
+
+}
+
+
+async function playOpeningTheme() {
 
   if (
     !soundEnabled
@@ -2438,38 +2667,93 @@ function playOpeningTheme() {
   }
 
 
+  stopOpeningTheme();
+
+
+  const ready =
+    await ensureAudioContextReady();
+
+
   if (
-    openingThemeFadeFrame
+    !ready
   ) {
 
-    cancelAnimationFrame(
-      openingThemeFadeFrame
-    );
-
-    openingThemeFadeFrame =
-      null;
+    return;
 
   }
 
 
-  openingThemeAudio.pause();
-
-  openingThemeAudio.currentTime =
-    0;
-
-  openingThemeAudio.volume =
-    1;
+  const buffer =
+    await getAudioBuffer(
+      "openingtheme"
+    );
 
 
-  openingThemeAudio.play().catch(
-    error => {
+  if (
+    !buffer
+  ) {
 
-      console.log(
-        "Opening theme playback blocked:",
-        error
-      );
+    return;
 
-    }
+  }
+
+
+  openingThemeSource =
+    audioContext.createBufferSource();
+
+
+  openingThemeGain =
+    audioContext.createGain();
+
+
+  openingThemeSource.buffer =
+    buffer;
+
+
+  openingThemeGain.gain.setValueAtTime(
+    1,
+    audioContext.currentTime
+  );
+
+
+  openingThemeSource.connect(
+    openingThemeGain
+  );
+
+
+  openingThemeGain.connect(
+    audioContext.destination
+  );
+
+
+  const sourceAtStart =
+    openingThemeSource;
+
+
+  openingThemeSource.addEventListener(
+    "ended",
+    () => {
+
+      if (
+        openingThemeSource ===
+        sourceAtStart
+      ) {
+
+        openingThemeSource =
+          null;
+
+        openingThemeGain =
+          null;
+
+      }
+
+    },
+    {once:true}
+  );
+
+
+  openingThemeSource.start(
+    0
   );
 
 }
@@ -2478,26 +2762,29 @@ function playOpeningTheme() {
 function stopOpeningTheme() {
 
   if (
-    openingThemeFadeFrame
+    openingThemeSource
   ) {
 
-    cancelAnimationFrame(
-      openingThemeFadeFrame
-    );
+    try {
 
-    openingThemeFadeFrame =
-      null;
+      openingThemeSource.stop();
+
+    }
+    catch(error) {
+
+      /* Already stopped. */
+
+    }
 
   }
 
 
-  openingThemeAudio.pause();
+  openingThemeSource =
+    null;
 
-  openingThemeAudio.currentTime =
-    0;
 
-  openingThemeAudio.volume =
-    1;
+  openingThemeGain =
+    null;
 
 }
 
@@ -2507,22 +2794,9 @@ function fadeOutOpeningTheme(
 ) {
 
   if (
-    openingThemeFadeFrame
-  ) {
-
-    cancelAnimationFrame(
-      openingThemeFadeFrame
-    );
-
-    openingThemeFadeFrame =
-      null;
-
-  }
-
-
-  if (
-    openingThemeAudio.paused ||
-    openingThemeAudio.ended
+    !audioContext ||
+    !openingThemeSource ||
+    !openingThemeGain
   ) {
 
     return;
@@ -2530,75 +2804,71 @@ function fadeOutOpeningTheme(
   }
 
 
-  const startVolume =
-    openingThemeAudio.volume;
+  const now =
+    audioContext.currentTime;
 
 
-  const startTime =
-    performance.now();
+  const durationSeconds =
+    Math.max(
+      .05,
+      duration / 1000
+    );
 
 
-  const fadeStep =
-    now => {
-
-      const progress =
-        Math.min(
-          1,
-          (
-            now -
-            startTime
-          ) /
-          duration
-        );
+  openingThemeGain.gain.cancelScheduledValues(
+    now
+  );
 
 
-      openingThemeAudio.volume =
-        Math.max(
-          0,
-          startVolume *
-          (
-            1 -
-            progress
-          )
-        );
+  openingThemeGain.gain.setValueAtTime(
+    openingThemeGain.gain.value,
+    now
+  );
 
+
+  openingThemeGain.gain.linearRampToValueAtTime(
+    0,
+    now + durationSeconds
+  );
+
+
+  const sourceToStop =
+    openingThemeSource;
+
+
+  window.setTimeout(
+    () => {
 
       if (
-        progress < 1
+        openingThemeSource ===
+        sourceToStop
       ) {
 
-        openingThemeFadeFrame =
-          requestAnimationFrame(
-            fadeStep
-          );
+        try {
 
-      }
+          sourceToStop.stop();
 
-      else {
+        }
+        catch(error) {
 
-        openingThemeAudio.pause();
+          /* Already ended naturally. */
 
-        openingThemeAudio.currentTime =
-          0;
+        }
 
-        openingThemeAudio.volume =
-          1;
 
-        openingThemeFadeFrame =
+        openingThemeSource =
+          null;
+
+        openingThemeGain =
           null;
 
       }
 
-    };
-
-
-  openingThemeFadeFrame =
-    requestAnimationFrame(
-      fadeStep
-    );
+    },
+    duration + 80
+  );
 
 }
-
 
 
 /* ===================================================== */
@@ -2910,78 +3180,9 @@ function playSound(
   volume = 1
 ) {
 
-  if (
-    !soundEnabled
-  ) {
-    return;
-  }
-
-
-  const cachedAudio =
-    SOUND_CACHE[name];
-
-
-  if (
-    !cachedAudio
-  ) {
-    return;
-  }
-
-
-  const audio =
-    cachedAudio.cloneNode(true);
-
-
-  audio.volume =
-    Math.max(
-      0,
-      Math.min(
-        1,
-        volume
-      )
-    );
-
-
-  activeSounds.add(
-    audio
-  );
-
-
-  const releaseAudio =
-    () => {
-
-      activeSounds.delete(
-        audio
-      );
-
-    };
-
-
-  audio.addEventListener(
-    "ended",
-    releaseAudio,
-    {once:true}
-  );
-
-
-  audio.addEventListener(
-    "error",
-    releaseAudio,
-    {once:true}
-  );
-
-
-  audio.play().catch(
-    error => {
-
-      releaseAudio();
-
-      console.log(
-        "Audio playback blocked:",
-        error
-      );
-
-    }
+  playBufferedSound(
+    name,
+    volume
   );
 
 }
@@ -3001,7 +3202,7 @@ function playRandomMoveSound() {
 
   if (
     !soundEnabled ||
-    MOVE_SOUND_CACHE.length === 0
+    MOVE_SOUND_FILES.length === 0
   ) {
 
     return;
@@ -3014,7 +3215,7 @@ function playRandomMoveSound() {
 
 
   if (
-    MOVE_SOUND_CACHE.length === 1
+    MOVE_SOUND_FILES.length === 1
   ) {
 
     nextIndex =
@@ -3029,7 +3230,7 @@ function playRandomMoveSound() {
       nextIndex =
         Math.floor(
           Math.random() *
-          MOVE_SOUND_CACHE.length
+          MOVE_SOUND_FILES.length
         );
 
     }
@@ -3045,56 +3246,9 @@ function playRandomMoveSound() {
     nextIndex;
 
 
-  const audio =
-    MOVE_SOUND_CACHE[
-      nextIndex
-    ].cloneNode(true);
-
-
-  audio.volume =
-    1;
-
-
-  activeSounds.add(
-    audio
-  );
-
-
-  const releaseAudio =
-    () => {
-
-      activeSounds.delete(
-        audio
-      );
-
-    };
-
-
-  audio.addEventListener(
-    "ended",
-    releaseAudio,
-    {once:true}
-  );
-
-
-  audio.addEventListener(
-    "error",
-    releaseAudio,
-    {once:true}
-  );
-
-
-  audio.play().catch(
-    error => {
-
-      releaseAudio();
-
-      console.log(
-        "Move audio playback blocked:",
-        error
-      );
-
-    }
+  playBufferedSound(
+    "move" + nextIndex,
+    MOVE_SOUND_VOLUME
   );
 
 }
@@ -3106,7 +3260,7 @@ function playSequentialCheckSoundForSide(
 
   if (
     !soundEnabled ||
-    CHECK_SOUND_CACHE.length === 0
+    CHECK_SOUND_FILES.length === 0
   ) {
 
     return;
@@ -3124,7 +3278,7 @@ function playSequentialCheckSoundForSide(
     checkSequenceIndexBySide[
       normalizedSide
     ] %
-    CHECK_SOUND_CACHE.length;
+    CHECK_SOUND_FILES.length;
 
 
   checkSequenceIndexBySide[
@@ -3133,59 +3287,12 @@ function playSequentialCheckSoundForSide(
     (
       nextIndex + 1
     ) %
-    CHECK_SOUND_CACHE.length;
+    CHECK_SOUND_FILES.length;
 
 
-  const audio =
-    CHECK_SOUND_CACHE[
-      nextIndex
-    ].cloneNode(true);
-
-
-  audio.volume =
-    1;
-
-
-  activeSounds.add(
-    audio
-  );
-
-
-  const releaseAudio =
-    () => {
-
-      activeSounds.delete(
-        audio
-      );
-
-    };
-
-
-  audio.addEventListener(
-    "ended",
-    releaseAudio,
-    {once:true}
-  );
-
-
-  audio.addEventListener(
-    "error",
-    releaseAudio,
-    {once:true}
-  );
-
-
-  audio.play().catch(
-    error => {
-
-      releaseAudio();
-
-      console.log(
-        "Check audio playback blocked:",
-        error
-      );
-
-    }
+  playBufferedSound(
+    "check" + nextIndex,
+    1
   );
 
 }
@@ -3207,6 +3314,12 @@ function playSoundForMove(move) {
     if (
       game.isCheckmate()
     ) {
+
+      /*
+        Final move = normal physical move sound
+        plus the musical checkmate cue at the
+        same moment.
+      */
 
       playRandomMoveSound();
 
@@ -3235,8 +3348,10 @@ function playSoundForMove(move) {
   ) {
 
     playSound(
-      "capture"
+      "capture",
+      CAPTURE_SOUND_VOLUME
     );
+
 
     if (
       move.captured === "q"
@@ -3264,6 +3379,7 @@ function playSoundForMove(move) {
     const checkedSide =
       game.turn();
 
+
     setTimeout(
       () => {
 
@@ -3278,7 +3394,6 @@ function playSoundForMove(move) {
   }
 
 }
-
 
 
 /* ===================================================== */
@@ -10849,6 +10964,37 @@ window.addEventListener(
 /* ===================================================== */
 /* STARTUP                                               */
 /* ===================================================== */
+
+function unlockAudioFromGesture() {
+
+  ensureAudioContextReady();
+
+}
+
+
+window.addEventListener(
+  "pointerdown",
+  unlockAudioFromGesture,
+  {capture:true}
+);
+
+
+window.addEventListener(
+  "touchstart",
+  unlockAudioFromGesture,
+  {
+    capture:true,
+    passive:true
+  }
+);
+
+
+window.addEventListener(
+  "keydown",
+  unlockAudioFromGesture,
+  {capture:true}
+);
+
 
 engine.postMessage(
   "uci"
