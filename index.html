@@ -2303,7 +2303,7 @@ const MENU_CLICK_VOLUME = .28;
 const SOUND_FILES = {
 
   capture:"./Capture.wav",
-  check:"./Check.wav",
+  menuclick:"./menuclick.wav",
   checkmate:"./Checkmate.wav",
   draw:"./Stalemate.wav",
   invalid:"./Invalidmove.wav",
@@ -2860,7 +2860,7 @@ function playSound(
 function playMenuClick() {
 
   playSound(
-    "check",
+    "menuclick",
     MENU_CLICK_VOLUME
   );
 
@@ -5031,8 +5031,6 @@ function initializeControls() {
   newGameBtn.addEventListener(
     "click",
     function() {
-
-      playMenuClick();
 
       hideTooltip();
 
