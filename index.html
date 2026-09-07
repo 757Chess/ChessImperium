@@ -2306,7 +2306,6 @@ const SOUND_FILES = {
   check:"./Check.wav",
   checkmate:"./Checkmate.wav",
   draw:"./Stalemate.wav",
-  start:"./Startgame.wav",
   invalid:"./Invalidmove.wav",
   stacking:"./stackingpieces.wav"
 
@@ -2319,6 +2318,13 @@ const MOVE_SOUND_FILES = [
   "./move3.wav",
   "./move4.wav",
   "./move5.wav"
+];
+
+
+const CHECK_SOUND_FILES = [
+  "./check1.wav",
+  "./check2.wav",
+  "./check3.wav"
 ];
 
 
@@ -2368,8 +2374,32 @@ const MOVE_SOUND_CACHE =
   );
 
 
+const CHECK_SOUND_CACHE =
+  CHECK_SOUND_FILES.map(
+    file => {
+
+      const audio =
+        new Audio(file);
+
+      audio.preload =
+        "auto";
+
+      audio.load();
+
+      return audio;
+
+    }
+  );
+
+
 let lastMoveSoundIndex =
   -1;
+
+
+const checkSequenceIndexBySide = {
+  w:0,
+  b:0
+};
 
 
 const openingThemeAudio =
@@ -2940,6 +2970,97 @@ function playRandomMoveSound() {
 }
 
 
+function playSequentialCheckSoundForSide(
+  side
+) {
+
+  if (
+    !soundEnabled ||
+    CHECK_SOUND_CACHE.length === 0
+  ) {
+
+    return;
+
+  }
+
+
+  const normalizedSide =
+    side === "b"
+      ? "b"
+      : "w";
+
+
+  const nextIndex =
+    checkSequenceIndexBySide[
+      normalizedSide
+    ] %
+    CHECK_SOUND_CACHE.length;
+
+
+  checkSequenceIndexBySide[
+    normalizedSide
+  ] =
+    (
+      nextIndex + 1
+    ) %
+    CHECK_SOUND_CACHE.length;
+
+
+  const audio =
+    CHECK_SOUND_CACHE[
+      nextIndex
+    ].cloneNode(true);
+
+
+  audio.volume =
+    1;
+
+
+  activeSounds.add(
+    audio
+  );
+
+
+  const releaseAudio =
+    () => {
+
+      activeSounds.delete(
+        audio
+      );
+
+    };
+
+
+  audio.addEventListener(
+    "ended",
+    releaseAudio,
+    {once:true}
+  );
+
+
+  audio.addEventListener(
+    "error",
+    releaseAudio,
+    {once:true}
+  );
+
+
+  audio.play().catch(
+    error => {
+
+      releaseAudio();
+
+      console.log(
+        "Check audio playback blocked:",
+        error
+      );
+
+    }
+  );
+
+}
+
+
 function playSoundForMove(move) {
 
   if (
@@ -2998,11 +3119,14 @@ function playSoundForMove(move) {
     game.inCheck()
   ) {
 
+    const checkedSide =
+      game.turn();
+
     setTimeout(
       () => {
 
-        playSound(
-          "check"
+        playSequentialCheckSoundForSide(
+          checkedSide
         );
 
       },
@@ -6067,6 +6191,12 @@ function beginGame(
   undosRemaining =
     3;
 
+  checkSequenceIndexBySide.w =
+    0;
+
+  checkSequenceIndexBySide.b =
+    0;
+
 
   hidePromotion();
 
@@ -6166,11 +6296,6 @@ function beginGame(
 
   setTimeout(
     () => {
-
-      playSound(
-        "start"
-      );
-
 
       showRuleToast();
 
