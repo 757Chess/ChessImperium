@@ -778,6 +778,39 @@ select {
   font-size:14px;
 }
 
+.status-box.victory {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-family:Georgia, "Times New Roman", serif;
+  font-size:21px;
+  line-height:1.15;
+  font-weight:800;
+  letter-spacing:.7px;
+  color:#1f5f32;
+  background:linear-gradient(180deg,#fffdf7 0%,#f4ead2 100%);
+  border:2px solid #c99e3d;
+  box-shadow:
+    0 0 0 2px rgba(201,158,61,.10),
+    0 5px 14px rgba(90,63,17,.12);
+}
+
+.status-box.defeat {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-family:Georgia, "Times New Roman", serif;
+  font-size:19px;
+  line-height:1.15;
+  font-weight:750;
+  letter-spacing:.45px;
+  color:#7c2026;
+  background:linear-gradient(180deg,#fffafa 0%,#f4e4e4 100%);
+  border:2px solid rgba(142,32,38,.55);
+}
+
 .engine {
   margin-top:5px;
   font-size:11px;
@@ -2199,14 +2232,25 @@ const SOUND_FILES = {
 };
 
 
-Object.values(SOUND_FILES).forEach(
-  file => {
+const SOUND_CACHE =
+  {};
+
+const activeSounds =
+  new Set();
+
+Object.entries(SOUND_FILES).forEach(
+  ([name,file]) => {
 
     const audio =
       new Audio(file);
 
     audio.preload =
       "auto";
+
+    audio.load();
+
+    SOUND_CACHE[name] =
+      audio;
 
   }
 );
@@ -2529,19 +2573,19 @@ function playSound(
   }
 
 
-  const file =
-    SOUND_FILES[name];
+  const cachedAudio =
+    SOUND_CACHE[name];
 
 
   if (
-    !file
+    !cachedAudio
   ) {
     return;
   }
 
 
   const audio =
-    new Audio(file);
+    cachedAudio.cloneNode(true);
 
 
   audio.volume =
@@ -2554,8 +2598,39 @@ function playSound(
     );
 
 
+  activeSounds.add(
+    audio
+  );
+
+
+  const releaseAudio =
+    () => {
+
+      activeSounds.delete(
+        audio
+      );
+
+    };
+
+
+  audio.addEventListener(
+    "ended",
+    releaseAudio,
+    {once:true}
+  );
+
+
+  audio.addEventListener(
+    "error",
+    releaseAudio,
+    {once:true}
+  );
+
+
   audio.play().catch(
     error => {
+
+      releaseAudio();
 
       console.log(
         "Audio playback blocked:",
@@ -8541,6 +8616,7 @@ function findCheckedKingSquare() {
 
   if (
     !game ||
+    game.isGameOver() ||
     !game.inCheck()
   ) {
 
@@ -9165,15 +9241,25 @@ function updateStatus() {
           : "w";
 
 
-      setStatus(
-
+      if (
         winner === playerColor
+      ) {
 
-          ? "Checkmate — you win!"
+        setStatus(
+          "VICTORY — CHECKMATE",
+          "victory"
+        );
 
-          : "Checkmate — Stockfish wins."
+      }
 
-      );
+      else {
+
+        setStatus(
+          "DEFEAT — CHECKMATE",
+          "defeat"
+        );
+
+      }
 
 
       return;
@@ -9287,11 +9373,25 @@ function updateStatus() {
 
 
 function setStatus(
-  text
+  text,
+  state = ""
 ) {
 
   statusBox.textContent =
     text;
+
+  statusBox.classList.remove(
+    "victory",
+    "defeat"
+  );
+
+  if (
+    state
+  ) {
+    statusBox.classList.add(
+      state
+    );
+  }
 
 }
 
