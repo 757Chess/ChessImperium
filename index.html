@@ -2306,8 +2306,7 @@ const SOUND_FILES = {
   menuclick:"./menuclick.wav",
   checkmate:"./Checkmate.wav",
   draw:"./Stalemate.wav",
-  invalid:"./Invalidmove.wav",
-  stacking:"./stackingpieces.wav"
+  invalid:"./Invalidmove.wav"
 
 };
 
@@ -2423,6 +2422,10 @@ openingThemeAudio.volume =
 openingThemeAudio.load();
 
 
+let openingThemeFadeFrame =
+  null;
+
+
 function playOpeningTheme() {
 
   if (
@@ -2430,6 +2433,20 @@ function playOpeningTheme() {
   ) {
 
     return;
+
+  }
+
+
+  if (
+    openingThemeFadeFrame
+  ) {
+
+    cancelAnimationFrame(
+      openingThemeFadeFrame
+    );
+
+    openingThemeFadeFrame =
+      null;
 
   }
 
@@ -2459,6 +2476,20 @@ function playOpeningTheme() {
 
 function stopOpeningTheme() {
 
+  if (
+    openingThemeFadeFrame
+  ) {
+
+    cancelAnimationFrame(
+      openingThemeFadeFrame
+    );
+
+    openingThemeFadeFrame =
+      null;
+
+  }
+
+
   openingThemeAudio.pause();
 
   openingThemeAudio.currentTime =
@@ -2466,6 +2497,104 @@ function stopOpeningTheme() {
 
   openingThemeAudio.volume =
     1;
+
+}
+
+
+function fadeOutOpeningTheme(
+  duration = 5000
+) {
+
+  if (
+    openingThemeFadeFrame
+  ) {
+
+    cancelAnimationFrame(
+      openingThemeFadeFrame
+    );
+
+    openingThemeFadeFrame =
+      null;
+
+  }
+
+
+  if (
+    openingThemeAudio.paused ||
+    openingThemeAudio.ended
+  ) {
+
+    return;
+
+  }
+
+
+  const startVolume =
+    openingThemeAudio.volume;
+
+
+  const startTime =
+    performance.now();
+
+
+  const fadeStep =
+    now => {
+
+      const progress =
+        Math.min(
+          1,
+          (
+            now -
+            startTime
+          ) /
+          duration
+        );
+
+
+      openingThemeAudio.volume =
+        Math.max(
+          0,
+          startVolume *
+          (
+            1 -
+            progress
+          )
+        );
+
+
+      if (
+        progress < 1
+      ) {
+
+        openingThemeFadeFrame =
+          requestAnimationFrame(
+            fadeStep
+          );
+
+      }
+
+      else {
+
+        openingThemeAudio.pause();
+
+        openingThemeAudio.currentTime =
+          0;
+
+        openingThemeAudio.volume =
+          1;
+
+        openingThemeFadeFrame =
+          null;
+
+      }
+
+    };
+
+
+  openingThemeFadeFrame =
+    requestAnimationFrame(
+      fadeStep
+    );
 
 }
 
@@ -3698,11 +3827,6 @@ function animateFormationAssembly(side) {
       }
 
     }
-  );
-
-
-  playSound(
-    "stacking"
   );
 
 
@@ -6041,6 +6165,11 @@ function rematchCurrentGame() {
 
 
 function endCurrentGame() {
+
+  fadeOutOpeningTheme(
+    5000
+  );
+
 
   cancelPieceDrag();
 
