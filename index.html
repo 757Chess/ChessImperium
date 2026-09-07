@@ -2303,6 +2303,7 @@ const MENU_CLICK_VOLUME = 1;
 const SOUND_FILES = {
 
   capture:"./Capture.wav",
+  queencapture:"./queencapture.wav",
   menuclick:"./menuclick.wav",
   checkmate:"./Checkmate.wav",
   draw:"./Stalemate.wav",
@@ -3236,6 +3237,16 @@ function playSoundForMove(move) {
     playSound(
       "capture"
     );
+
+    if (
+      move.captured === "q"
+    ) {
+
+      playSound(
+        "queencapture"
+      );
+
+    }
 
   }
 
