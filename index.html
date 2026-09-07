@@ -2393,16 +2393,51 @@ openingThemeAudio.volume =
 openingThemeAudio.load();
 
 
-let openingThemeStarted =
-  false;
+function playOpeningTheme() {
+
+  if (
+    !soundEnabled
+  ) {
+
+    return;
+
+  }
 
 
-let openingThemeDismissed =
-  false;
+  openingThemeAudio.pause();
+
+  openingThemeAudio.currentTime =
+    0;
+
+  openingThemeAudio.volume =
+    1;
 
 
-let openingThemeFadeFrame =
-  null;
+  openingThemeAudio.play().catch(
+    error => {
+
+      console.log(
+        "Opening theme playback blocked:",
+        error
+      );
+
+    }
+  );
+
+}
+
+
+function stopOpeningTheme() {
+
+  openingThemeAudio.pause();
+
+  openingThemeAudio.currentTime =
+    0;
+
+  openingThemeAudio.volume =
+    1;
+
+}
 
 
 
@@ -2900,288 +2935,6 @@ function playRandomMoveSound() {
       );
 
     }
-  );
-
-}
-
-
-function attemptOpeningThemePlayback() {
-
-  if (
-    openingThemeDismissed ||
-    openingThemeStarted ||
-    gameStarted ||
-    !soundEnabled
-  ) {
-
-    return;
-
-  }
-
-
-  openingThemeAudio.play()
-    .then(
-      () => {
-
-        openingThemeStarted =
-          true;
-
-      }
-    )
-    .catch(
-      () => {
-
-        /* Browser may require a user gesture. */
-      }
-    );
-
-}
-
-
-function stopOpeningThemeImmediately() {
-
-  if (
-    openingThemeFadeFrame
-  ) {
-
-    cancelAnimationFrame(
-      openingThemeFadeFrame
-    );
-
-    openingThemeFadeFrame =
-      null;
-
-  }
-
-
-  openingThemeAudio.pause();
-
-}
-
-
-function fadeOutOpeningTheme(
-  duration = 7000
-) {
-
-  openingThemeDismissed =
-    true;
-
-
-  if (
-    openingThemeFadeFrame
-  ) {
-
-    cancelAnimationFrame(
-      openingThemeFadeFrame
-    );
-
-    openingThemeFadeFrame =
-      null;
-
-  }
-
-
-  if (
-    openingThemeAudio.ended
-  ) {
-
-    openingThemeAudio.pause();
-
-    openingThemeAudio.currentTime =
-      0;
-
-    openingThemeAudio.volume =
-      1;
-
-    return;
-
-  }
-
-
-  if (
-    openingThemeAudio.paused &&
-    !openingThemeStarted
-  ) {
-
-    openingThemeAudio.play()
-      .then(
-        () => {
-
-          openingThemeStarted =
-            true;
-
-          fadeOutOpeningTheme(
-            duration
-          );
-
-        }
-      )
-      .catch(
-        () => {
-
-          openingThemeAudio.pause();
-
-          openingThemeAudio.currentTime =
-            0;
-
-          openingThemeAudio.volume =
-            1;
-
-        }
-      );
-
-    return;
-
-  }
-
-
-  const startVolume =
-    openingThemeAudio.volume;
-
-
-  const startTime =
-    performance.now();
-
-
-  const fadeStep =
-    now => {
-
-      const progress =
-        Math.min(
-          1,
-          (
-            now -
-            startTime
-          ) /
-          duration
-        );
-
-
-      const eased =
-        progress *
-        progress *
-        (
-          3 -
-          2 *
-          progress
-        );
-
-
-      openingThemeAudio.volume =
-        Math.max(
-          0,
-          startVolume *
-          (
-            1 -
-            eased
-          )
-        );
-
-
-      if (
-        progress < 1
-      ) {
-
-        openingThemeFadeFrame =
-          requestAnimationFrame(
-            fadeStep
-          );
-
-      }
-
-      else {
-
-        openingThemeAudio.pause();
-
-        openingThemeAudio.currentTime =
-          0;
-
-        openingThemeAudio.volume =
-          1;
-
-        openingThemeFadeFrame =
-          null;
-
-      }
-
-    };
-
-
-  openingThemeFadeFrame =
-    requestAnimationFrame(
-      fadeStep
-    );
-
-}
-
-
-function enableOpeningThemeFallback() {
-
-  const retryFromGesture =
-    () => {
-
-      if (
-        openingThemeDismissed ||
-        gameStarted
-      ) {
-
-        cleanup();
-
-        return;
-
-      }
-
-
-      attemptOpeningThemePlayback();
-
-
-      setTimeout(
-        () => {
-
-          if (
-            openingThemeStarted
-          ) {
-
-            cleanup();
-
-          }
-
-        },
-        0
-      );
-
-    };
-
-
-  const cleanup =
-    () => {
-
-      window.removeEventListener(
-        "pointerdown",
-        retryFromGesture,
-        true
-      );
-
-      window.removeEventListener(
-        "keydown",
-        retryFromGesture,
-        true
-      );
-
-    };
-
-
-  window.addEventListener(
-    "pointerdown",
-    retryFromGesture,
-    true
-  );
-
-
-  window.addEventListener(
-    "keydown",
-    retryFromGesture,
-    true
   );
 
 }
@@ -5139,20 +4892,11 @@ function initializeControls() {
 
         playMenuClick();
 
-        if (
-          !gameStarted &&
-          !openingThemeDismissed
-        ) {
-
-          attemptOpeningThemePlayback();
-
-        }
-
       }
 
       else {
 
-        stopOpeningThemeImmediately();
+        stopOpeningTheme();
 
       }
 
@@ -6128,7 +5872,9 @@ function startNewGame() {
     resolvePlayerColor();
 
 
-  beginGame();
+  beginGame(
+    true
+  );
 
 }
 
@@ -6244,11 +5990,17 @@ function endCurrentGame() {
 }
 
 
-function beginGame() {
+function beginGame(
+  playTheme = false
+) {
 
-  fadeOutOpeningTheme(
-    7000
-  );
+  if (
+    playTheme
+  ) {
+
+    playOpeningTheme();
+
+  }
 
 
   clearMoveGhost();
@@ -10828,11 +10580,6 @@ window.addEventListener(
 engine.postMessage(
   "uci"
 );
-
-
-attemptOpeningThemePlayback();
-
-enableOpeningThemeFallback();
 
 
 initializeControls();
