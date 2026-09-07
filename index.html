@@ -2982,7 +2982,6 @@ function fadeOutOpeningTheme(
 
 
   if (
-    openingThemeAudio.paused ||
     openingThemeAudio.ended
   ) {
 
@@ -2993,6 +2992,43 @@ function fadeOutOpeningTheme(
 
     openingThemeAudio.volume =
       1;
+
+    return;
+
+  }
+
+
+  if (
+    openingThemeAudio.paused &&
+    !openingThemeStarted
+  ) {
+
+    openingThemeAudio.play()
+      .then(
+        () => {
+
+          openingThemeStarted =
+            true;
+
+          fadeOutOpeningTheme(
+            duration
+          );
+
+        }
+      )
+      .catch(
+        () => {
+
+          openingThemeAudio.pause();
+
+          openingThemeAudio.currentTime =
+            0;
+
+          openingThemeAudio.volume =
+            1;
+
+        }
+      );
 
     return;
 
@@ -3082,7 +3118,7 @@ function fadeOutOpeningTheme(
 function enableOpeningThemeFallback() {
 
   const retryFromGesture =
-    event => {
+    () => {
 
       if (
         openingThemeDismissed ||
@@ -3096,33 +3132,23 @@ function enableOpeningThemeFallback() {
       }
 
 
-      const target =
-        event.target;
-
-
-      if (
-        target &&
-        target.closest &&
-        target.closest(
-          "#newGameBtn"
-        )
-      ) {
-
-        return;
-
-      }
-
-
       attemptOpeningThemePlayback();
 
 
-      if (
-        openingThemeStarted
-      ) {
+      setTimeout(
+        () => {
 
-        cleanup();
+          if (
+            openingThemeStarted
+          ) {
 
-      }
+            cleanup();
+
+          }
+
+        },
+        0
+      );
 
     };
 
