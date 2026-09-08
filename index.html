@@ -3358,14 +3358,9 @@ function playSequentialPieceCaptureSound(
       : "w";
 
 
-  let files =
-    null;
-
-  let sequence =
-    null;
-
-  let keyPrefix =
-    "";
+  let files;
+  let sequence;
+  let keyPrefix;
 
 
   if (
@@ -3406,6 +3401,7 @@ function playSequentialPieceCaptureSound(
 
 
   if (
+    !files ||
     files.length === 0
   ) {
 
@@ -3494,21 +3490,6 @@ function playSoundForMove(move) {
 
 
     if (
-      move.captured === "q"
-    ) {
-
-      playSound(
-        "capture",
-        CAPTURE_SOUND_VOLUME
-      );
-
-      playSound(
-        "queencapture"
-      );
-
-    }
-
-    else if (
       move.captured === "n" ||
       move.captured === "r"
     ) {
@@ -3526,6 +3507,17 @@ function playSoundForMove(move) {
         "capture",
         CAPTURE_SOUND_VOLUME
       );
+
+
+      if (
+        move.captured === "q"
+      ) {
+
+        playSound(
+          "queencapture"
+        );
+
+      }
 
     }
 
