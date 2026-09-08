@@ -2363,8 +2363,7 @@ const CHECK_SOUND_FILES = [
 
 const KNIGHT_CAPTURE_SOUND_FILES = [
   "./knightcapture1.wav",
-  "./knightcapture2.wav",
-  "./knightcapture3.wav"
+  "./knightcapture2.wav"
 ];
 
 
@@ -3656,7 +3655,6 @@ function playSoundForMove(move) {
 
 
     if (
-      move.captured === "n" ||
       move.captured === "r"
     ) {
 
@@ -3668,6 +3666,7 @@ function playSoundForMove(move) {
     }
 
     else if (
+      move.captured === "n" ||
       move.captured === "b"
     ) {
 
@@ -8341,6 +8340,22 @@ function finishPieceDrag(
 
     return;
   }
+
+  if (
+    destination === state.from
+  ) {
+
+    selectedSquare =
+      null;
+
+    legalMoves =
+      [];
+
+    drawBoard();
+
+    return;
+  }
+
 
   selectedSquare =
     state.from;
