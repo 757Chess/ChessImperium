@@ -3573,9 +3573,24 @@ function playSoundForMove(move) {
 
     if (
       move.captured === "n" ||
-      move.captured === "r" ||
+      move.captured === "r"
+    ) {
+
+      playSequentialPieceCaptureSound(
+        move.captured,
+        capturedSide
+      );
+
+    }
+
+    else if (
       move.captured === "b"
     ) {
+
+      playSound(
+        "capture",
+        CAPTURE_SOUND_VOLUME
+      );
 
       playSequentialPieceCaptureSound(
         move.captured,
