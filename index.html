@@ -608,12 +608,7 @@ select {
 }
 
 .check::after {
-  content:"";
-  position:absolute;
-  inset:4px;
-  border:4px solid var(--check);
-  border-radius:6px;
-  pointer-events:none;
+  content:none;
 }
 
 .move-dot {
@@ -673,6 +668,32 @@ select {
 }
 
 
+.piece.checked-king-piece {
+  animation:checkedKingDangerPulse .95s ease-in-out infinite;
+  transform-origin:center;
+}
+
+@keyframes checkedKingDangerPulse {
+  0%,100% {
+    transform:scale(1);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 8px rgba(142,32,38,.78))
+      drop-shadow(0 0 16px rgba(176,40,46,.58))
+      drop-shadow(0 0 26px rgba(142,32,38,.34));
+  }
+
+  50% {
+    transform:scale(1.105);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 15px rgba(220,48,58,1))
+      drop-shadow(0 0 30px rgba(186,41,48,.82))
+      drop-shadow(0 0 46px rgba(142,32,38,.58));
+  }
+}
+
+
 .piece.checkmate-attacker-piece {
   animation:checkmateAttackerPulse 1.35s ease-in-out infinite;
   transform-origin:center;
@@ -720,6 +741,16 @@ select {
 }
 
 @media (prefers-reduced-motion:reduce) {
+  .piece.checked-king-piece {
+    animation:none;
+    transform:scale(1.045);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 12px rgba(220,48,58,.96))
+      drop-shadow(0 0 24px rgba(186,41,48,.74))
+      drop-shadow(0 0 38px rgba(142,32,38,.50));
+  }
+
   .piece.capture-target-piece {
     animation:none;
     filter:
@@ -7068,6 +7099,13 @@ function drawBoard() {
           ) {
             pieceClassName +=
               " capture-target-piece";
+          }
+
+          if (
+            squareName === checkedSquare
+          ) {
+            pieceClassName +=
+              " checked-king-piece";
           }
 
           if (
