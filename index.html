@@ -2374,6 +2374,18 @@ const ROOK_CAPTURE_SOUND_FILES = [
 ];
 
 
+const BISHOP_CAPTURE_SOUND_FILES = [
+  "./bishopcapture1.wav",
+  "./bishopcapture2.wav"
+];
+
+
+const QUEEN_WHOOSH_FILES = {
+  w:"./queenwhoosh1.wav",
+  b:"./queenwhoosh2.wav"
+};
+
+
 const OPENING_THEME_FILE =
   "./openingtheme.mp3";
 
@@ -2414,6 +2426,12 @@ const knightCaptureSequenceIndexBySide = {
 
 
 const rookCaptureSequenceIndexBySide = {
+  w:0,
+  b:0
+};
+
+
+const bishopCaptureSequenceIndexBySide = {
   w:0,
   b:0
 };
@@ -2562,6 +2580,29 @@ ROOK_CAPTURE_SOUND_FILES.forEach(
     );
 
   }
+);
+
+
+BISHOP_CAPTURE_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "bishopcapture" + index,
+      file
+    );
+
+  }
+);
+
+
+registerAudioBuffer(
+  "queenwhoosh-w",
+  QUEEN_WHOOSH_FILES.w
+);
+
+registerAudioBuffer(
+  "queenwhoosh-b",
+  QUEEN_WHOOSH_FILES.b
 );
 
 
@@ -3429,6 +3470,21 @@ function playSequentialPieceCaptureSound(
 
   }
 
+  else if (
+    pieceType === "b"
+  ) {
+
+    fileList =
+      BISHOP_CAPTURE_SOUND_FILES;
+
+    sequenceState =
+      bishopCaptureSequenceIndexBySide;
+
+    keyPrefix =
+      "bishopcapture";
+
+  }
+
   else {
 
     return;
@@ -3517,7 +3573,8 @@ function playSoundForMove(move) {
 
     if (
       move.captured === "n" ||
-      move.captured === "r"
+      move.captured === "r" ||
+      move.captured === "b"
     ) {
 
       playSequentialPieceCaptureSound(
@@ -3544,6 +3601,20 @@ function playSoundForMove(move) {
         );
 
       }
+
+    }
+
+
+    if (
+      move.piece === "q"
+    ) {
+
+      playBufferedSound(
+        move.color === "w"
+          ? "queenwhoosh-w"
+          : "queenwhoosh-b",
+        1
+      );
 
     }
 
@@ -6654,6 +6725,12 @@ function beginGame(
     0;
 
   rookCaptureSequenceIndexBySide.b =
+    0;
+
+  bishopCaptureSequenceIndexBySide.w =
+    0;
+
+  bishopCaptureSequenceIndexBySide.b =
     0;
 
 
