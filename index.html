@@ -3492,7 +3492,7 @@ function playRandomQueenDeathSound() {
 
   playBufferedSound(
     "queendeath" + nextIndex,
-    0.4
+    0.2
   );
 
 }
@@ -3589,8 +3589,11 @@ function playSequentialPieceCaptureSound(
 
   playBufferedSound(
     keyPrefix + nextIndex,
-    pieceType === "b"
-      ? 0.5
+    (
+      pieceType === "n" ||
+      pieceType === "b"
+    )
+      ? 0.2
       : 1
   );
 
