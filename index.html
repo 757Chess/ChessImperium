@@ -2386,6 +2386,19 @@ const QUEEN_WHOOSH_FILES = {
 };
 
 
+const QUEEN_DEATH_SOUND_FILES = [
+  "./queendeath1.wav",
+  "./queendeath2.wav",
+  "./queendeath3.wav",
+  "./queendeath4.wav",
+  "./queendeath5.wav",
+  "./queendeath6.wav",
+  "./queendeath7.wav",
+  "./queendeath8.wav",
+  "./queendeath9.wav"
+];
+
+
 const OPENING_THEME_FILE =
   "./openingtheme.mp3";
 
@@ -2435,6 +2448,10 @@ const bishopCaptureSequenceIndexBySide = {
   w:0,
   b:0
 };
+
+
+let lastQueenDeathIndex =
+  -1;
 
 
 let openingThemeSource =
@@ -2603,6 +2620,18 @@ registerAudioBuffer(
 registerAudioBuffer(
   "queenwhoosh-b",
   QUEEN_WHOOSH_FILES.b
+);
+
+
+QUEEN_DEATH_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "queendeath" + index,
+      file
+    );
+
+  }
 );
 
 
@@ -3419,6 +3448,56 @@ function playSequentialCheckSoundForSide(
 }
 
 
+function playRandomQueenDeathSound() {
+
+  if (
+    QUEEN_DEATH_SOUND_FILES.length === 0
+  ) {
+    return;
+  }
+
+
+  let nextIndex =
+    Math.floor(
+      Math.random() *
+      QUEEN_DEATH_SOUND_FILES.length
+    );
+
+
+  if (
+    QUEEN_DEATH_SOUND_FILES.length > 1 &&
+    nextIndex === lastQueenDeathIndex
+  ) {
+
+    nextIndex =
+      (
+        nextIndex +
+        1 +
+        Math.floor(
+          Math.random() *
+          (
+            QUEEN_DEATH_SOUND_FILES.length -
+            1
+          )
+        )
+      ) %
+      QUEEN_DEATH_SOUND_FILES.length;
+
+  }
+
+
+  lastQueenDeathIndex =
+    nextIndex;
+
+
+  playBufferedSound(
+    "queendeath" + nextIndex,
+    0.4
+  );
+
+}
+
+
 function playSequentialPieceCaptureSound(
   pieceType,
   capturedSide
@@ -3616,6 +3695,8 @@ function playSoundForMove(move) {
         playSound(
           "queencapture"
         );
+
+        playRandomQueenDeathSound();
 
       }
 
@@ -6749,6 +6830,9 @@ function beginGame(
 
   bishopCaptureSequenceIndexBySide.b =
     0;
+
+  lastQueenDeathIndex =
+    -1;
 
 
   hidePromotion();
