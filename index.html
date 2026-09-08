@@ -2330,6 +2330,19 @@ const CHECK_SOUND_FILES = [
 ];
 
 
+const KNIGHT_CAPTURE_SOUND_FILES = [
+  "./knightcapture1.wav",
+  "./knightcapture2.wav",
+  "./knightcapture3.wav"
+];
+
+
+const ROOK_CAPTURE_SOUND_FILES = [
+  "./rookcapture1.wav",
+  "./rookcapture2.wav"
+];
+
+
 const OPENING_THEME_FILE =
   "./openingtheme.mp3";
 
@@ -2358,6 +2371,18 @@ let lastMoveSoundIndex =
 
 
 const checkSequenceIndexBySide = {
+  w:0,
+  b:0
+};
+
+
+const knightCaptureSequenceIndexBySide = {
+  w:0,
+  b:0
+};
+
+
+const rookCaptureSequenceIndexBySide = {
   w:0,
   b:0
 };
@@ -2478,6 +2503,30 @@ CHECK_SOUND_FILES.forEach(
 
     registerAudioBuffer(
       "check" + index,
+      file
+    );
+
+  }
+);
+
+
+KNIGHT_CAPTURE_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "knightcapture" + index,
+      file
+    );
+
+  }
+);
+
+
+ROOK_CAPTURE_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "rookcapture" + index,
       file
     );
 
@@ -3298,6 +3347,97 @@ function playSequentialCheckSoundForSide(
 }
 
 
+function playSequentialPieceCaptureSound(
+  pieceType,
+  capturedSide
+) {
+
+  const normalizedSide =
+    capturedSide === "b"
+      ? "b"
+      : "w";
+
+
+  let files =
+    null;
+
+  let sequence =
+    null;
+
+  let keyPrefix =
+    "";
+
+
+  if (
+    pieceType === "n"
+  ) {
+
+    files =
+      KNIGHT_CAPTURE_SOUND_FILES;
+
+    sequence =
+      knightCaptureSequenceIndexBySide;
+
+    keyPrefix =
+      "knightcapture";
+
+  }
+
+  else if (
+    pieceType === "r"
+  ) {
+
+    files =
+      ROOK_CAPTURE_SOUND_FILES;
+
+    sequence =
+      rookCaptureSequenceIndexBySide;
+
+    keyPrefix =
+      "rookcapture";
+
+  }
+
+  else {
+
+    return;
+
+  }
+
+
+  if (
+    files.length === 0
+  ) {
+
+    return;
+
+  }
+
+
+  const nextIndex =
+    sequence[
+      normalizedSide
+    ] %
+    files.length;
+
+
+  sequence[
+    normalizedSide
+  ] =
+    (
+      nextIndex + 1
+    ) %
+    files.length;
+
+
+  playBufferedSound(
+    keyPrefix + nextIndex,
+    1
+  );
+
+}
+
+
 function playSoundForMove(move) {
 
   if (
@@ -3347,10 +3487,10 @@ function playSoundForMove(move) {
     move.captured
   ) {
 
-    playSound(
-      "capture",
-      CAPTURE_SOUND_VOLUME
-    );
+    const capturedSide =
+      move.color === "w"
+        ? "b"
+        : "w";
 
 
     if (
@@ -3358,7 +3498,33 @@ function playSoundForMove(move) {
     ) {
 
       playSound(
+        "capture",
+        CAPTURE_SOUND_VOLUME
+      );
+
+      playSound(
         "queencapture"
+      );
+
+    }
+
+    else if (
+      move.captured === "n" ||
+      move.captured === "r"
+    ) {
+
+      playSequentialPieceCaptureSound(
+        move.captured,
+        capturedSide
+      );
+
+    }
+
+    else {
+
+      playSound(
+        "capture",
+        CAPTURE_SOUND_VOLUME
       );
 
     }
@@ -6458,6 +6624,18 @@ function beginGame(
     0;
 
   checkSequenceIndexBySide.b =
+    0;
+
+  knightCaptureSequenceIndexBySide.w =
+    0;
+
+  knightCaptureSequenceIndexBySide.b =
+    0;
+
+  rookCaptureSequenceIndexBySide.w =
+    0;
+
+  rookCaptureSequenceIndexBySide.b =
     0;
 
 
