@@ -5903,10 +5903,24 @@ function showMoveGhost(
     return;
   }
 
+  const castlingRookMove =
+    getCastlingRookSquares(
+      move
+    );
+
+
   moveGhost = {
     from:move.from,
     color:move.color,
-    piece:move.piece
+    piece:move.piece,
+    secondary:
+      castlingRookMove
+        ? {
+            from:castlingRookMove.from,
+            color:move.color,
+            piece:"r"
+          }
+        : null
   };
 
   moveGhostTimer =
@@ -7192,27 +7206,56 @@ function drawBoard() {
 
 
       if (
-        moveGhost &&
-        squareName === moveGhost.from
+        moveGhost
       ) {
 
-        const ghostImage =
-          document.createElement(
-            "img"
+        let ghostData =
+          null;
+
+
+        if (
+          squareName === moveGhost.from
+        ) {
+
+          ghostData =
+            moveGhost;
+
+        }
+
+        else if (
+          moveGhost.secondary &&
+          squareName === moveGhost.secondary.from
+        ) {
+
+          ghostData =
+            moveGhost.secondary;
+
+        }
+
+
+        if (
+          ghostData
+        ) {
+
+          const ghostImage =
+            document.createElement(
+              "img"
+            );
+
+          ghostImage.className =
+            "move-ghost";
+
+          ghostImage.src =
+            PIECE_IMAGES[
+              ghostData.color +
+              ghostData.piece
+            ];
+
+          square.appendChild(
+            ghostImage
           );
 
-        ghostImage.className =
-          "move-ghost";
-
-        ghostImage.src =
-          PIECE_IMAGES[
-            moveGhost.color +
-            moveGhost.piece
-          ];
-
-        square.appendChild(
-          ghostImage
-        );
+        }
 
       }
 
