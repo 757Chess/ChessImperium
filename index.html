@@ -3510,7 +3510,9 @@ function playSequentialPieceCaptureSound(
 
   playBufferedSound(
     keyPrefix + nextIndex,
-    1
+    pieceType === "b"
+      ? 0.5
+      : 1
   );
 
 }
