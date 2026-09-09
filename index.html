@@ -1781,6 +1781,14 @@ th {
           Leave Online Room
         </button>
 
+        <button id="resyncOnlineRoomBtn"
+                class="online-action"
+                type="button"
+                style="width:100%;margin-top:7px;"
+                disabled>
+          Resync Game
+        </button>
+
         <div id="onlineStatusBox" class="online-status">
           Create a room or join with a room code.
         </div>
@@ -3380,6 +3388,9 @@ const lockOnlineFormationBtn =
 const leaveOnlineRoomBtn =
   document.getElementById("leaveOnlineRoomBtn");
 
+const resyncOnlineRoomBtn =
+  document.getElementById("resyncOnlineRoomBtn");
+
 const onlineStatusBox =
   document.getElementById("onlineStatusBox");
 
@@ -3556,6 +3567,12 @@ let onlineFormationLocked =
 
 let onlineApplyingRemoteMove =
   false;
+
+let onlineMoveSyncInFlight =
+  false;
+
+let onlineSafetyPollTimer =
+  null;
 
 let onlineStartedRoomId =
   null;
@@ -4224,6 +4241,20 @@ function setOnlineFormationControlsLocked(
 async function stopOnlineRealtime() {
 
   if (
+    onlineSafetyPollTimer
+  ) {
+
+    clearInterval(
+      onlineSafetyPollTimer
+    );
+
+    onlineSafetyPollTimer =
+      null;
+
+  }
+
+
+  if (
     onlineChannel
   ) {
 
@@ -4235,6 +4266,72 @@ async function stopOnlineRealtime() {
       null;
 
   }
+
+}
+
+
+async function fetchAuthoritativeOnlineRoom(
+  showMessage = false
+) {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom
+  ) {
+    return;
+  }
+
+
+  if (
+    showMessage
+  ) {
+
+    setOnlineStatus(
+      "Checking authoritative game state..."
+    );
+
+  }
+
+
+  const {
+    data:fresh,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .select("*")
+      .eq(
+        "id",
+        onlineRoom.id
+      )
+      .single();
+
+
+  if (
+    error ||
+    !fresh
+  ) {
+
+    if (
+      showMessage
+    ) {
+
+      setOnlineStatus(
+        "Unable to resync right now. Please try again."
+      );
+
+    }
+
+
+    return;
+
+  }
+
+
+  await applyOnlineRoomUpdate(
+    fresh,
+    showMessage
+  );
 
 }
 
@@ -4578,7 +4675,8 @@ async function initializeOnlineFenIfNeeded(
 
 
 async function applyOnlineRoomUpdate(
-  room
+  room,
+  manualResync = false
 ) {
 
   if (
@@ -4602,6 +4700,9 @@ async function applyOnlineRoomUpdate(
 
 
   leaveOnlineRoomBtn.disabled =
+    false;
+
+  resyncOnlineRoomBtn.disabled =
     false;
 
 
@@ -4760,9 +4861,86 @@ async function applyOnlineRoomUpdate(
     localHistoryLength
   ) {
 
+    const localFen =
+      game
+        ? game.fen()
+        : null;
+
+
+    if (
+      room.fen &&
+      localFen &&
+      room.fen !== localFen &&
+      !onlineMoveSyncInFlight
+    ) {
+
+      setupOnlineGameFromRoom(
+        room,
+        false
+      );
+
+
+      setOnlineStatus(
+        "Room " +
+        room.room_code +
+        "\nGame state resynchronized."
+      );
+
+
+      return;
+
+    }
+
+
     updateInfoPanel();
 
     updateStatus();
+
+
+    if (
+      manualResync
+    ) {
+
+      setOnlineStatus(
+        "Room " +
+        room.room_code +
+        "\nGame state confirmed."
+      );
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
+    remoteHistory.length <
+      localHistoryLength
+  ) {
+
+    if (
+      onlineMoveSyncInFlight
+    ) {
+
+      return;
+
+    }
+
+
+    setupOnlineGameFromRoom(
+      room,
+      false
+    );
+
+
+    setOnlineStatus(
+      "Room " +
+      room.room_code +
+      "\nGame state resynchronized."
+    );
+
 
     return;
 
@@ -4937,6 +5115,33 @@ async function watchOnlineRoom(
         }
       )
       .subscribe();
+
+
+  /*
+   * Realtime remains the fast path.
+   * This lightweight poll is a safety net in case a browser
+   * misses a realtime event or wakes from a suspended tab.
+   */
+  onlineSafetyPollTimer =
+    setInterval(
+      async () => {
+
+        if (
+          gameMode !== "online" ||
+          !onlineRoom ||
+          onlineMoveSyncInFlight
+        ) {
+          return;
+        }
+
+
+        await fetchAuthoritativeOnlineRoom(
+          false
+        );
+
+      },
+      4000
+    );
 
 }
 
@@ -5366,96 +5571,147 @@ async function syncOnlineMove(
   }
 
 
+  if (
+    onlineMoveSyncInFlight
+  ) {
+    return;
+  }
+
+
+  onlineMoveSyncInFlight =
+    true;
+
+
+  const localFenAfterMove =
+    game.fen();
+
+
   const nextHistory =
     onlineHistoryFromGame();
 
 
-  const updateQuery =
-    supabase
-      .from("rooms")
-      .update({
-        fen:game.fen(),
-        move_history:
-          nextHistory,
-        updated_at:
-          new Date().toISOString()
-      })
-      .eq(
-        "id",
-        onlineRoom.id
-      );
+  setOnlineStatus(
+    "Room " +
+    onlineRoom.room_code +
+    "\nSynchronizing move..."
+  );
 
 
-  const {
-    data,
-    error
-  } =
-    previousFen
+  try {
 
-      ? await updateQuery
-          .eq(
-            "fen",
-            previousFen
-          )
-          .select()
-          .single()
-
-      : await updateQuery
-          .select()
-          .single();
-
-
-  if (
-    error ||
-    !data
-  ) {
-
-    setOnlineStatus(
-      "Move sync conflict. Reloading room..."
-    );
-
-
-    const {
-      data:fresh
-    } =
-      await supabase
+    const updateQuery =
+      supabase
         .from("rooms")
-        .select("*")
+        .update({
+          fen:localFenAfterMove,
+          move_history:
+            nextHistory,
+          updated_at:
+            new Date().toISOString()
+        })
         .eq(
           "id",
           onlineRoom.id
-        )
-        .single();
+        );
+
+
+    const {
+      data,
+      error
+    } =
+      previousFen
+
+        ? await updateQuery
+            .eq(
+              "fen",
+              previousFen
+            )
+            .select()
+            .single()
+
+        : await updateQuery
+            .select()
+            .single();
 
 
     if (
-      fresh
+      error ||
+      !data
     ) {
 
-      setupOnlineGameFromRoom(
-        fresh,
+      setOnlineStatus(
+        "Move sync conflict. Restoring authoritative game state..."
+      );
+
+
+      onlineMoveSyncInFlight =
+        false;
+
+
+      await fetchAuthoritativeOnlineRoom(
         false
       );
 
-      onlineRoom =
-        fresh;
+
+      return;
 
     }
 
 
-    return;
+    onlineRoom =
+      data;
+
+
+    const confirmedHistory =
+      Array.isArray(
+        data.move_history
+      )
+        ? data.move_history
+        : [];
+
+
+    if (
+      data.fen !== localFenAfterMove ||
+      confirmedHistory.length !==
+        nextHistory.length
+    ) {
+
+      onlineMoveSyncInFlight =
+        false;
+
+
+      setupOnlineGameFromRoom(
+        data,
+        false
+      );
+
+
+      setOnlineStatus(
+        "Room " +
+        data.room_code +
+        "\nGame state resynchronized."
+      );
+
+
+      return;
+
+    }
+
+
+    setOnlineStatus(
+      "Room " +
+      data.room_code +
+      "\nMove synchronized."
+    );
 
   }
 
+  finally {
 
-  onlineRoom =
-    data;
+    onlineMoveSyncInFlight =
+      false;
 
-  setOnlineStatus(
-    "Room " +
-    data.room_code +
-    "\nMove synchronized."
-  );
+  }
 
 }
 
@@ -5488,6 +5744,9 @@ async function leaveOnlineRoom() {
 
 
   leaveOnlineRoomBtn.disabled =
+    true;
+
+  resyncOnlineRoomBtn.disabled =
     true;
 
   lockOnlineFormationBtn.disabled =
@@ -7623,6 +7882,20 @@ function initializeControls() {
       playMenuClick();
 
       leaveOnlineRoom();
+
+    }
+  );
+
+
+  resyncOnlineRoomBtn.addEventListener(
+    "click",
+    async function() {
+
+      playMenuClick();
+
+      await fetchAuthoritativeOnlineRoom(
+        true
+      );
 
     }
   );
@@ -13553,11 +13826,18 @@ function(event) {
 
 
     engineBox.textContent =
-      "Engine ready";
+      gameMode === "online"
+        ? (
+            onlineRoom
+              ? "Online multiplayer · connected"
+              : "Online multiplayer"
+          )
+        : "Engine ready";
 
 
     if (
-      !gameStarted
+      !gameStarted &&
+      gameMode !== "online"
     ) {
 
       setStatus(
@@ -13627,13 +13907,28 @@ function(error) {
   );
 
 
-  engineBox.textContent =
-    "Engine failed to load";
+  if (
+    gameMode === "online"
+  ) {
+
+    engineBox.textContent =
+      onlineRoom
+        ? "Online multiplayer · connected"
+        : "Online multiplayer";
+
+  }
+
+  else {
+
+    engineBox.textContent =
+      "Engine failed to load";
 
 
-  setStatus(
-    "Stockfish failed to load. Open the page through localhost."
-  );
+    setStatus(
+      "Stockfish failed to load. Open the page through localhost."
+    );
+
+  }
 
 };
 
@@ -13681,6 +13976,47 @@ window.addEventListener(
 window.addEventListener(
   "resize",
   hideTooltip
+);
+
+
+window.addEventListener(
+  "focus",
+  function() {
+
+    if (
+      gameMode === "online" &&
+      onlineRoom &&
+      !onlineMoveSyncInFlight
+    ) {
+
+      fetchAuthoritativeOnlineRoom(
+        false
+      );
+
+    }
+
+  }
+);
+
+
+document.addEventListener(
+  "visibilitychange",
+  function() {
+
+    if (
+      document.visibilityState === "visible" &&
+      gameMode === "online" &&
+      onlineRoom &&
+      !onlineMoveSyncInFlight
+    ) {
+
+      fetchAuthoritativeOnlineRoom(
+        false
+      );
+
+    }
+
+  }
 );
 
 
