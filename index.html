@@ -2493,6 +2493,7 @@ const PROMOTION_NAMES = {
 const MENU_CLICK_VOLUME = 1;
 const MOVE_SOUND_VOLUME = .68;
 const CAPTURE_SOUND_VOLUME = .68;
+const STACKING_SOUND_VOLUME = .30;
 
 
 const SOUND_FILES = {
@@ -2502,7 +2503,8 @@ const SOUND_FILES = {
   menuclick:"./menuclick.wav",
   checkmate:"./Checkmate.wav",
   draw:"./Stalemate.wav",
-  invalid:"./Invalidmove.wav"
+  invalid:"./Invalidmove.wav",
+  stacking:"./stackingpieces.wav"
 
 };
 
@@ -6189,6 +6191,12 @@ function animateFormationAssembly(side) {
       }
 
     }
+  );
+
+
+  playSound(
+    "stacking",
+    STACKING_SOUND_VOLUME
   );
 
 
