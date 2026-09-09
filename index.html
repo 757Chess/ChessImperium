@@ -1781,6 +1781,14 @@ th {
           Leave Online Room
         </button>
 
+        <button id="onlineUndoBtn"
+                class="online-action"
+                type="button"
+                style="width:100%;margin-top:7px;"
+                disabled>
+          Request Undo
+        </button>
+
         <button id="resyncOnlineRoomBtn"
                 class="online-action"
                 type="button"
@@ -3388,6 +3396,9 @@ const lockOnlineFormationBtn =
 const leaveOnlineRoomBtn =
   document.getElementById("leaveOnlineRoomBtn");
 
+const onlineUndoBtn =
+  document.getElementById("onlineUndoBtn");
+
 const resyncOnlineRoomBtn =
   document.getElementById("resyncOnlineRoomBtn");
 
@@ -4185,6 +4196,19 @@ function updateGameModeUI() {
 
   onlinePanel.style.display =
     online ? "block" : "none";
+
+
+  if (
+    !online
+  ) {
+
+    onlineUndoBtn.disabled =
+      true;
+
+    onlineUndoBtn.textContent =
+      "Request Undo";
+
+  }
 
 
   if (
@@ -6895,6 +6919,12 @@ async function leaveOnlineRoom() {
   leaveOnlineRoomBtn.textContent =
     "Leave Online Room";
 
+  onlineUndoBtn.disabled =
+    true;
+
+  onlineUndoBtn.textContent =
+    "Request Undo";
+
   resyncOnlineRoomBtn.disabled =
     true;
 
@@ -9115,6 +9145,18 @@ function initializeControls() {
   );
 
 
+  onlineUndoBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      requestOnlineUndo();
+
+    }
+  );
+
+
   resyncOnlineRoomBtn.addEventListener(
     "click",
     async function() {
@@ -9218,20 +9260,7 @@ function initializeControls() {
 
       hideTooltip();
 
-
-      if (
-        gameMode === "online"
-      ) {
-
-        requestOnlineUndo();
-
-      }
-
-      else {
-
-        undoPlayerTurn();
-
-      }
+      undoPlayerTurn();
 
     }
   );
@@ -9536,10 +9565,10 @@ function updateUndoButton() {
       requestedByMe
     ) {
 
-      undoBtn.disabled =
+      onlineUndoBtn.disabled =
         true;
 
-      undoBtn.textContent =
+      onlineUndoBtn.textContent =
         "Undo Requested";
 
     }
@@ -9548,20 +9577,20 @@ function updateUndoButton() {
       requestedByOpponent
     ) {
 
-      undoBtn.disabled =
+      onlineUndoBtn.disabled =
         true;
 
-      undoBtn.textContent =
+      onlineUndoBtn.textContent =
         "Undo Request Pending";
 
     }
 
     else {
 
-      undoBtn.disabled =
+      onlineUndoBtn.disabled =
         !canRequestOnlineUndo();
 
-      undoBtn.textContent =
+      onlineUndoBtn.textContent =
         "Request Undo";
 
     }
