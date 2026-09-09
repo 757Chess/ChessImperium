@@ -1789,6 +1789,14 @@ th {
           Resync Game
         </button>
 
+        <button id="resignOnlineGameBtn"
+                class="online-action"
+                type="button"
+                style="width:100%;margin-top:7px;"
+                disabled>
+          Resign Game
+        </button>
+
         <div id="onlineStatusBox" class="online-status">
           Create a room or join with a room code.
         </div>
@@ -3391,6 +3399,9 @@ const leaveOnlineRoomBtn =
 const resyncOnlineRoomBtn =
   document.getElementById("resyncOnlineRoomBtn");
 
+const resignOnlineGameBtn =
+  document.getElementById("resignOnlineGameBtn");
+
 const onlineStatusBox =
   document.getElementById("onlineStatusBox");
 
@@ -3575,6 +3586,12 @@ let onlineSafetyPollTimer =
   null;
 
 let onlineStartedRoomId =
+  null;
+
+let onlineResultReason =
+  null;
+
+let onlineWinnerColor =
   null;
 
 
@@ -4674,6 +4691,427 @@ async function initializeOnlineFenIfNeeded(
 }
 
 
+function getOnlineGameResultPayload() {
+
+  if (
+    !game ||
+    !game.isGameOver()
+  ) {
+
+    return {
+      status:"active",
+      result_reason:null,
+      winner_color:null
+    };
+
+  }
+
+
+  if (
+    game.isCheckmate()
+  ) {
+
+    return {
+      status:"finished",
+      result_reason:"checkmate",
+      winner_color:
+        game.turn() === "w"
+          ? "b"
+          : "w"
+    };
+
+  }
+
+
+  if (
+    game.isStalemate()
+  ) {
+
+    return {
+      status:"finished",
+      result_reason:"stalemate",
+      winner_color:null
+    };
+
+  }
+
+
+  if (
+    game.isThreefoldRepetition()
+  ) {
+
+    return {
+      status:"finished",
+      result_reason:"threefold",
+      winner_color:null
+    };
+
+  }
+
+
+  if (
+    game.isInsufficientMaterial()
+  ) {
+
+    return {
+      status:"finished",
+      result_reason:"insufficient_material",
+      winner_color:null
+    };
+
+  }
+
+
+  return {
+    status:"finished",
+    result_reason:"draw",
+    winner_color:null
+  };
+
+}
+
+
+function updateOnlineRematchButton(
+  room
+) {
+
+  if (
+    gameMode !== "online" ||
+    !room ||
+    room.status !== "finished"
+  ) {
+
+    return;
+
+  }
+
+
+  const myRequested =
+    onlineRole === "white"
+      ? Boolean(room.white_rematch)
+      : Boolean(room.black_rematch);
+
+
+  const opponentRequested =
+    onlineRole === "white"
+      ? Boolean(room.black_rematch)
+      : Boolean(room.white_rematch);
+
+
+  if (
+    myRequested
+  ) {
+
+    rematchBtn.textContent =
+      "✓ Rematch Requested";
+
+    rematchBtn.disabled =
+      true;
+
+  }
+
+  else if (
+    opponentRequested
+  ) {
+
+    rematchBtn.textContent =
+      "↻ Accept Rematch";
+
+    rematchBtn.disabled =
+      false;
+
+  }
+
+  else {
+
+    rematchBtn.textContent =
+      "↻ Request Rematch";
+
+    rematchBtn.disabled =
+      false;
+
+  }
+
+}
+
+
+async function resetOnlineRoomForRematch(
+  room
+) {
+
+  if (
+    !room ||
+    room.status !== "finished" ||
+    !room.white_rematch ||
+    !room.black_rematch
+  ) {
+    return;
+  }
+
+
+  const {
+    data:resetRoom,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .update({
+        status:"formation_selection",
+        white_formation:null,
+        black_formation:null,
+        fen:null,
+        move_history:[],
+        result_reason:null,
+        winner_color:null,
+        white_rematch:false,
+        black_rematch:false,
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        room.id
+      )
+      .eq(
+        "status",
+        "finished"
+      )
+      .select()
+      .single();
+
+
+  if (
+    error ||
+    !resetRoom
+  ) {
+
+    setOnlineStatus(
+      "Unable to start the rematch."
+    );
+
+    return;
+
+  }
+
+
+  onlineResultReason =
+    null;
+
+  onlineWinnerColor =
+    null;
+
+  onlineStartedRoomId =
+    null;
+
+  gameStarted =
+    false;
+
+  game =
+    null;
+
+  selectedSquare =
+    null;
+
+  legalMoves =
+    [];
+
+  lastMove =
+    null;
+
+  clearMoveGhost();
+
+  clearCaptureToast();
+
+  hideGameOverSummary();
+
+  setOnlineFormationControlsLocked(
+    false
+  );
+
+  playerFormationChoice =
+    "RNB";
+
+  refreshFormationButtons();
+
+  renderPreview();
+
+  await applyOnlineRoomUpdate(
+    resetRoom
+  );
+
+}
+
+
+async function requestOnlineRematch() {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    onlineRoom.status !== "finished" ||
+    !onlineRole
+  ) {
+    return;
+  }
+
+
+  const field =
+    onlineRole === "white"
+      ? "white_rematch"
+      : "black_rematch";
+
+
+  const updateValues = {
+    [field]:true,
+    updated_at:
+      new Date().toISOString()
+  };
+
+
+  const {
+    data:updated,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .update(
+        updateValues
+      )
+      .eq(
+        "id",
+        onlineRoom.id
+      )
+      .eq(
+        "status",
+        "finished"
+      )
+      .select()
+      .single();
+
+
+  if (
+    error ||
+    !updated
+  ) {
+
+    setOnlineStatus(
+      "Unable to send rematch request."
+    );
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    updated;
+
+  updateOnlineRematchButton(
+    updated
+  );
+
+
+  if (
+    updated.white_rematch &&
+    updated.black_rematch
+  ) {
+
+    await resetOnlineRoomForRematch(
+      updated
+    );
+
+    return;
+
+  }
+
+
+  setOnlineStatus(
+    "Room " +
+    updated.room_code +
+    "\nRematch requested. Waiting for opponent..."
+  );
+
+}
+
+
+async function resignOnlineGame() {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    onlineRoom.status !== "active" ||
+    !onlineRole
+  ) {
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      "Resign this game?"
+    );
+
+
+  if (
+    !confirmed
+  ) {
+    return;
+  }
+
+
+  const winner =
+    onlineRole === "white"
+      ? "b"
+      : "w";
+
+
+  const {
+    data:finished,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .update({
+        status:"finished",
+        result_reason:"resignation",
+        winner_color:winner,
+        white_rematch:false,
+        black_rematch:false,
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        onlineRoom.id
+      )
+      .eq(
+        "status",
+        "active"
+      )
+      .select()
+      .single();
+
+
+  if (
+    error ||
+    !finished
+  ) {
+
+    setOnlineStatus(
+      "Unable to resign. Please resync and try again."
+    );
+
+    return;
+
+  }
+
+
+  await applyOnlineRoomUpdate(
+    finished
+  );
+
+}
+
+
 async function applyOnlineRoomUpdate(
   room,
   manualResync = false
@@ -4729,6 +5167,9 @@ async function applyOnlineRoomUpdate(
     lockOnlineFormationBtn.disabled =
       true;
 
+    resignOnlineGameBtn.disabled =
+      true;
+
     return;
 
   }
@@ -4777,6 +5218,100 @@ async function applyOnlineRoomUpdate(
     }
 
 
+    resignOnlineGameBtn.disabled =
+      true;
+
+    return;
+
+  }
+
+
+  if (
+    room.status === "finished"
+  ) {
+
+    onlineResultReason =
+      room.result_reason ||
+      null;
+
+    onlineWinnerColor =
+      room.winner_color ||
+      null;
+
+    resignOnlineGameBtn.disabled =
+      true;
+
+    setOnlineFormationControlsLocked(
+      true
+    );
+
+
+    if (
+      room.fen &&
+      (
+        !game ||
+        game.fen() !== room.fen
+      )
+    ) {
+
+      setupOnlineGameFromRoom(
+        room,
+        false
+      );
+
+    }
+
+
+    updateStatus();
+
+    updateGameOverSummary();
+
+    updateOnlineRematchButton(
+      room
+    );
+
+
+    const opponentRequested =
+      onlineRole === "white"
+        ? Boolean(room.black_rematch)
+        : Boolean(room.white_rematch);
+
+
+    if (
+      opponentRequested
+    ) {
+
+      setOnlineStatus(
+        "Room " +
+        room.room_code +
+        "\nOpponent requested a rematch."
+      );
+
+    }
+
+    else {
+
+      setOnlineStatus(
+        "Room " +
+        room.room_code +
+        "\nGame finished."
+      );
+
+    }
+
+
+    if (
+      room.white_rematch &&
+      room.black_rematch
+    ) {
+
+      await resetOnlineRoomForRematch(
+        room
+      );
+
+    }
+
+
     return;
 
   }
@@ -4786,9 +5321,22 @@ async function applyOnlineRoomUpdate(
     room.status !== "active"
   ) {
 
+    resignOnlineGameBtn.disabled =
+      true;
+
     return;
 
   }
+
+
+  onlineResultReason =
+    null;
+
+  onlineWinnerColor =
+    null;
+
+  resignOnlineGameBtn.disabled =
+    false;
 
 
   setOnlineFormationControlsLocked(
@@ -5599,6 +6147,10 @@ async function syncOnlineMove(
 
   try {
 
+    const resultPayload =
+      getOnlineGameResultPayload();
+
+
     const updateQuery =
       supabase
         .from("rooms")
@@ -5606,6 +6158,14 @@ async function syncOnlineMove(
           fen:localFenAfterMove,
           move_history:
             nextHistory,
+          status:
+            resultPayload.status,
+          result_reason:
+            resultPayload.result_reason,
+          winner_color:
+            resultPayload.winner_color,
+          white_rematch:false,
+          black_rematch:false,
           updated_at:
             new Date().toISOString()
         })
@@ -5733,6 +6293,12 @@ async function leaveOnlineRoom() {
   onlineStartedRoomId =
     null;
 
+  onlineResultReason =
+    null;
+
+  onlineWinnerColor =
+    null;
+
 
   localStorage.removeItem(
     ONLINE_ROOM_CODE_KEY
@@ -5747,6 +6313,9 @@ async function leaveOnlineRoom() {
     true;
 
   resyncOnlineRoomBtn.disabled =
+    true;
+
+  resignOnlineGameBtn.disabled =
     true;
 
   lockOnlineFormationBtn.disabled =
@@ -7927,6 +8496,18 @@ function initializeControls() {
   );
 
 
+  resignOnlineGameBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      resignOnlineGame();
+
+    }
+  );
+
+
   onlineRoomCodeInput.addEventListener(
     "input",
     function() {
@@ -8157,7 +8738,19 @@ rematchBtn.addEventListener(
 
     playMenuClick();
 
-    rematchCurrentGame();
+    if (
+      gameMode === "online"
+    ) {
+
+      requestOnlineRematch();
+
+    }
+
+    else {
+
+      rematchCurrentGame();
+
+    }
 
   }
 );
@@ -9007,6 +9600,13 @@ function resetCurrentGame() {
 
 function rematchCurrentGame() {
 
+  rematchBtn.textContent =
+    "↻ Rematch";
+
+  rematchBtn.disabled =
+    false;
+
+
   if (
     !actualPlayerFormation ||
     !actualComputerFormation ||
@@ -9362,7 +9962,10 @@ function isPlayerTurn() {
 
     (
       gameMode !== "online" ||
-      Boolean(onlineRoom)
+      (
+        Boolean(onlineRoom) &&
+        onlineRoom.status === "active"
+      )
     ) &&
 
     game.turn() === playerColor &&
@@ -12458,6 +13061,64 @@ function renderMoveList() {
 function getGameResultText() {
 
   if (
+    gameMode === "online" &&
+    onlineRoom &&
+    onlineRoom.status === "finished"
+  ) {
+
+    if (
+      onlineResultReason === "resignation"
+    ) {
+
+      return (
+        onlineWinnerColor === playerColor
+          ? "Victory — opponent resigned."
+          : "Defeat — you resigned."
+      );
+
+    }
+
+
+    if (
+      onlineWinnerColor
+    ) {
+
+      return (
+        onlineWinnerColor === playerColor
+          ? "Victory — you won by checkmate."
+          : "Defeat — your opponent won by checkmate."
+      );
+
+    }
+
+
+    if (
+      onlineResultReason === "stalemate"
+    ) {
+      return "Draw by stalemate.";
+    }
+
+
+    if (
+      onlineResultReason === "threefold"
+    ) {
+      return "Draw by threefold repetition.";
+    }
+
+
+    if (
+      onlineResultReason === "insufficient_material"
+    ) {
+      return "Draw by insufficient material.";
+    }
+
+
+    return "Draw.";
+
+  }
+
+
+  if (
     !game ||
     !game.isGameOver()
   ) {
@@ -12531,10 +13192,19 @@ function getGameResultText() {
 
 function updateGameOverSummary() {
 
+  const onlineFinished =
+    gameMode === "online" &&
+    onlineRoom &&
+    onlineRoom.status === "finished";
+
+
   if (
     !gameStarted ||
     !game ||
-    !game.isGameOver()
+    (
+      !game.isGameOver() &&
+      !onlineFinished
+    )
   ) {
 
     hideGameOverSummary();
@@ -12589,7 +13259,11 @@ function updateGameOverSummary() {
     "</div>" +
 
     "<div class='game-over-line'>" +
-    "<strong>Computer formation:</strong> " +
+    (
+      gameMode === "online"
+        ? "<strong>Opponent formation:</strong> "
+        : "<strong>Computer formation:</strong> "
+    ) +
     FORMATION_MAP[
       actualComputerFormation
     ] +
@@ -12603,12 +13277,18 @@ function updateGameOverSummary() {
     colorName +
     "</div>" +
 
-    "<div class='game-over-line'>" +
-    "<strong>Difficulty:</strong> " +
-    DIFFICULTIES[
-      difficultyKey
-    ].label +
-    "</div>" +
+    (
+      gameMode === "online"
+        ? ""
+        : (
+            "<div class='game-over-line'>" +
+            "<strong>Difficulty:</strong> " +
+            DIFFICULTIES[
+              difficultyKey
+            ].label +
+            "</div>"
+          )
+    ) +
 
     "<div class='game-over-line'>" +
     "<strong>Moves:</strong> " +
@@ -12882,6 +13562,62 @@ function updateStatus() {
   if (
     gameMode === "online"
   ) {
+
+    if (
+      onlineRoom &&
+      onlineRoom.status === "finished"
+    ) {
+
+      if (
+        onlineResultReason === "resignation"
+      ) {
+
+        setStatus(
+          onlineWinnerColor === playerColor
+            ? "VICTORY — OPPONENT RESIGNED"
+            : "DEFEAT — YOU RESIGNED",
+          onlineWinnerColor === playerColor
+            ? "victory"
+            : "defeat"
+        );
+
+      }
+
+      else if (
+        onlineWinnerColor
+      ) {
+
+        setStatus(
+          onlineWinnerColor === playerColor
+            ? "VICTORY — CHECKMATE"
+            : "DEFEAT — CHECKMATE",
+          onlineWinnerColor === playerColor
+            ? "victory"
+            : "defeat"
+        );
+
+      }
+
+      else {
+
+        setStatus(
+          onlineResultReason === "stalemate"
+            ? "DRAW — STALEMATE"
+            : onlineResultReason === "threefold"
+              ? "DRAW — THREEFOLD REPETITION"
+              : onlineResultReason === "insufficient_material"
+                ? "DRAW — INSUFFICIENT MATERIAL"
+                : "DRAW",
+          "draw"
+        );
+
+      }
+
+
+      return;
+
+    }
+
 
     if (
       !gameStarted ||
