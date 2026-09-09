@@ -6602,8 +6602,9 @@ function scheduleEngineMove() {
 /* CAPTURE TOAST                                         */
 /* ===================================================== */
 
-function showComputerCaptureToast(
-  pieceType
+function showCaptureToast(
+  pieceType,
+  capturerColor
 ) {
 
   if (
@@ -6639,7 +6640,12 @@ function showComputerCaptureToast(
 
     type:pieceType,
 
-    color:playerColor
+    color:
+      capturerColor === "w"
+        ? "b"
+        : "w",
+
+    capturerColor
 
   });
 
@@ -6654,7 +6660,9 @@ function showComputerCaptureToast(
   }
 
 
-  renderCaptureToast();
+  renderCaptureToast(
+    capturerColor
+  );
 
 
   captureToast.classList.add(
@@ -6693,12 +6701,30 @@ function showComputerCaptureToast(
 }
 
 
-function renderCaptureToast() {
+function renderCaptureToast(
+  capturerColor
+) {
+
+  let title =
+    "Stockfish captured";
+
+
+  if (
+    gameMode === "online"
+  ) {
+
+    title =
+      capturerColor === playerColor
+        ? "You captured"
+        : "Opponent captured";
+
+  }
+
 
   let html =
 
     "<div class='capture-toast-title'>" +
-    "Stockfish captured" +
+    title +
     "</div>";
 
 
@@ -11811,13 +11837,30 @@ function afterMove(
   );
 
   if (
-    move.captured &&
-    move.color !== playerColor
+    move.captured
   ) {
 
-    showComputerCaptureToast(
-      move.captured
-    );
+    if (
+      gameMode === "online"
+    ) {
+
+      showCaptureToast(
+        move.captured,
+        move.color
+      );
+
+    }
+
+    else if (
+      move.color !== playerColor
+    ) {
+
+      showCaptureToast(
+        move.captured,
+        move.color
+      );
+
+    }
 
   }
 
