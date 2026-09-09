@@ -2439,6 +2439,8 @@ const DIFFICULTY_GUIDES = {
 
     title:"Relaxed",
 
+    elo:"≈ 600–800",
+
     description:
       "A forgiving opponent designed for experimenting with formations and enjoying a lower-pressure game.",
 
@@ -2453,6 +2455,8 @@ const DIFFICULTY_GUIDES = {
   beginner: {
 
     title:"Standard",
+
+    elo:"≈ 900–1100",
 
     description:
       "A steady opponent that generally plays sensible chess while still leaving opportunities to exploit.",
@@ -2469,6 +2473,8 @@ const DIFFICULTY_GUIDES = {
 
     title:"Fierce",
 
+    elo:"≈ 1200–1500",
+
     description:
       "A stronger opponent that demands careful play and better tactical awareness.",
 
@@ -2483,6 +2489,8 @@ const DIFFICULTY_GUIDES = {
   hard: {
 
     title:"Ruthless",
+
+    elo:"≈ 1600–1900",
 
     description:
       "The strongest computer setting currently available in this version of the game.",
@@ -4522,7 +4530,7 @@ async function fetchAuthoritativeOnlineRoom(
   ) {
 
     setOnlineStatus(
-      "Checking authoritative game state..."
+      "Checking game state..."
     );
 
   }
@@ -4552,7 +4560,7 @@ async function fetchAuthoritativeOnlineRoom(
     ) {
 
       setOnlineStatus(
-        "Unable to resync right now. Please try again."
+        "Resync failed. Please try again."
       );
 
     }
@@ -4792,7 +4800,7 @@ async function requestOnlineUndo() {
   ) {
 
     setOnlineStatus(
-      "Unable to request undo. Resync and try again."
+      "Undo request failed. Resync and try again."
     );
 
     return;
@@ -4809,7 +4817,7 @@ async function requestOnlineUndo() {
   setOnlineStatus(
     "Room " +
     updated.room_code +
-    "\nUndo requested. Waiting for opponent..."
+    "\nUndo requested — awaiting opponent."
   );
 
 }
@@ -4881,7 +4889,7 @@ async function denyOnlineUndo(
     setOnlineStatus(
       "Room " +
       updated.room_code +
-      "\nUndo request denied."
+      "\nUndo denied."
     );
 
   }
@@ -5071,7 +5079,7 @@ async function allowOnlineUndo(
     setOnlineStatus(
       "Room " +
       updated.room_code +
-      "\nUndo accepted. Previous position restored."
+      "\nUndo accepted — position restored."
     );
 
   }
@@ -6210,7 +6218,7 @@ async function resetOnlineRoomForRematch(
   ) {
 
     setOnlineStatus(
-      "Unable to start the rematch."
+      "Rematch failed. Please try again."
     );
 
     return;
@@ -6318,7 +6326,7 @@ async function requestOnlineRematch() {
   ) {
 
     setOnlineStatus(
-      "Unable to send rematch request."
+      "Rematch request failed. Please try again."
     );
 
     return;
@@ -6351,7 +6359,7 @@ async function requestOnlineRematch() {
   setOnlineStatus(
     "Room " +
     updated.room_code +
-    "\nRematch requested. Waiting for opponent..."
+    "\nRematch requested — awaiting opponent."
   );
 
 }
@@ -6444,7 +6452,7 @@ async function resignOnlineGame(
   ) {
 
     setOnlineStatus(
-      "Unable to resign. Please resync and try again."
+      "Resignation failed. Resync and try again."
     );
 
     return false;
@@ -6570,7 +6578,7 @@ async function applyOnlineRoomUpdate(
     setOnlineStatus(
       "Room " +
       room.room_code +
-      "\nWaiting for Player 2..."
+      "\nWaiting for opponent..."
     );
 
     lockOnlineFormationBtn.disabled =
@@ -6608,7 +6616,7 @@ async function applyOnlineRoomUpdate(
       setOnlineStatus(
         "Room " +
         room.room_code +
-        "\nYour formation is locked. Waiting for your opponent..."
+        "\nFormation locked — awaiting opponent."
       );
 
     }
@@ -6621,7 +6629,7 @@ async function applyOnlineRoomUpdate(
       setOnlineStatus(
         "Room " +
         room.room_code +
-        "\nBoth players connected. Choose your formation, then lock it."
+        "\nOpponent connected — choose and lock your formation."
       );
 
     }
@@ -6771,7 +6779,7 @@ async function applyOnlineRoomUpdate(
   setOnlineStatus(
     "Room " +
     room.room_code +
-    "\nOnline game active."
+    "\nGame active."
   );
 
 
@@ -6855,7 +6863,7 @@ async function applyOnlineRoomUpdate(
       setOnlineStatus(
         "Room " +
         room.room_code +
-        "\nGame state resynchronized."
+        "\nGame resynchronized."
       );
 
 
@@ -6910,7 +6918,7 @@ async function applyOnlineRoomUpdate(
     setOnlineStatus(
       "Room " +
       room.room_code +
-      "\nGame state resynchronized."
+      "\nGame resynchronized."
     );
 
 
@@ -7871,7 +7879,7 @@ async function syncOnlineMove(
       setOnlineStatus(
         "Room " +
         data.room_code +
-        "\nGame state resynchronized."
+        "\nGame resynchronized."
       );
 
 
@@ -9135,6 +9143,11 @@ function getDifficultyTooltipHTML(key) {
     "</div>" +
 
     "<div class='tooltip-line'>" +
+    "<strong>Approx. Elo:</strong> " +
+    guide.elo +
+    "</div>" +
+
+    "<div class='tooltip-line'>" +
     "<strong>How it plays:</strong> " +
     guide.behavior +
     "</div>" +
@@ -9142,6 +9155,10 @@ function getDifficultyTooltipHTML(key) {
     "<div class='tooltip-line'>" +
     "<strong>Best for:</strong> " +
     guide.bestFor +
+    "</div>" +
+
+    "<div class='tooltip-line tooltip-muted'>" +
+    "Elo is a rough in-game equivalent, not a calibrated rating." +
     "</div>"
 
   );
