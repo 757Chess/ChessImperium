@@ -292,6 +292,98 @@ select {
 
 
 /* ===================================================== */
+/* ONLINE MULTIPLAYER                                    */
+/* ===================================================== */
+
+.mode-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  margin-bottom:11px;
+}
+
+.mode-btn {
+  padding:8px 7px;
+  border:1px solid var(--button-border);
+  background:var(--button);
+  border-radius:9px;
+  cursor:pointer;
+}
+
+.mode-btn.active {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.online-panel {
+  display:none;
+}
+
+.online-panel.visible {
+  display:block;
+}
+
+.online-row {
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:6px;
+  margin-top:7px;
+}
+
+.online-row input {
+  width:100%;
+  min-width:0;
+  padding:8px;
+  border:1px solid var(--button-border);
+  border-radius:8px;
+  text-transform:uppercase;
+  background:#fff;
+}
+
+.online-action {
+  padding:8px 9px;
+  border:1px solid var(--button-border);
+  background:var(--button);
+  border-radius:9px;
+  cursor:pointer;
+}
+
+.online-action.primary {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.online-action:disabled {
+  opacity:.48;
+  cursor:not-allowed;
+}
+
+.online-status {
+  margin-top:8px;
+  padding:8px 9px;
+  border:1px solid #e7e0d5;
+  border-radius:9px;
+  background:#faf8f4;
+  font-size:11px;
+  line-height:1.4;
+  white-space:pre-wrap;
+}
+
+.online-room-code {
+  margin-top:6px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-weight:bold;
+  letter-spacing:.7px;
+}
+
+.online-hidden {
+  display:none !important;
+}
+
+
+/* ===================================================== */
 /* TOOLTIP                                               */
 /* ===================================================== */
 
@@ -509,7 +601,7 @@ select {
   width:100%;
   max-width:576px;
   aspect-ratio:1 / 1;
-  background-image:url("./boardtexture.png");
+  background-image:url("./Graphics/boardtexture.png");
   background-size:100% 100%;
   background-position:center;
   background-repeat:no-repeat;
@@ -1529,6 +1621,15 @@ th {
 
         <h2 class="panel-title">Game Setup</h2>
 
+        <div class="mode-grid">
+          <button id="computerModeBtn" class="mode-btn active" type="button">
+            Vs Computer
+          </button>
+          <button id="onlineModeBtn" class="mode-btn" type="button">
+            Online Multiplayer
+          </button>
+        </div>
+
         <div class="label">Your formation</div>
 
         <div id="formationButtons" class="formation-grid"></div>
@@ -1545,20 +1646,22 @@ th {
           </button>
         </div>
 
-        <div style="height:9px"></div>
+        <div id="computerFormationWrap">
+          <div style="height:9px"></div>
 
-        <label class="label" for="computerFormationSelect">
-          Computer formation
-        </label>
+          <label class="label" for="computerFormationSelect">
+            Computer formation
+          </label>
 
-        <select id="computerFormationSelect">
-          <option value="RANDOM">Random formation</option>
-        </select>
+          <select id="computerFormationSelect">
+            <option value="RANDOM">Random formation</option>
+          </select>
+        </div>
 
       </div>
 
 
-      <div class="section">
+      <div id="playAsSection" class="section">
 
         <div class="label">Play as</div>
 
@@ -1590,7 +1693,7 @@ th {
       </div>
 
 
-      <div class="section">
+      <div id="difficultySection" class="section">
 
         <div class="label">Difficulty</div>
 
@@ -1629,6 +1732,51 @@ th {
       </div>
 
 
+      <div id="onlinePanel" class="section online-panel">
+
+        <div class="label">Online Room</div>
+
+        <button id="createOnlineRoomBtn"
+                class="online-action primary"
+                type="button"
+                style="width:100%;">
+          Create Room
+        </button>
+
+        <div class="online-row">
+          <input id="onlineRoomCodeInput"
+                 maxlength="6"
+                 placeholder="Room code">
+          <button id="joinOnlineRoomBtn"
+                  class="online-action"
+                  type="button">
+            Join
+          </button>
+        </div>
+
+        <button id="lockOnlineFormationBtn"
+                class="online-action"
+                type="button"
+                style="width:100%;margin-top:7px;"
+                disabled>
+          Lock Formation
+        </button>
+
+        <button id="leaveOnlineRoomBtn"
+                class="online-action"
+                type="button"
+                style="width:100%;margin-top:7px;"
+                disabled>
+          Leave Online Room
+        </button>
+
+        <div id="onlineStatusBox" class="online-status">
+          Create a room or join with a room code.
+        </div>
+
+      </div>
+
+
       <div class="section">
 
         <div class="label">Sound</div>
@@ -1644,7 +1792,7 @@ th {
       </div>
 
 
-      <div class="game-actions">
+      <div id="gameActionsWrap" class="game-actions">
 
         <button
           id="newGameBtn"
@@ -2038,6 +2186,9 @@ th {
 import { Chess }
 from "https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm";
 
+import { createClient }
+from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
 
 /* ===================================================== */
 /* FORMATIONS                                            */
@@ -2298,19 +2449,19 @@ const PIECE_NAMES = {
 
 const PIECE_IMAGES = {
 
-  wp:"./wP.png",
-  wr:"./wR.png",
-  wn:"./wN.png",
-  wb:"./wB.png",
-  wq:"./wQ.png",
-  wk:"./wK.png",
+  wp:"./Graphics/wP.png",
+  wr:"./Graphics/wR.png",
+  wn:"./Graphics/wN.png",
+  wb:"./Graphics/wB.png",
+  wq:"./Graphics/wQ.png",
+  wk:"./Graphics/wK.png",
 
-  bp:"./bP.png",
-  br:"./bR.png",
-  bn:"./bN.png",
-  bb:"./bB.png",
-  bq:"./bQ.png",
-  bk:"./bK.png"
+  bp:"./Graphics/bP.png",
+  br:"./Graphics/bR.png",
+  bn:"./Graphics/bN.png",
+  bb:"./Graphics/bB.png",
+  bq:"./Graphics/bQ.png",
+  bk:"./Graphics/bK.png"
 
 };
 
@@ -2335,71 +2486,71 @@ const CAPTURE_SOUND_VOLUME = .68;
 
 const SOUND_FILES = {
 
-  capture:"./Capture.wav",
-  queencapture:"./queencapture.wav",
-  menuclick:"./menuclick.wav",
-  checkmate:"./Checkmate.wav",
-  draw:"./Stalemate.wav",
-  invalid:"./Invalidmove.wav"
+  capture:"./Audio/Capture.wav",
+  queencapture:"./Audio/queencapture.wav",
+  menuclick:"./Audio/menuclick.wav",
+  checkmate:"./Audio/Checkmate.wav",
+  draw:"./Audio/Stalemate.wav",
+  invalid:"./Audio/Invalidmove.wav"
 
 };
 
 
 const MOVE_SOUND_FILES = [
-  "./move1.wav",
-  "./move2.wav",
-  "./move3.wav",
-  "./move4.wav",
-  "./move5.wav"
+  "./Audio/move1.wav",
+  "./Audio/move2.wav",
+  "./Audio/move3.wav",
+  "./Audio/move4.wav",
+  "./Audio/move5.wav"
 ];
 
 
 const CHECK_SOUND_FILES = [
-  "./check1.wav",
-  "./check2.wav",
-  "./check3.wav"
+  "./Audio/check1.wav",
+  "./Audio/check2.wav",
+  "./Audio/check3.wav"
 ];
 
 
 const KNIGHT_CAPTURE_SOUND_FILES = [
-  "./knightcapture1.wav",
-  "./knightcapture2.wav"
+  "./Audio/knightcapture1.wav",
+  "./Audio/knightcapture2.wav"
 ];
 
 
 const ROOK_CAPTURE_SOUND_FILES = [
-  "./rookcapture1.wav",
-  "./rookcapture2.wav"
+  "./Audio/rookcapture1.wav",
+  "./Audio/rookcapture2.wav"
 ];
 
 
 const BISHOP_CAPTURE_SOUND_FILES = [
-  "./bishopcapture1.wav",
-  "./bishopcapture2.wav"
+  "./Audio/bishopcapture1.wav",
+  "./Audio/bishopcapture2.wav"
 ];
 
 
 const QUEEN_WHOOSH_FILES = {
-  w:"./queenwhoosh1.wav",
-  b:"./queenwhoosh2.wav"
+  w:"./Audio/queenwhoosh1.wav",
+  b:"./Audio/queenwhoosh2.wav"
 };
 
 
 const QUEEN_DEATH_SOUND_FILES = [
-  "./queendeath1.wav",
-  "./queendeath2.wav",
-  "./queendeath3.wav",
-  "./queendeath4.wav",
-  "./queendeath5.wav",
-  "./queendeath6.wav",
-  "./queendeath7.wav",
-  "./queendeath8.wav",
-  "./queendeath9.wav"
+  "./Audio/queendeath1.wav",
+  "./Audio/queendeath2.wav",
+  "./Audio/queendeath3.wav",
+  "./Audio/queendeath4.wav",
+  "./Audio/queendeath5.wav",
+  "./Audio/queendeath6.wav",
+  "./Audio/queendeath7.wav",
+  "./Audio/queendeath8.wav",
+  "./Audio/queendeath9.wav"
 ];
 
 
 const OPENING_THEME_FILE =
-  "./openingtheme.mp3";
+  "./Audio/openingtheme.mp3";
 
 
 const AudioContextClass =
@@ -3180,6 +3331,45 @@ const feedbackSubmit =
 const feedbackMessage =
   document.getElementById("feedbackMessage");
 
+const computerModeBtn =
+  document.getElementById("computerModeBtn");
+
+const onlineModeBtn =
+  document.getElementById("onlineModeBtn");
+
+const computerFormationWrap =
+  document.getElementById("computerFormationWrap");
+
+const playAsSection =
+  document.getElementById("playAsSection");
+
+const difficultySection =
+  document.getElementById("difficultySection");
+
+const onlinePanel =
+  document.getElementById("onlinePanel");
+
+const gameActionsWrap =
+  document.getElementById("gameActionsWrap");
+
+const createOnlineRoomBtn =
+  document.getElementById("createOnlineRoomBtn");
+
+const joinOnlineRoomBtn =
+  document.getElementById("joinOnlineRoomBtn");
+
+const onlineRoomCodeInput =
+  document.getElementById("onlineRoomCodeInput");
+
+const lockOnlineFormationBtn =
+  document.getElementById("lockOnlineFormationBtn");
+
+const leaveOnlineRoomBtn =
+  document.getElementById("leaveOnlineRoomBtn");
+
+const onlineStatusBox =
+  document.getElementById("onlineStatusBox");
+
 
 
 /* ===================================================== */
@@ -3293,6 +3483,69 @@ let ruleToastTimer =
 
 let formationAnimationTimers =
   [];
+
+
+/* ===================================================== */
+/* ONLINE MULTIPLAYER STATE                              */
+/* ===================================================== */
+
+const SUPABASE_URL =
+  "https://ucbsumblhwuoemlqvnzk.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_z2H_tbGNrOeedIdN2-8dIw_WKe1DQqo";
+
+const supabase =
+  createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+const ONLINE_PLAYER_ID_KEY =
+  "chessImperiumOnlinePlayerId";
+
+const ONLINE_ROOM_CODE_KEY =
+  "chessImperiumOnlineRoomCode";
+
+let onlinePlayerId =
+  localStorage.getItem(
+    ONLINE_PLAYER_ID_KEY
+  );
+
+if (
+  !onlinePlayerId
+) {
+
+  onlinePlayerId =
+    crypto.randomUUID();
+
+  localStorage.setItem(
+    ONLINE_PLAYER_ID_KEY,
+    onlinePlayerId
+  );
+
+}
+
+let gameMode =
+  "computer";
+
+let onlineRoom =
+  null;
+
+let onlineChannel =
+  null;
+
+let onlineRole =
+  null;
+
+let onlineFormationLocked =
+  false;
+
+let onlineApplyingRemoteMove =
+  false;
+
+let onlineStartedRoomId =
+  null;
 
 
 const MOVE_ANIMATION_DURATION =
@@ -3747,6 +4000,1621 @@ function playSoundForMove(move) {
     );
 
   }
+
+}
+
+
+/* ===================================================== */
+/* ONLINE MULTIPLAYER                                    */
+/* ===================================================== */
+
+function setOnlineStatus(
+  text
+) {
+
+  onlineStatusBox.textContent =
+    text;
+
+}
+
+
+function makeOnlineRoomCode() {
+
+  const chars =
+    "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+  let code =
+    "";
+
+
+  for (
+    let i=0;
+    i<6;
+    i++
+  ) {
+
+    code +=
+      chars[
+        Math.floor(
+          Math.random() *
+          chars.length
+        )
+      ];
+
+  }
+
+
+  return code;
+
+}
+
+
+function getOnlineRole(
+  room
+) {
+
+  if (
+    !room
+  ) {
+    return null;
+  }
+
+
+  if (
+    room.white_player_id ===
+    onlinePlayerId
+  ) {
+    return "white";
+  }
+
+
+  if (
+    room.black_player_id ===
+    onlinePlayerId
+  ) {
+    return "black";
+  }
+
+
+  return null;
+
+}
+
+
+function updateGameModeUI() {
+
+  const online =
+    gameMode === "online";
+
+
+  computerModeBtn.classList.toggle(
+    "active",
+    !online
+  );
+
+  onlineModeBtn.classList.toggle(
+    "active",
+    online
+  );
+
+
+  computerFormationWrap.classList.toggle(
+    "online-hidden",
+    online
+  );
+
+  playAsSection.classList.toggle(
+    "online-hidden",
+    online
+  );
+
+  difficultySection.classList.toggle(
+    "online-hidden",
+    online
+  );
+
+  gameActionsWrap.classList.toggle(
+    "online-hidden",
+    online
+  );
+
+  onlinePanel.classList.toggle(
+    "visible",
+    online
+  );
+
+  /*
+   * Direct display assignments are intentional here.
+   * They provide a second, browser-independent guarantee
+   * that the online controls appear and the computer-only
+   * controls disappear.
+   */
+  computerFormationWrap.style.display =
+    online ? "none" : "";
+
+  playAsSection.style.display =
+    online ? "none" : "";
+
+  difficultySection.style.display =
+    online ? "none" : "";
+
+  gameActionsWrap.style.display =
+    online ? "none" : "";
+
+  onlinePanel.style.display =
+    online ? "block" : "none";
+
+
+  if (
+    online
+  ) {
+
+    engineBox.textContent =
+      onlineRoom
+        ? "Online multiplayer · connected"
+        : "Online multiplayer";
+
+  }
+
+  else {
+
+    engineBox.textContent =
+      engineReady
+        ? "Stockfish ready."
+        : "Engine loading...";
+
+  }
+
+
+  updateInfoPanel();
+
+  updateUndoButton();
+
+}
+
+
+function setOnlineFormationControlsLocked(
+  locked
+) {
+
+  onlineFormationLocked =
+    locked;
+
+
+  formationButtonsEl
+    .querySelectorAll(
+      ".choice-btn"
+    )
+    .forEach(
+      button => {
+        button.disabled =
+          locked;
+      }
+    );
+
+
+  randomFormationBtn.disabled =
+    locked;
+
+
+  lockOnlineFormationBtn.disabled =
+    (
+      !onlineRoom ||
+      locked ||
+      onlineRoom.status === "waiting" ||
+      onlineRoom.status === "active"
+    );
+
+}
+
+
+async function stopOnlineRealtime() {
+
+  if (
+    onlineChannel
+  ) {
+
+    await supabase.removeChannel(
+      onlineChannel
+    );
+
+    onlineChannel =
+      null;
+
+  }
+
+}
+
+
+function onlineHistoryFromGame() {
+
+  if (
+    !game
+  ) {
+    return [];
+  }
+
+
+  return game
+    .history({
+      verbose:true
+    })
+    .map(
+      move => ({
+        from:move.from,
+        to:move.to,
+        promotion:
+          move.promotion ||
+          null,
+        san:move.san,
+        color:move.color,
+        piece:move.piece,
+        captured:
+          move.captured ||
+          null
+      })
+    );
+
+}
+
+
+function setupOnlineGameFromRoom(
+  room,
+  playTheme = false
+) {
+
+  if (
+    !room ||
+    !room.white_formation ||
+    !room.black_formation
+  ) {
+    return;
+  }
+
+
+  onlineRoom =
+    room;
+
+  onlineRole =
+    getOnlineRole(
+      room
+    );
+
+
+  if (
+    !onlineRole
+  ) {
+    return;
+  }
+
+
+  actualPlayerColor =
+    onlineRole === "white"
+      ? "w"
+      : "b";
+
+  playerColor =
+    actualPlayerColor;
+
+
+  actualPlayerFormation =
+    onlineRole === "white"
+      ? room.white_formation
+      : room.black_formation;
+
+  actualComputerFormation =
+    onlineRole === "white"
+      ? room.black_formation
+      : room.white_formation;
+
+
+  const allowCastling =
+    room.white_formation === "RNB" &&
+    room.black_formation === "RNB";
+
+
+  const initialFen =
+    buildFen(
+      room.white_formation,
+      room.black_formation,
+      allowCastling
+    );
+
+
+  const rebuiltGame =
+    new Chess(
+      initialFen
+    );
+
+
+  const storedHistory =
+    Array.isArray(
+      room.move_history
+    )
+      ? room.move_history
+      : [];
+
+
+  let replayWorked =
+    true;
+
+
+  for (
+    const record of storedHistory
+  ) {
+
+    try {
+
+      const replayed =
+        rebuiltGame.move({
+          from:record.from,
+          to:record.to,
+          promotion:
+            record.promotion ||
+            undefined
+        });
+
+
+      if (
+        !replayed
+      ) {
+
+        replayWorked =
+          false;
+
+        break;
+
+      }
+
+    }
+
+    catch(error) {
+
+      replayWorked =
+        false;
+
+      break;
+
+    }
+
+  }
+
+
+  if (
+    replayWorked
+  ) {
+
+    game =
+      rebuiltGame;
+
+  }
+
+  else if (
+    room.fen
+  ) {
+
+    game =
+      new Chess(
+        room.fen
+      );
+
+  }
+
+  else {
+
+    game =
+      rebuiltGame;
+
+  }
+
+
+  gameStarted =
+    true;
+
+  engineThinking =
+    false;
+
+  engineSearchActive =
+    false;
+
+  moveAnimating =
+    false;
+
+  selectedSquare =
+    null;
+
+  legalMoves =
+    [];
+
+  promotionPending =
+    null;
+
+  undosRemaining =
+    0;
+
+
+  const lastRecord =
+    storedHistory.length > 0
+      ? storedHistory[
+          storedHistory.length - 1
+        ]
+      : null;
+
+
+  lastMove =
+    lastRecord
+      ? {
+          from:lastRecord.from,
+          to:lastRecord.to
+        }
+      : null;
+
+
+  if (
+    playTheme
+  ) {
+
+    playOpeningTheme();
+
+  }
+
+
+  updateStartGameAttention();
+
+  refreshFormationButtons();
+
+  refreshSideButtons();
+
+  drawBoard();
+
+  renderMoveList();
+
+  updateCapturedPieces();
+
+  updateInfoPanel();
+
+  updateStatus();
+
+  updateGameOverSummary();
+
+  updateUndoButton();
+
+
+  previewBar.innerHTML =
+
+    "<strong>" +
+    FORMATION_MAP[
+      actualPlayerFormation
+    ] +
+    " (" +
+    actualPlayerFormation +
+    ")</strong>" +
+
+    "&nbsp;vs&nbsp;" +
+
+    FORMATION_MAP[
+      actualComputerFormation
+    ] +
+    " (" +
+    actualComputerFormation +
+    ")" +
+
+    "&nbsp;·&nbsp;Online&nbsp;·&nbsp;" +
+
+    (
+      playerColor === "w"
+        ? "You are White"
+        : "You are Black"
+    );
+
+
+  engineBox.textContent =
+    "Online multiplayer · connected";
+
+
+  showRuleToast();
+
+}
+
+
+async function initializeOnlineFenIfNeeded(
+  room
+) {
+
+  if (
+    !room ||
+    room.status !== "active" ||
+    room.fen ||
+    getOnlineRole(room) !== "white"
+  ) {
+    return;
+  }
+
+
+  const allowCastling =
+    room.white_formation === "RNB" &&
+    room.black_formation === "RNB";
+
+
+  const initialFen =
+    buildFen(
+      room.white_formation,
+      room.black_formation,
+      allowCastling
+    );
+
+
+  await supabase
+    .from("rooms")
+    .update({
+      fen:initialFen,
+      move_history:[],
+      updated_at:
+        new Date().toISOString()
+    })
+    .eq(
+      "id",
+      room.id
+    )
+    .is(
+      "fen",
+      null
+    );
+
+}
+
+
+async function applyOnlineRoomUpdate(
+  room
+) {
+
+  if (
+    !room
+  ) {
+    return;
+  }
+
+
+  const previousRoom =
+    onlineRoom;
+
+
+  onlineRoom =
+    room;
+
+  onlineRole =
+    getOnlineRole(
+      room
+    );
+
+
+  leaveOnlineRoomBtn.disabled =
+    false;
+
+
+  onlineRoomCodeInput.value =
+    room.room_code;
+
+
+  localStorage.setItem(
+    ONLINE_ROOM_CODE_KEY,
+    room.room_code
+  );
+
+
+  if (
+    room.status === "waiting"
+  ) {
+
+    setOnlineStatus(
+      "Room " +
+      room.room_code +
+      "\nWaiting for Player 2..."
+    );
+
+    lockOnlineFormationBtn.disabled =
+      true;
+
+    return;
+
+  }
+
+
+  if (
+    room.status === "formation_selection"
+  ) {
+
+    const myFormation =
+      onlineRole === "white"
+        ? room.white_formation
+        : room.black_formation;
+
+
+    setOnlineFormationControlsLocked(
+      Boolean(
+        myFormation
+      )
+    );
+
+
+    if (
+      myFormation
+    ) {
+
+      setOnlineStatus(
+        "Room " +
+        room.room_code +
+        "\nYour formation is locked. Waiting for your opponent..."
+      );
+
+    }
+
+    else {
+
+      lockOnlineFormationBtn.disabled =
+        false;
+
+      setOnlineStatus(
+        "Room " +
+        room.room_code +
+        "\nBoth players connected. Choose your formation, then lock it."
+      );
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
+    room.status !== "active"
+  ) {
+
+    return;
+
+  }
+
+
+  setOnlineFormationControlsLocked(
+    true
+  );
+
+
+  setOnlineStatus(
+    "Room " +
+    room.room_code +
+    "\nOnline game active."
+  );
+
+
+  await initializeOnlineFenIfNeeded(
+    room
+  );
+
+
+  if (
+    !room.fen
+  ) {
+
+    return;
+
+  }
+
+
+  const remoteHistory =
+    Array.isArray(
+      room.move_history
+    )
+      ? room.move_history
+      : [];
+
+
+  const localHistoryLength =
+    gameStarted &&
+    game
+      ? game.history().length
+      : 0;
+
+
+  const isFirstStart =
+    onlineStartedRoomId !==
+    room.id;
+
+
+  if (
+    !gameStarted ||
+    !game ||
+    isFirstStart
+  ) {
+
+    onlineStartedRoomId =
+      room.id;
+
+    setupOnlineGameFromRoom(
+      room,
+      isFirstStart
+    );
+
+    return;
+
+  }
+
+
+  if (
+    remoteHistory.length ===
+    localHistoryLength
+  ) {
+
+    updateInfoPanel();
+
+    updateStatus();
+
+    return;
+
+  }
+
+
+  if (
+    remoteHistory.length ===
+    localHistoryLength + 1 &&
+    !onlineApplyingRemoteMove
+  ) {
+
+    const record =
+      remoteHistory[
+        remoteHistory.length - 1
+      ];
+
+
+    if (
+      record &&
+      record.color === game.turn()
+    ) {
+
+      const plannedMove =
+        game.moves({
+          square:record.from,
+          verbose:true
+        }).find(
+          move =>
+            move.to === record.to &&
+            (
+              !record.promotion ||
+              move.promotion ===
+              record.promotion
+            )
+        );
+
+
+      onlineApplyingRemoteMove =
+        true;
+
+      moveAnimating =
+        true;
+
+      updateUndoButton();
+
+
+      if (
+        plannedMove
+      ) {
+
+        await animateLegalMove(
+          record.from,
+          record.to,
+          plannedMove
+        );
+
+      }
+
+
+      try {
+
+        const move =
+          game.move({
+            from:record.from,
+            to:record.to,
+            promotion:
+              record.promotion ||
+              undefined
+          });
+
+
+        moveAnimating =
+          false;
+
+
+        if (
+          move
+        ) {
+
+          lastMove = {
+            from:move.from,
+            to:move.to
+          };
+
+
+          selectedSquare =
+            null;
+
+          legalMoves =
+            [];
+
+
+          afterMove(
+            move
+          );
+
+        }
+
+      }
+
+      catch(error) {
+
+        moveAnimating =
+          false;
+
+        setupOnlineGameFromRoom(
+          room,
+          false
+        );
+
+      }
+
+
+      onlineApplyingRemoteMove =
+        false;
+
+      onlineRoom =
+        room;
+
+      return;
+
+    }
+
+  }
+
+
+  setupOnlineGameFromRoom(
+    room,
+    false
+  );
+
+}
+
+
+async function watchOnlineRoom(
+  roomId
+) {
+
+  await stopOnlineRealtime();
+
+
+  onlineChannel =
+    supabase
+      .channel(
+        "chess-imperium-room-" +
+        roomId
+      )
+      .on(
+        "postgres_changes",
+        {
+          event:"UPDATE",
+          schema:"public",
+          table:"rooms",
+          filter:
+            "id=eq." +
+            roomId
+        },
+        async payload => {
+
+          if (
+            payload.new &&
+            payload.new.id
+          ) {
+
+            await applyOnlineRoomUpdate(
+              payload.new
+            );
+
+          }
+
+        }
+      )
+      .subscribe();
+
+}
+
+
+async function createOnlineRoom() {
+
+  if (
+    gameMode !== "online"
+  ) {
+    return;
+  }
+
+
+  setOnlineStatus(
+    "Creating room..."
+  );
+
+
+  for (
+    let attempt=0;
+    attempt<5;
+    attempt++
+  ) {
+
+    const roomCode =
+      makeOnlineRoomCode();
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from("rooms")
+        .insert({
+          room_code:roomCode,
+          status:"waiting",
+          white_player_id:
+            onlinePlayerId,
+          black_player_id:null,
+          white_formation:null,
+          black_formation:null,
+          fen:null,
+          move_history:[]
+        })
+        .select()
+        .single();
+
+
+    if (
+      !error &&
+      data
+    ) {
+
+      onlineRoom =
+        data;
+
+      onlineRole =
+        "white";
+
+      onlineFormationLocked =
+        false;
+
+      onlineRoomCodeInput.value =
+        data.room_code;
+
+      localStorage.setItem(
+        ONLINE_ROOM_CODE_KEY,
+        data.room_code
+      );
+
+      leaveOnlineRoomBtn.disabled =
+        false;
+
+      await watchOnlineRoom(
+        data.id
+      );
+
+      await applyOnlineRoomUpdate(
+        data
+      );
+
+      return;
+
+    }
+
+
+    if (
+      !error ||
+      error.code !== "23505"
+    ) {
+
+      setOnlineStatus(
+        "Unable to create room." +
+        (
+          error
+            ? "\n" + error.message
+            : ""
+        )
+      );
+
+      return;
+
+    }
+
+  }
+
+
+  setOnlineStatus(
+    "Unable to generate a unique room code."
+  );
+
+}
+
+
+async function joinOnlineRoom() {
+
+  if (
+    gameMode !== "online"
+  ) {
+    return;
+  }
+
+
+  const code =
+    onlineRoomCodeInput.value
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    !code
+  ) {
+
+    setOnlineStatus(
+      "Enter a room code first."
+    );
+
+    return;
+
+  }
+
+
+  setOnlineStatus(
+    "Looking for room " +
+    code +
+    "..."
+  );
+
+
+  const {
+    data:room,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .select("*")
+      .eq(
+        "room_code",
+        code
+      )
+      .single();
+
+
+  if (
+    error ||
+    !room
+  ) {
+
+    setOnlineStatus(
+      "Room not found."
+    );
+
+    return;
+
+  }
+
+
+  const existingRole =
+    getOnlineRole(
+      room
+    );
+
+
+  if (
+    existingRole
+  ) {
+
+    onlineRoom =
+      room;
+
+    onlineRole =
+      existingRole;
+
+    await watchOnlineRoom(
+      room.id
+    );
+
+    await applyOnlineRoomUpdate(
+      room
+    );
+
+    return;
+
+  }
+
+
+  if (
+    room.black_player_id
+  ) {
+
+    setOnlineStatus(
+      "That room already has two players."
+    );
+
+    return;
+
+  }
+
+
+  const {
+    data:joined,
+    error:joinError
+  } =
+    await supabase
+      .from("rooms")
+      .update({
+        black_player_id:
+          onlinePlayerId,
+        status:
+          "formation_selection",
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        room.id
+      )
+      .is(
+        "black_player_id",
+        null
+      )
+      .select()
+      .single();
+
+
+  if (
+    joinError ||
+    !joined
+  ) {
+
+    setOnlineStatus(
+      "Unable to join room."
+    );
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    joined;
+
+  onlineRole =
+    "black";
+
+  await watchOnlineRoom(
+    joined.id
+  );
+
+  await applyOnlineRoomUpdate(
+    joined
+  );
+
+}
+
+
+async function lockOnlineFormation() {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    !onlineRole ||
+    onlineFormationLocked
+  ) {
+    return;
+  }
+
+
+  const chosenFormation =
+
+    playerFormationChoice ===
+    "RANDOM"
+
+      ? randomFormation()
+
+      : playerFormationChoice;
+
+
+  actualPlayerFormation =
+    chosenFormation;
+
+
+  setOnlineFormationControlsLocked(
+    true
+  );
+
+
+  setOnlineStatus(
+    "Locking formation..."
+  );
+
+
+  const updateValues =
+
+    onlineRole === "white"
+
+      ? {
+          white_formation:
+            chosenFormation,
+          updated_at:
+            new Date().toISOString()
+        }
+
+      : {
+          black_formation:
+            chosenFormation,
+          updated_at:
+            new Date().toISOString()
+        };
+
+
+  const {
+    data:updated,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .update(
+        updateValues
+      )
+      .eq(
+        "id",
+        onlineRoom.id
+      )
+      .select()
+      .single();
+
+
+  if (
+    error ||
+    !updated
+  ) {
+
+    setOnlineFormationControlsLocked(
+      false
+    );
+
+    setOnlineStatus(
+      "Unable to lock formation."
+    );
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    updated;
+
+
+  const {
+    data:fresh
+  } =
+    await supabase
+      .from("rooms")
+      .select("*")
+      .eq(
+        "id",
+        updated.id
+      )
+      .single();
+
+
+  if (
+    fresh &&
+    fresh.white_formation &&
+    fresh.black_formation &&
+    fresh.status !== "active"
+  ) {
+
+    await supabase
+      .from("rooms")
+      .update({
+        status:"active",
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        fresh.id
+      );
+
+  }
+
+  else {
+
+    await applyOnlineRoomUpdate(
+      updated
+    );
+
+  }
+
+}
+
+
+async function syncOnlineMove(
+  previousFen
+) {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    !game
+  ) {
+    return;
+  }
+
+
+  const nextHistory =
+    onlineHistoryFromGame();
+
+
+  const updateQuery =
+    supabase
+      .from("rooms")
+      .update({
+        fen:game.fen(),
+        move_history:
+          nextHistory,
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        onlineRoom.id
+      );
+
+
+  const {
+    data,
+    error
+  } =
+    previousFen
+
+      ? await updateQuery
+          .eq(
+            "fen",
+            previousFen
+          )
+          .select()
+          .single()
+
+      : await updateQuery
+          .select()
+          .single();
+
+
+  if (
+    error ||
+    !data
+  ) {
+
+    setOnlineStatus(
+      "Move sync conflict. Reloading room..."
+    );
+
+
+    const {
+      data:fresh
+    } =
+      await supabase
+        .from("rooms")
+        .select("*")
+        .eq(
+          "id",
+          onlineRoom.id
+        )
+        .single();
+
+
+    if (
+      fresh
+    ) {
+
+      setupOnlineGameFromRoom(
+        fresh,
+        false
+      );
+
+      onlineRoom =
+        fresh;
+
+    }
+
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    data;
+
+  setOnlineStatus(
+    "Room " +
+    data.room_code +
+    "\nMove synchronized."
+  );
+
+}
+
+
+async function leaveOnlineRoom() {
+
+  await stopOnlineRealtime();
+
+
+  onlineRoom =
+    null;
+
+  onlineRole =
+    null;
+
+  onlineFormationLocked =
+    false;
+
+  onlineStartedRoomId =
+    null;
+
+
+  localStorage.removeItem(
+    ONLINE_ROOM_CODE_KEY
+  );
+
+
+  onlineRoomCodeInput.value =
+    "";
+
+
+  leaveOnlineRoomBtn.disabled =
+    true;
+
+  lockOnlineFormationBtn.disabled =
+    true;
+
+
+  setOnlineFormationControlsLocked(
+    false
+  );
+
+
+  clearMoveGhost();
+
+  gameStarted =
+    false;
+
+  game =
+    null;
+
+  selectedSquare =
+    null;
+
+  legalMoves =
+    [];
+
+  lastMove =
+    null;
+
+
+  setOnlineStatus(
+    "Create a room or join with a room code."
+  );
+
+
+  renderPreview();
+
+  updateGameModeUI();
+
+}
+
+
+async function reconnectOnlineRoomIfAvailable() {
+
+  const savedCode =
+    localStorage.getItem(
+      ONLINE_ROOM_CODE_KEY
+    );
+
+
+  if (
+    !savedCode
+  ) {
+    return;
+  }
+
+
+  gameMode =
+    "online";
+
+  updateGameModeUI();
+
+
+  onlineRoomCodeInput.value =
+    savedCode;
+
+
+  setOnlineStatus(
+    "Reconnecting to room " +
+    savedCode +
+    "..."
+  );
+
+
+  const {
+    data:room,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .select("*")
+      .eq(
+        "room_code",
+        savedCode
+      )
+      .single();
+
+
+  if (
+    error ||
+    !room ||
+    !getOnlineRole(room)
+  ) {
+
+    localStorage.removeItem(
+      ONLINE_ROOM_CODE_KEY
+    );
+
+    setOnlineStatus(
+      "Saved room is no longer available."
+    );
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    room;
+
+  onlineRole =
+    getOnlineRole(
+      room
+    );
+
+
+  /*
+   * If this browser is restoring an already-active game,
+   * this is a reconnect — not a brand-new game start.
+   * Mark the room as already started so the opening theme
+   * does not replay when the first post-refresh interaction
+   * unlocks Safari audio.
+   */
+  if (
+    room.status === "active"
+  ) {
+
+    onlineStartedRoomId =
+      room.id;
+
+  }
+
+
+  await watchOnlineRoom(
+    room.id
+  );
+
+
+  await applyOnlineRoomUpdate(
+    room
+  );
 
 }
 
@@ -5300,6 +7168,13 @@ function initializeControls() {
 
           playMenuClick();
 
+          if (
+            gameMode === "online" &&
+            onlineFormationLocked
+          ) {
+            return;
+          }
+
           playerFormationChoice =
             formation.code;
 
@@ -5372,6 +7247,13 @@ function initializeControls() {
     function() {
 
       playMenuClick();
+
+      if (
+        gameMode === "online" &&
+        onlineFormationLocked
+      ) {
+        return;
+      }
 
       playerFormationChoice =
         "RANDOM";
@@ -5595,6 +7477,145 @@ function initializeControls() {
       applyDifficulty();
 
       updateInfoPanel();
+
+    }
+  );
+
+
+  computerModeBtn.addEventListener(
+    "click",
+    async function() {
+
+      playMenuClick();
+
+      if (
+        gameMode === "computer"
+      ) {
+        return;
+      }
+
+      await stopOnlineRealtime();
+
+      gameMode =
+        "computer";
+
+      onlineRoom =
+        null;
+
+      onlineRole =
+        null;
+
+      onlineStartedRoomId =
+        null;
+
+      localStorage.removeItem(
+        ONLINE_ROOM_CODE_KEY
+      );
+
+      setOnlineFormationControlsLocked(
+        false
+      );
+
+      renderPreview();
+
+      updateGameModeUI();
+
+    }
+  );
+
+
+  onlineModeBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      if (
+        gameMode === "online"
+      ) {
+        return;
+      }
+
+      gameMode =
+        "online";
+
+      /*
+       * Switch the interface FIRST.
+       * Do not run the single-player preview reset here.
+       * That reset is computer-mode logic and can prevent the
+       * online room controls from becoming visible.
+       */
+      updateGameModeUI();
+
+      updateInfoPanel();
+
+      setStatus(
+        "Online Multiplayer — create a room or join one."
+      );
+
+      setOnlineStatus(
+        "Create a room or join with a room code."
+      );
+
+    }
+  );
+
+
+  createOnlineRoomBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      createOnlineRoom();
+
+    }
+  );
+
+
+  joinOnlineRoomBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      joinOnlineRoom();
+
+    }
+  );
+
+
+  lockOnlineFormationBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      lockOnlineFormation();
+
+    }
+  );
+
+
+  leaveOnlineRoomBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      leaveOnlineRoom();
+
+    }
+  );
+
+
+  onlineRoomCodeInput.addEventListener(
+    "input",
+    function() {
+
+      onlineRoomCodeInput.value =
+        onlineRoomCodeInput.value
+          .toUpperCase();
 
     }
   );
@@ -5943,6 +7964,21 @@ function showMoveGhost(
 
 
 function updateUndoButton() {
+
+  if (
+    gameMode === "online"
+  ) {
+
+    undoBtn.disabled =
+      true;
+
+    undoBtn.textContent =
+      "Undo unavailable online";
+
+    return;
+
+  }
+
 
   const hasPlayerMove =
     getLatestPlayerMoveIndex() >= 0;
@@ -7005,6 +9041,11 @@ function isPlayerTurn() {
     gameStarted &&
 
     game &&
+
+    (
+      gameMode !== "online" ||
+      Boolean(onlineRoom)
+    ) &&
 
     game.turn() === playerColor &&
 
@@ -8899,6 +10940,12 @@ async function completePlayerMove(
   const gameAtStart =
     game;
 
+  const previousFenForOnline =
+    gameMode === "online" &&
+    game
+      ? game.fen()
+      : null;
+
 
   moveAnimating =
     true;
@@ -8994,6 +11041,16 @@ async function completePlayerMove(
 
 
     if (
+      gameMode === "online"
+    ) {
+
+      await syncOnlineMove(
+        previousFenForOnline
+      );
+
+    }
+
+    else if (
       !game.isGameOver()
     ) {
 
@@ -10094,7 +12151,11 @@ function getGameResultText() {
 
         ? "Victory — you won by checkmate."
 
-        : "Defeat — Stockfish won by checkmate."
+        : (
+            gameMode === "online"
+              ? "Defeat — your opponent won by checkmate."
+              : "Defeat — Stockfish won by checkmate."
+          )
 
     );
 
@@ -10484,6 +12545,115 @@ async function copyGameRecord() {
 function updateStatus() {
 
   if (
+    gameMode === "online"
+  ) {
+
+    if (
+      !gameStarted ||
+      !game
+    ) {
+
+      if (
+        onlineRoom &&
+        onlineRoom.status === "waiting"
+      ) {
+
+        setStatus(
+          "Online room created — waiting for Player 2."
+        );
+
+      }
+
+      else if (
+        onlineRoom &&
+        onlineRoom.status === "formation_selection"
+      ) {
+
+        setStatus(
+          "Online room ready — lock your formation."
+        );
+
+      }
+
+
+      return;
+
+    }
+
+
+    if (
+      game.isGameOver()
+    ) {
+
+      if (
+        game.isCheckmate()
+      ) {
+
+        const winner =
+          game.turn() === "w"
+            ? "b"
+            : "w";
+
+
+        setStatus(
+          winner === playerColor
+            ? "VICTORY — CHECKMATE"
+            : "DEFEAT — CHECKMATE",
+          winner === playerColor
+            ? "victory"
+            : "defeat"
+        );
+
+        return;
+
+      }
+
+
+      setStatus(
+        game.isStalemate()
+          ? "DRAW — STALEMATE"
+          : game.isThreefoldRepetition()
+            ? "DRAW — THREEFOLD REPETITION"
+            : game.isInsufficientMaterial()
+              ? "DRAW — INSUFFICIENT MATERIAL"
+              : "DRAW",
+        "draw"
+      );
+
+      return;
+
+    }
+
+
+    if (
+      game.turn() === playerColor
+    ) {
+
+      setStatus(
+        game.inCheck()
+          ? "Your move — you are in check."
+          : "Your move."
+      );
+
+    }
+
+    else {
+
+      setStatus(
+        game.inCheck()
+          ? "Opponent to move — opponent is in check."
+          : "Opponent to move."
+      );
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
     !gameStarted
   ) {
 
@@ -10675,6 +12845,99 @@ function setStatus(
 /* ===================================================== */
 
 function updateInfoPanel() {
+
+  if (
+    gameMode === "online"
+  ) {
+
+    let yourFormationText =
+      playerFormationChoice === "RANDOM"
+        ? "Random"
+        : (
+            FORMATION_MAP[
+              playerFormationChoice
+            ] +
+            " (" +
+            playerFormationChoice +
+            ")"
+          );
+
+
+    let opponentFormationText =
+      "Hidden until both players lock in";
+
+
+    if (
+      gameStarted &&
+      actualPlayerFormation &&
+      actualComputerFormation
+    ) {
+
+      yourFormationText =
+        FORMATION_MAP[
+          actualPlayerFormation
+        ] +
+        " (" +
+        actualPlayerFormation +
+        ")";
+
+
+      opponentFormationText =
+        FORMATION_MAP[
+          actualComputerFormation
+        ] +
+        " (" +
+        actualComputerFormation +
+        ")";
+
+    }
+
+
+    const colorText =
+      onlineRole === "white"
+        ? "White"
+        : onlineRole === "black"
+          ? "Black"
+          : "Not assigned";
+
+
+    const castlingText =
+      gameStarted &&
+      castlingEnabledForCurrentGame()
+        ? "Castling enabled"
+        : gameStarted
+          ? "Castling disabled"
+          : "Determined after formation reveal";
+
+
+    infoBox.innerHTML =
+
+      "<div class='match-line'>" +
+      "<strong>You:</strong> " +
+      yourFormationText +
+      " · " +
+      colorText +
+      "</div>" +
+
+      "<div class='match-line'>" +
+      "<strong>Opponent:</strong> " +
+      opponentFormationText +
+      "</div>" +
+
+      "<div class='match-line'>" +
+      "<strong>Mode:</strong> Online Multiplayer" +
+      "</div>" +
+
+      "<div class='match-line'>" +
+      "<strong>Castling:</strong> " +
+      castlingText +
+      "</div>";
+
+
+    return;
+
+  }
+
 
   const difficulty =
     DIFFICULTIES[difficultyKey];
@@ -11451,9 +13714,13 @@ refreshSideButtons();
 
 refreshDifficultyButtons();
 
+updateGameModeUI();
+
 updateInfoPanel();
 
 renderPreview();
+
+reconnectOnlineRoomIfAvailable();
 
 </script>
 
