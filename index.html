@@ -1789,14 +1789,6 @@ th {
           Resync Game
         </button>
 
-        <button id="resignOnlineGameBtn"
-                class="online-action"
-                type="button"
-                style="width:100%;margin-top:7px;"
-                disabled>
-          Resign Game
-        </button>
-
         <div id="onlineStatusBox" class="online-status">
           Create a room or join with a room code.
         </div>
@@ -3399,9 +3391,6 @@ const leaveOnlineRoomBtn =
 const resyncOnlineRoomBtn =
   document.getElementById("resyncOnlineRoomBtn");
 
-const resignOnlineGameBtn =
-  document.getElementById("resignOnlineGameBtn");
-
 const onlineStatusBox =
   document.getElementById("onlineStatusBox");
 
@@ -4771,6 +4760,25 @@ function getOnlineGameResultPayload() {
 }
 
 
+function updateOnlineExitButton(
+  room
+) {
+
+  const active =
+    Boolean(
+      room &&
+      room.status === "active"
+    );
+
+
+  leaveOnlineRoomBtn.textContent =
+    active
+      ? "Resign Game"
+      : "Leave Online Room";
+
+}
+
+
 function updateOnlineRematchButton(
   room
 ) {
@@ -5155,6 +5163,11 @@ async function applyOnlineRoomUpdate(
     false;
 
 
+  updateOnlineExitButton(
+    room
+  );
+
+
   onlineRoomCodeInput.value =
     room.room_code;
 
@@ -5178,8 +5191,8 @@ async function applyOnlineRoomUpdate(
     lockOnlineFormationBtn.disabled =
       true;
 
-    resignOnlineGameBtn.disabled =
-      true;
+    leaveOnlineRoomBtn.disabled =
+      false;
 
     return;
 
@@ -5229,8 +5242,8 @@ async function applyOnlineRoomUpdate(
     }
 
 
-    resignOnlineGameBtn.disabled =
-      true;
+    leaveOnlineRoomBtn.disabled =
+      false;
 
     return;
 
@@ -5249,8 +5262,8 @@ async function applyOnlineRoomUpdate(
       room.winner_color ||
       null;
 
-    resignOnlineGameBtn.disabled =
-      true;
+    leaveOnlineRoomBtn.disabled =
+      false;
 
     setOnlineFormationControlsLocked(
       true
@@ -5332,8 +5345,8 @@ async function applyOnlineRoomUpdate(
     room.status !== "active"
   ) {
 
-    resignOnlineGameBtn.disabled =
-      true;
+    leaveOnlineRoomBtn.disabled =
+      false;
 
     return;
 
@@ -5346,7 +5359,7 @@ async function applyOnlineRoomUpdate(
   onlineWinnerColor =
     null;
 
-  resignOnlineGameBtn.disabled =
+  leaveOnlineRoomBtn.disabled =
     false;
 
 
@@ -6323,10 +6336,10 @@ async function leaveOnlineRoom() {
   leaveOnlineRoomBtn.disabled =
     true;
 
-  resyncOnlineRoomBtn.disabled =
-    true;
+  leaveOnlineRoomBtn.textContent =
+    "Leave Online Room";
 
-  resignOnlineGameBtn.disabled =
+  resyncOnlineRoomBtn.disabled =
     true;
 
   lockOnlineFormationBtn.disabled =
@@ -8533,30 +8546,9 @@ function initializeControls() {
         onlineRoom.status === "active"
       ) {
 
-        const confirmed =
-          window.confirm(
-            "Leave this online game? This will count as a resignation."
-          );
+        await resignOnlineGame();
 
-
-        if (
-          !confirmed
-        ) {
-          return;
-        }
-
-
-        const resigned =
-          await resignOnlineGame(
-            false
-          );
-
-
-        if (
-          !resigned
-        ) {
-          return;
-        }
+        return;
 
       }
 
@@ -8576,18 +8568,6 @@ function initializeControls() {
       await fetchAuthoritativeOnlineRoom(
         true
       );
-
-    }
-  );
-
-
-  resignOnlineGameBtn.addEventListener(
-    "click",
-    function() {
-
-      playMenuClick();
-
-      resignOnlineGame();
 
     }
   );
