@@ -382,6 +382,82 @@ select {
   white-space:pre-wrap;
 }
 
+
+.online-time-control {
+  margin-bottom:8px;
+}
+
+.online-mini-label {
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  margin-bottom:5px;
+  opacity:.72;
+}
+
+.time-control-row {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:5px;
+}
+
+.time-control-btn {
+  padding:7px 4px;
+  border:1px solid var(--button-border);
+  background:var(--button);
+  border-radius:8px;
+  cursor:pointer;
+  font-size:11px;
+  white-space:nowrap;
+}
+
+.time-control-btn.active {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.time-control-btn:disabled {
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.online-clock {
+  display:none;
+  width:min(220px,78%);
+  margin:6px auto;
+  padding:6px 10px;
+  border:1px solid #d8cfbf;
+  border-radius:9px;
+  background:#faf8f4;
+  text-align:center;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.03em;
+  box-sizing:border-box;
+}
+
+.online-clock.visible {
+  display:block;
+}
+
+.online-clock.running {
+  border-color:var(--green);
+  box-shadow:0 0 0 1px rgba(37,92,61,.12);
+}
+
+.online-clock .clock-role {
+  font-size:10px;
+  font-weight:600;
+  opacity:.68;
+  margin-right:7px;
+}
+
+.online-clock .clock-time {
+  font-size:18px;
+}
+
 .online-room-code {
   margin-top:6px;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -1747,6 +1823,32 @@ th {
 
         <div class="label">Online Room</div>
 
+        <div id="timeControlWrap" class="online-time-control">
+          <div class="online-mini-label">Time Control</div>
+          <div class="time-control-row">
+            <button class="time-control-btn active"
+                    type="button"
+                    data-time-control="none">
+              No Clock
+            </button>
+            <button class="time-control-btn"
+                    type="button"
+                    data-time-control="10">
+              10 min
+            </button>
+            <button class="time-control-btn"
+                    type="button"
+                    data-time-control="15+10">
+              15+10
+            </button>
+            <button class="time-control-btn"
+                    type="button"
+                    data-time-control="30">
+              30 min
+            </button>
+          </div>
+        </div>
+
         <button id="createOnlineRoomBtn"
                 class="online-action primary"
                 type="button"
@@ -1867,6 +1969,11 @@ th {
 
       <div id="ruleToast"></div>
 
+      <div id="onlineClockTop" class="online-clock">
+        <span class="clock-role">Opponent</span>
+        <span id="onlineClockTopTime" class="clock-time">15:00</span>
+      </div>
+
       <div class="board-wrap">
 
         <div class="board-coordinate-frame">
@@ -1885,6 +1992,11 @@ th {
           Formation preview
         </div>
 
+      </div>
+
+      <div id="onlineClockBottom" class="online-clock">
+        <span class="clock-role">You</span>
+        <span id="onlineClockBottomTime" class="clock-time">15:00</span>
       </div>
 
       <div id="captureToast"></div>
@@ -2425,6 +2537,35 @@ const DIFFICULTIES = {
     skill:12,
     nodes:6000,
     randomMoveChance:0
+  }
+
+};
+
+
+const ONLINE_TIME_CONTROLS = {
+
+  none:{
+    label:"No Clock",
+    initialMs:null,
+    incrementMs:0
+  },
+
+  "10":{
+    label:"10 min",
+    initialMs:10 * 60 * 1000,
+    incrementMs:0
+  },
+
+  "15+10":{
+    label:"15+10",
+    initialMs:15 * 60 * 1000,
+    incrementMs:10 * 1000
+  },
+
+  "30":{
+    label:"30 min",
+    initialMs:30 * 60 * 1000,
+    incrementMs:0
   }
 
 };
@@ -3405,6 +3546,28 @@ const resyncOnlineRoomBtn =
 const onlineStatusBox =
   document.getElementById("onlineStatusBox");
 
+const timeControlWrap =
+  document.getElementById("timeControlWrap");
+
+const timeControlButtons =
+  Array.from(
+    document.querySelectorAll(
+      ".time-control-btn"
+    )
+  );
+
+const onlineClockTop =
+  document.getElementById("onlineClockTop");
+
+const onlineClockBottom =
+  document.getElementById("onlineClockBottom");
+
+const onlineClockTopTime =
+  document.getElementById("onlineClockTopTime");
+
+const onlineClockBottomTime =
+  document.getElementById("onlineClockBottomTime");
+
 
 
 /* ===================================================== */
@@ -3598,6 +3761,21 @@ let lastHandledOnlineUndoRequestId =
   null;
 
 let onlineUndoDecisionInFlight =
+  false;
+
+let selectedOnlineTimeControl =
+  "none";
+
+let onlineClockTimer =
+  null;
+
+let onlineClockServerOffsetMs =
+  0;
+
+let onlineClockServerOffsetReady =
+  false;
+
+let onlineTimeoutClaimInFlight =
   false;
 
 
@@ -4202,6 +4380,19 @@ function updateGameModeUI() {
     !online
   ) {
 
+    stopOnlineClockTicker();
+
+    onlineClockTop.classList.remove(
+      "visible",
+      "running"
+    );
+
+    onlineClockBottom.classList.remove(
+      "visible",
+      "running"
+    );
+
+
     onlineUndoBtn.disabled =
       true;
 
@@ -4232,9 +4423,17 @@ function updateGameModeUI() {
   }
 
 
+  refreshOnlineTimeControlButtons(
+    online
+      ? onlineRoom
+      : null
+  );
+
   updateInfoPanel();
 
   updateUndoButton();
+
+  updateOnlineClockDisplay();
 
 }
 
@@ -4721,11 +4920,34 @@ async function allowOnlineUndo(
 
   try {
 
+    const removedRecord =
+      room.move_history[
+        room.move_history.length - 1
+      ];
+
+
     const trimmedHistory =
       room.move_history.slice(
         0,
         -1
       );
+
+
+    const clockBefore =
+      removedRecord &&
+      removedRecord.clock_before
+        ? removedRecord.clock_before
+        : null;
+
+
+    if (
+      room.time_control &&
+      room.time_control !== "none"
+    ) {
+
+      await syncOnlineServerClock();
+
+    }
 
 
     const rebuilt =
@@ -4771,6 +4993,28 @@ async function allowOnlineUndo(
           undo_request_by:null,
           undo_request_id:null,
           undo_request_ply:null,
+          white_clock_ms:
+            clockBefore
+              ? clockBefore.white_ms
+              : room.white_clock_ms,
+          black_clock_ms:
+            clockBefore
+              ? clockBefore.black_ms
+              : room.black_clock_ms,
+          clock_running_color:
+            clockBefore
+              ? clockBefore.running_color
+              : room.clock_running_color,
+          clock_started_at:
+            (
+              clockBefore &&
+              room.time_control &&
+              room.time_control !== "none"
+            )
+              ? new Date(
+                  getEstimatedServerNowMs()
+                ).toISOString()
+              : room.clock_started_at,
           updated_at:
             new Date().toISOString()
         })
@@ -5197,6 +5441,546 @@ async function initializeOnlineFenIfNeeded(
 }
 
 
+function getOnlineTimeControlConfig(
+  code = selectedOnlineTimeControl
+) {
+
+  return (
+    ONLINE_TIME_CONTROLS[
+      code
+    ] ||
+    ONLINE_TIME_CONTROLS.none
+  );
+
+}
+
+
+function refreshOnlineTimeControlButtons(
+  room = onlineRoom
+) {
+
+  const roomHasChoice =
+    Boolean(
+      room &&
+      room.time_control
+    );
+
+
+  const code =
+    roomHasChoice
+      ? room.time_control
+      : selectedOnlineTimeControl;
+
+
+  selectedOnlineTimeControl =
+    code;
+
+
+  const locked =
+    Boolean(
+      room
+    );
+
+
+  timeControlButtons.forEach(
+    button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.timeControl ===
+          code
+      );
+
+      button.disabled =
+        locked;
+
+    }
+  );
+
+
+  timeControlWrap.style.display =
+    (
+      room &&
+      (
+        room.status === "active" ||
+        room.status === "finished"
+      )
+    )
+      ? "none"
+      : "";
+
+}
+
+
+async function syncOnlineServerClock() {
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabase.rpc(
+        "ci_server_now"
+      );
+
+
+    if (
+      error ||
+      !data
+    ) {
+      return;
+    }
+
+
+    const serverMs =
+      Date.parse(
+        data
+      );
+
+
+    if (
+      Number.isFinite(
+        serverMs
+      )
+    ) {
+
+      onlineClockServerOffsetMs =
+        serverMs -
+        Date.now();
+
+      onlineClockServerOffsetReady =
+        true;
+
+    }
+
+  }
+
+  catch(error) {
+
+    console.warn(
+      "Clock sync unavailable.",
+      error
+    );
+
+  }
+
+}
+
+
+function getEstimatedServerNowMs() {
+
+  return (
+    Date.now() +
+    (
+      onlineClockServerOffsetReady
+        ? onlineClockServerOffsetMs
+        : 0
+    )
+  );
+
+}
+
+
+function formatClockMs(
+  milliseconds
+) {
+
+  const safe =
+    Math.max(
+      0,
+      Math.ceil(
+        Number(milliseconds || 0) /
+        1000
+      )
+    );
+
+
+  const minutes =
+    Math.floor(
+      safe / 60
+    );
+
+
+  const seconds =
+    safe % 60;
+
+
+  return (
+    String(minutes) +
+    ":" +
+    String(seconds).padStart(
+      2,
+      "0"
+    )
+  );
+
+}
+
+
+function getOnlineClockRemainingMs(
+  room,
+  color
+) {
+
+  if (
+    !room ||
+    room.time_control === "none"
+  ) {
+    return null;
+  }
+
+
+  let remaining =
+    color === "w"
+      ? Number(room.white_clock_ms)
+      : Number(room.black_clock_ms);
+
+
+  if (
+    !Number.isFinite(
+      remaining
+    )
+  ) {
+
+    const config =
+      getOnlineTimeControlConfig(
+        room.time_control
+      );
+
+    remaining =
+      config.initialMs;
+
+  }
+
+
+  if (
+    room.status === "active" &&
+    room.clock_running_color === color &&
+    room.clock_started_at
+  ) {
+
+    remaining -=
+      Math.max(
+        0,
+        getEstimatedServerNowMs() -
+        Date.parse(
+          room.clock_started_at
+        )
+      );
+
+  }
+
+
+  return Math.max(
+    0,
+    remaining
+  );
+
+}
+
+
+function stopOnlineClockTicker() {
+
+  if (
+    onlineClockTimer
+  ) {
+
+    clearInterval(
+      onlineClockTimer
+    );
+
+    onlineClockTimer =
+      null;
+
+  }
+
+}
+
+
+async function claimOnlineTimeout(
+  losingColor
+) {
+
+  if (
+    onlineTimeoutClaimInFlight ||
+    !onlineRoom ||
+    onlineRoom.status !== "active" ||
+    onlineRoom.clock_running_color !==
+      losingColor
+  ) {
+    return;
+  }
+
+
+  onlineTimeoutClaimInFlight =
+    true;
+
+
+  try {
+
+    await syncOnlineServerClock();
+
+
+    const {
+      data:fresh,
+      error:fetchError
+    } =
+      await supabase
+        .from("rooms")
+        .select("*")
+        .eq(
+          "id",
+          onlineRoom.id
+        )
+        .single();
+
+
+    if (
+      fetchError ||
+      !fresh ||
+      fresh.status !== "active" ||
+      fresh.clock_running_color !==
+        losingColor
+    ) {
+      return;
+    }
+
+
+    const remaining =
+      getOnlineClockRemainingMs(
+        fresh,
+        losingColor
+      );
+
+
+    if (
+      remaining > 0
+    ) {
+      return;
+    }
+
+
+    const winner =
+      losingColor === "w"
+        ? "b"
+        : "w";
+
+
+    const {
+      data:finished,
+      error
+    } =
+      await supabase
+        .from("rooms")
+        .update({
+          status:"finished",
+          result_reason:"timeout",
+          winner_color:winner,
+          clock_running_color:null,
+          clock_started_at:null,
+          white_clock_ms:
+            losingColor === "w"
+              ? 0
+              : fresh.white_clock_ms,
+          black_clock_ms:
+            losingColor === "b"
+              ? 0
+              : fresh.black_clock_ms,
+          undo_request_by:null,
+          undo_request_id:null,
+          undo_request_ply:null,
+          updated_at:
+            new Date().toISOString()
+        })
+        .eq(
+          "id",
+          fresh.id
+        )
+        .eq(
+          "status",
+          "active"
+        )
+        .eq(
+          "fen",
+          fresh.fen
+        )
+        .select()
+        .single();
+
+
+    if (
+      error ||
+      !finished
+    ) {
+      return;
+    }
+
+
+    await applyOnlineRoomUpdate(
+      finished
+    );
+
+  }
+
+  finally {
+
+    onlineTimeoutClaimInFlight =
+      false;
+
+  }
+
+}
+
+
+function updateOnlineClockDisplay() {
+
+  const room =
+    onlineRoom;
+
+
+  const timed =
+    Boolean(
+      gameMode === "online" &&
+      room &&
+      room.time_control &&
+      room.time_control !== "none" &&
+      (
+        room.status === "active" ||
+        room.status === "finished"
+      )
+    );
+
+
+  onlineClockTop.classList.toggle(
+    "visible",
+    timed
+  );
+
+  onlineClockBottom.classList.toggle(
+    "visible",
+    timed
+  );
+
+
+  if (
+    !timed
+  ) {
+
+    onlineClockTop.classList.remove(
+      "running"
+    );
+
+    onlineClockBottom.classList.remove(
+      "running"
+    );
+
+    stopOnlineClockTicker();
+
+    return;
+
+  }
+
+
+  const myColor =
+    playerColor;
+
+  const opponentColor =
+    myColor === "w"
+      ? "b"
+      : "w";
+
+
+  const myRemaining =
+    getOnlineClockRemainingMs(
+      room,
+      myColor
+    );
+
+
+  const opponentRemaining =
+    getOnlineClockRemainingMs(
+      room,
+      opponentColor
+    );
+
+
+  onlineClockBottomTime.textContent =
+    formatClockMs(
+      myRemaining
+    );
+
+  onlineClockTopTime.textContent =
+    formatClockMs(
+      opponentRemaining
+    );
+
+
+  onlineClockBottom.classList.toggle(
+    "running",
+    room.status === "active" &&
+    room.clock_running_color ===
+      myColor
+  );
+
+  onlineClockTop.classList.toggle(
+    "running",
+    room.status === "active" &&
+    room.clock_running_color ===
+      opponentColor
+  );
+
+
+  if (
+    room.status === "active" &&
+    room.clock_running_color
+  ) {
+
+    const runningRemaining =
+      getOnlineClockRemainingMs(
+        room,
+        room.clock_running_color
+      );
+
+
+    if (
+      runningRemaining <= 0
+    ) {
+
+      claimOnlineTimeout(
+        room.clock_running_color
+      );
+
+    }
+
+  }
+
+
+  if (
+    !onlineClockTimer &&
+    room.status === "active"
+  ) {
+
+    onlineClockTimer =
+      setInterval(
+        updateOnlineClockDisplay,
+        250
+      );
+
+  }
+
+
+  if (
+    room.status !== "active"
+  ) {
+
+    stopOnlineClockTicker();
+
+  }
+
+}
+
+
 function getOnlineGameResultPayload() {
 
   if (
@@ -5393,6 +6177,18 @@ async function resetOnlineRoomForRematch(
         undo_request_by:null,
         undo_request_id:null,
         undo_request_ply:null,
+        white_clock_ms:
+          getOnlineTimeControlConfig(
+            room.time_control ||
+            "none"
+          ).initialMs,
+        black_clock_ms:
+          getOnlineTimeControlConfig(
+            room.time_control ||
+            "none"
+          ).initialMs,
+        clock_running_color:null,
+        clock_started_at:null,
         updated_at:
           new Date().toISOString()
       })
@@ -5615,6 +6411,18 @@ async function resignOnlineGame(
         undo_request_by:null,
         undo_request_id:null,
         undo_request_ply:null,
+        white_clock_ms:
+          getOnlineClockRemainingMs(
+            onlineRoom,
+            "w"
+          ),
+        black_clock_ms:
+          getOnlineClockRemainingMs(
+            onlineRoom,
+            "b"
+          ),
+        clock_running_color:null,
+        clock_started_at:null,
         updated_at:
           new Date().toISOString()
       })
@@ -5690,7 +6498,13 @@ async function applyOnlineRoomUpdate(
     room
   );
 
+  refreshOnlineTimeControlButtons(
+    room
+  );
+
   updateUndoButton();
+
+  updateOnlineClockDisplay();
 
 
   onlineRoomCodeInput.value =
@@ -5833,6 +6647,8 @@ async function applyOnlineRoomUpdate(
       room.winner_color ||
       null;
 
+    updateOnlineClockDisplay();
+
     leaveOnlineRoomBtn.disabled =
       false;
 
@@ -5932,6 +6748,19 @@ async function applyOnlineRoomUpdate(
 
   leaveOnlineRoomBtn.disabled =
     false;
+
+
+  if (
+    room.time_control &&
+    room.time_control !== "none" &&
+    !onlineClockServerOffsetReady
+  ) {
+
+    await syncOnlineServerClock();
+
+    updateOnlineClockDisplay();
+
+  }
 
 
   setOnlineFormationControlsLocked(
@@ -6328,7 +7157,17 @@ async function createOnlineRoom() {
           white_formation:null,
           black_formation:null,
           fen:null,
-          move_history:[]
+          move_history:[],
+          time_control:
+            selectedOnlineTimeControl,
+          white_clock_ms:
+            getOnlineTimeControlConfig()
+              .initialMs,
+          black_clock_ms:
+            getOnlineTimeControlConfig()
+              .initialMs,
+          clock_running_color:null,
+          clock_started_at:null
         })
         .select()
         .single();
@@ -6676,10 +7515,40 @@ async function lockOnlineFormation() {
     fresh.status !== "active"
   ) {
 
+    await syncOnlineServerClock();
+
+
+    const clockConfig =
+      getOnlineTimeControlConfig(
+        fresh.time_control ||
+        "none"
+      );
+
+
+    const serverNowIso =
+      new Date(
+        getEstimatedServerNowMs()
+      ).toISOString();
+
+
     await supabase
       .from("rooms")
       .update({
         status:"active",
+        white_clock_ms:
+          clockConfig.initialMs,
+        black_clock_ms:
+          clockConfig.initialMs,
+        clock_running_color:
+          fresh.time_control &&
+          fresh.time_control !== "none"
+            ? "w"
+            : null,
+        clock_started_at:
+          fresh.time_control &&
+          fresh.time_control !== "none"
+            ? serverNowIso
+            : null,
         updated_at:
           new Date().toISOString()
       })
@@ -6733,6 +7602,151 @@ async function syncOnlineMove(
     onlineHistoryFromGame();
 
 
+  let clockPayload = {
+    white_clock_ms:
+      onlineRoom.white_clock_ms,
+    black_clock_ms:
+      onlineRoom.black_clock_ms,
+    clock_running_color:
+      onlineRoom.clock_running_color,
+    clock_started_at:
+      onlineRoom.clock_started_at
+  };
+
+
+  if (
+    onlineRoom.time_control &&
+    onlineRoom.time_control !== "none"
+  ) {
+
+    if (
+      !onlineClockServerOffsetReady
+    ) {
+
+      await syncOnlineServerClock();
+
+    }
+
+
+    const moverColor =
+      game.turn() === "w"
+        ? "b"
+        : "w";
+
+
+    const config =
+      getOnlineTimeControlConfig(
+        onlineRoom.time_control
+      );
+
+
+    const serverNowMs =
+      getEstimatedServerNowMs();
+
+
+    const moverBefore =
+      getOnlineClockRemainingMs(
+        onlineRoom,
+        moverColor
+      );
+
+
+    let whiteMs =
+      getOnlineClockRemainingMs(
+        onlineRoom,
+        "w"
+      );
+
+
+    let blackMs =
+      getOnlineClockRemainingMs(
+        onlineRoom,
+        "b"
+      );
+
+
+    if (
+      moverColor === "w"
+    ) {
+
+      whiteMs =
+        Math.max(
+          0,
+          moverBefore
+        );
+
+    }
+
+    else {
+
+      blackMs =
+        Math.max(
+          0,
+          moverBefore
+        );
+
+    }
+
+
+    if (
+      nextHistory.length > 0
+    ) {
+
+      nextHistory[
+        nextHistory.length - 1
+      ].clock_before = {
+        white_ms:
+          whiteMs,
+        black_ms:
+          blackMs,
+        running_color:
+          moverColor
+      };
+
+    }
+
+
+    if (
+      moverColor === "w"
+    ) {
+
+      whiteMs +=
+        config.incrementMs;
+
+    }
+
+    else {
+
+      blackMs +=
+        config.incrementMs;
+
+    }
+
+
+    clockPayload = {
+      white_clock_ms:
+        Math.round(
+          whiteMs
+        ),
+      black_clock_ms:
+        Math.round(
+          blackMs
+        ),
+      clock_running_color:
+        game.isGameOver()
+          ? null
+          : game.turn(),
+      clock_started_at:
+        game.isGameOver()
+          ? null
+          : new Date(
+              serverNowMs
+            ).toISOString()
+    };
+
+  }
+
+
   setOnlineStatus(
     "Room " +
     onlineRoom.room_code +
@@ -6764,6 +7778,14 @@ async function syncOnlineMove(
           undo_request_by:null,
           undo_request_id:null,
           undo_request_ply:null,
+          white_clock_ms:
+            clockPayload.white_clock_ms,
+          black_clock_ms:
+            clockPayload.black_clock_ms,
+          clock_running_color:
+            clockPayload.clock_running_color,
+          clock_started_at:
+            clockPayload.clock_started_at,
           updated_at:
             new Date().toISOString()
         })
@@ -6818,6 +7840,8 @@ async function syncOnlineMove(
 
     onlineRoom =
       data;
+
+    updateOnlineClockDisplay();
 
 
     const confirmedHistory =
@@ -6902,6 +7926,31 @@ async function leaveOnlineRoom() {
 
   onlineUndoDecisionInFlight =
     false;
+
+  selectedOnlineTimeControl =
+    "none";
+
+  stopOnlineClockTicker();
+
+  onlineClockServerOffsetReady =
+    false;
+
+  onlineTimeoutClaimInFlight =
+    false;
+
+  onlineClockTop.classList.remove(
+    "visible",
+    "running"
+  );
+
+  onlineClockBottom.classList.remove(
+    "visible",
+    "running"
+  );
+
+  refreshOnlineTimeControlButtons(
+    null
+  );
 
 
   localStorage.removeItem(
@@ -9078,6 +10127,39 @@ function initializeControls() {
 
       setOnlineStatus(
         "Create a room or join with a room code."
+      );
+
+    }
+  );
+
+
+  timeControlButtons.forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        function() {
+
+          if (
+            onlineRoom
+          ) {
+            return;
+          }
+
+
+          playMenuClick();
+
+
+          selectedOnlineTimeControl =
+            button.dataset.timeControl ||
+            "none";
+
+
+          refreshOnlineTimeControlButtons(
+            null
+          );
+
+        }
       );
 
     }
@@ -13790,6 +14872,19 @@ function getGameResultText() {
 
 
     if (
+      onlineResultReason === "timeout"
+    ) {
+
+      return (
+        onlineWinnerColor === playerColor
+          ? "Victory — opponent ran out of time."
+          : "Defeat — you ran out of time."
+      );
+
+    }
+
+
+    if (
       onlineWinnerColor
     ) {
 
@@ -14286,6 +15381,21 @@ function updateStatus() {
           onlineWinnerColor === playerColor
             ? "VICTORY — OPPONENT RESIGNED"
             : "DEFEAT — YOU RESIGNED",
+          onlineWinnerColor === playerColor
+            ? "victory"
+            : "defeat"
+        );
+
+      }
+
+      else if (
+        onlineResultReason === "timeout"
+      ) {
+
+        setStatus(
+          onlineWinnerColor === playerColor
+            ? "VICTORY — TIMEOUT"
+            : "DEFEAT — TIMEOUT",
           onlineWinnerColor === playerColor
             ? "victory"
             : "defeat"
