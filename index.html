@@ -3583,6 +3583,12 @@ let onlineResultReason =
 let onlineWinnerColor =
   null;
 
+let lastHandledOnlineUndoRequestId =
+  null;
+
+let onlineUndoDecisionInFlight =
+  false;
+
 
 const MOVE_ANIMATION_DURATION =
   230;
@@ -4374,6 +4380,493 @@ function onlineHistoryFromGame() {
 }
 
 
+function buildOnlineGameFromHistory(
+  room,
+  historyRecords
+) {
+
+  if (
+    !room ||
+    !room.white_formation ||
+    !room.black_formation
+  ) {
+    return null;
+  }
+
+
+  const allowCastling =
+    room.white_formation === "RNB" &&
+    room.black_formation === "RNB";
+
+
+  const initialFen =
+    buildFen(
+      room.white_formation,
+      room.black_formation,
+      allowCastling
+    );
+
+
+  const rebuilt =
+    new Chess(
+      initialFen
+    );
+
+
+  const records =
+    Array.isArray(
+      historyRecords
+    )
+      ? historyRecords
+      : [];
+
+
+  for (
+    const record of records
+  ) {
+
+    try {
+
+      const replayed =
+        rebuilt.move({
+          from:record.from,
+          to:record.to,
+          promotion:
+            record.promotion ||
+            undefined
+        });
+
+
+      if (
+        !replayed
+      ) {
+        return null;
+      }
+
+    }
+
+    catch(error) {
+
+      return null;
+
+    }
+
+  }
+
+
+  return rebuilt;
+
+}
+
+
+function canRequestOnlineUndo() {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    onlineRoom.status !== "active" ||
+    !game ||
+    !gameStarted ||
+    moveAnimating ||
+    promotionPending ||
+    onlineMoveSyncInFlight ||
+    onlineUndoDecisionInFlight ||
+    onlineRoom.undo_request_id
+  ) {
+    return false;
+  }
+
+
+  const history =
+    game.history({
+      verbose:true
+    });
+
+
+  if (
+    history.length === 0
+  ) {
+    return false;
+  }
+
+
+  const last =
+    history[
+      history.length - 1
+    ];
+
+
+  return (
+    last.color === playerColor &&
+    game.turn() !== playerColor &&
+    Array.isArray(
+      onlineRoom.move_history
+    ) &&
+    onlineRoom.move_history.length ===
+      history.length &&
+    onlineRoom.fen === game.fen()
+  );
+
+}
+
+
+async function requestOnlineUndo() {
+
+  if (
+    !canRequestOnlineUndo()
+  ) {
+    return;
+  }
+
+
+  const requestId =
+    crypto.randomUUID();
+
+
+  const historyLength =
+    game.history().length;
+
+
+  const {
+    data:updated,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .update({
+        undo_request_by:
+          onlinePlayerId,
+        undo_request_id:
+          requestId,
+        undo_request_ply:
+          historyLength,
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        onlineRoom.id
+      )
+      .eq(
+        "status",
+        "active"
+      )
+      .eq(
+        "fen",
+        game.fen()
+      )
+      .is(
+        "undo_request_id",
+        null
+      )
+      .select()
+      .single();
+
+
+  if (
+    error ||
+    !updated
+  ) {
+
+    setOnlineStatus(
+      "Unable to request undo. Resync and try again."
+    );
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    updated;
+
+  updateUndoButton();
+
+
+  setOnlineStatus(
+    "Room " +
+    updated.room_code +
+    "\nUndo requested. Waiting for opponent..."
+  );
+
+}
+
+
+async function denyOnlineUndo(
+  room
+) {
+
+  if (
+    !room ||
+    !room.undo_request_id
+  ) {
+    return;
+  }
+
+
+  onlineUndoDecisionInFlight =
+    true;
+
+
+  try {
+
+    const {
+      data:updated,
+      error
+    } =
+      await supabase
+        .from("rooms")
+        .update({
+          undo_request_by:null,
+          undo_request_id:null,
+          undo_request_ply:null,
+          updated_at:
+            new Date().toISOString()
+        })
+        .eq(
+          "id",
+          room.id
+        )
+        .eq(
+          "undo_request_id",
+          room.undo_request_id
+        )
+        .select()
+        .single();
+
+
+    if (
+      error ||
+      !updated
+    ) {
+
+      await fetchAuthoritativeOnlineRoom(
+        false
+      );
+
+      return;
+
+    }
+
+
+    onlineRoom =
+      updated;
+
+    updateUndoButton();
+
+
+    setOnlineStatus(
+      "Room " +
+      updated.room_code +
+      "\nUndo request denied."
+    );
+
+  }
+
+  finally {
+
+    onlineUndoDecisionInFlight =
+      false;
+
+  }
+
+}
+
+
+async function allowOnlineUndo(
+  room
+) {
+
+  if (
+    !room ||
+    !room.undo_request_id ||
+    !Array.isArray(
+      room.move_history
+    ) ||
+    room.move_history.length === 0 ||
+    room.move_history.length !==
+      room.undo_request_ply
+  ) {
+    return;
+  }
+
+
+  onlineUndoDecisionInFlight =
+    true;
+
+
+  try {
+
+    const trimmedHistory =
+      room.move_history.slice(
+        0,
+        -1
+      );
+
+
+    const rebuilt =
+      buildOnlineGameFromHistory(
+        room,
+        trimmedHistory
+      );
+
+
+    if (
+      !rebuilt
+    ) {
+
+      setOnlineStatus(
+        "Unable to restore the previous position."
+      );
+
+      return;
+
+    }
+
+
+    const restoredFen =
+      rebuilt.fen();
+
+
+    const {
+      data:updated,
+      error
+    } =
+      await supabase
+        .from("rooms")
+        .update({
+          fen:
+            restoredFen,
+          move_history:
+            trimmedHistory,
+          status:"active",
+          result_reason:null,
+          winner_color:null,
+          white_rematch:false,
+          black_rematch:false,
+          undo_request_by:null,
+          undo_request_id:null,
+          undo_request_ply:null,
+          updated_at:
+            new Date().toISOString()
+        })
+        .eq(
+          "id",
+          room.id
+        )
+        .eq(
+          "status",
+          "active"
+        )
+        .eq(
+          "fen",
+          room.fen
+        )
+        .eq(
+          "undo_request_id",
+          room.undo_request_id
+        )
+        .select()
+        .single();
+
+
+    if (
+      error ||
+      !updated
+    ) {
+
+      await fetchAuthoritativeOnlineRoom(
+        false
+      );
+
+      return;
+
+    }
+
+
+    onlineRoom =
+      updated;
+
+
+    setupOnlineGameFromRoom(
+      updated,
+      false
+    );
+
+
+    clearCaptureToast();
+
+    clearMoveGhost();
+
+    hideGameOverSummary();
+
+    setOnlineStatus(
+      "Room " +
+      updated.room_code +
+      "\nUndo accepted. Previous position restored."
+    );
+
+  }
+
+  finally {
+
+    onlineUndoDecisionInFlight =
+      false;
+
+  }
+
+}
+
+
+async function handleIncomingOnlineUndoRequest(
+  room
+) {
+
+  if (
+    !room ||
+    !room.undo_request_id ||
+    !room.undo_request_by ||
+    room.undo_request_by ===
+      onlinePlayerId ||
+    onlineUndoDecisionInFlight ||
+    lastHandledOnlineUndoRequestId ===
+      room.undo_request_id
+  ) {
+    return;
+  }
+
+
+  lastHandledOnlineUndoRequestId =
+    room.undo_request_id;
+
+
+  const allowed =
+    window.confirm(
+      "Opponent requested an undo of their last move.\n\nAllow the undo?"
+    );
+
+
+  if (
+    allowed
+  ) {
+
+    await allowOnlineUndo(
+      room
+    );
+
+  }
+
+  else {
+
+    await denyOnlineUndo(
+      room
+    );
+
+  }
+
+}
+
+
 function setupOnlineGameFromRoom(
   room,
   playTheme = false
@@ -4873,6 +5366,9 @@ async function resetOnlineRoomForRematch(
         winner_color:null,
         white_rematch:false,
         black_rematch:false,
+        undo_request_by:null,
+        undo_request_id:null,
+        undo_request_ply:null,
         updated_at:
           new Date().toISOString()
       })
@@ -5092,6 +5588,9 @@ async function resignOnlineGame(
         winner_color:winner,
         white_rematch:false,
         black_rematch:false,
+        undo_request_by:null,
+        undo_request_id:null,
+        undo_request_ply:null,
         updated_at:
           new Date().toISOString()
       })
@@ -5167,6 +5666,8 @@ async function applyOnlineRoomUpdate(
     room
   );
 
+  updateUndoButton();
+
 
   onlineRoomCodeInput.value =
     room.room_code;
@@ -5176,6 +5677,52 @@ async function applyOnlineRoomUpdate(
     ONLINE_ROOM_CODE_KEY,
     room.room_code
   );
+
+
+  if (
+    room.undo_request_id &&
+    Array.isArray(
+      room.move_history
+    ) &&
+    Number.isInteger(
+      room.undo_request_ply
+    ) &&
+    room.move_history.length >
+      room.undo_request_ply
+  ) {
+
+    supabase
+      .from("rooms")
+      .update({
+        undo_request_by:null,
+        undo_request_id:null,
+        undo_request_ply:null,
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        room.id
+      )
+      .eq(
+        "undo_request_id",
+        room.undo_request_id
+      )
+      .then(() => {});
+
+  }
+
+  else if (
+    room.undo_request_id &&
+    room.undo_request_by !==
+      onlinePlayerId
+  ) {
+
+    handleIncomingOnlineUndoRequest(
+      room
+    );
+
+  }
 
 
   if (
@@ -6190,6 +6737,9 @@ async function syncOnlineMove(
             resultPayload.winner_color,
           white_rematch:false,
           black_rematch:false,
+          undo_request_by:null,
+          undo_request_id:null,
+          undo_request_ply:null,
           updated_at:
             new Date().toISOString()
         })
@@ -6322,6 +6872,12 @@ async function leaveOnlineRoom() {
 
   onlineWinnerColor =
     null;
+
+  lastHandledOnlineUndoRequestId =
+    null;
+
+  onlineUndoDecisionInFlight =
+    false;
 
 
   localStorage.removeItem(
@@ -8662,7 +9218,20 @@ function initializeControls() {
 
       hideTooltip();
 
-      undoPlayerTurn();
+
+      if (
+        gameMode === "online"
+      ) {
+
+        requestOnlineUndo();
+
+      }
+
+      else {
+
+        undoPlayerTurn();
+
+      }
 
     }
   );
@@ -8945,11 +9514,58 @@ function updateUndoButton() {
     gameMode === "online"
   ) {
 
-    undoBtn.disabled =
-      true;
+    const requestedByMe =
+      Boolean(
+        onlineRoom &&
+        onlineRoom.undo_request_id &&
+        onlineRoom.undo_request_by ===
+          onlinePlayerId
+      );
 
-    undoBtn.textContent =
-      "Undo unavailable online";
+
+    const requestedByOpponent =
+      Boolean(
+        onlineRoom &&
+        onlineRoom.undo_request_id &&
+        onlineRoom.undo_request_by !==
+          onlinePlayerId
+      );
+
+
+    if (
+      requestedByMe
+    ) {
+
+      undoBtn.disabled =
+        true;
+
+      undoBtn.textContent =
+        "Undo Requested";
+
+    }
+
+    else if (
+      requestedByOpponent
+    ) {
+
+      undoBtn.disabled =
+        true;
+
+      undoBtn.textContent =
+        "Undo Request Pending";
+
+    }
+
+    else {
+
+      undoBtn.disabled =
+        !canRequestOnlineUndo();
+
+      undoBtn.textContent =
+        "Request Undo";
+
+    }
+
 
     return;
 
