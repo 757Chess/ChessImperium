@@ -5033,7 +5033,9 @@ async function requestOnlineRematch() {
 }
 
 
-async function resignOnlineGame() {
+async function resignOnlineGame(
+  confirmFirst = true
+) {
 
   if (
     gameMode !== "online" ||
@@ -5041,20 +5043,26 @@ async function resignOnlineGame() {
     onlineRoom.status !== "active" ||
     !onlineRole
   ) {
-    return;
+    return false;
   }
 
 
-  const confirmed =
-    window.confirm(
-      "Resign this game?"
-    );
-
-
   if (
-    !confirmed
+    confirmFirst
   ) {
-    return;
+
+    const confirmed =
+      window.confirm(
+        "Resign this game?"
+      );
+
+
+    if (
+      !confirmed
+    ) {
+      return false;
+    }
+
   }
 
 
@@ -5100,7 +5108,7 @@ async function resignOnlineGame() {
       "Unable to resign. Please resync and try again."
     );
 
-    return;
+    return false;
 
   }
 
@@ -5108,6 +5116,9 @@ async function resignOnlineGame() {
   await applyOnlineRoomUpdate(
     finished
   );
+
+
+  return true;
 
 }
 
@@ -8367,6 +8378,40 @@ function initializeControls() {
         return;
       }
 
+
+      if (
+        onlineRoom &&
+        onlineRoom.status === "active"
+      ) {
+
+        const confirmed =
+          window.confirm(
+            "Switch to Vs Computer? This will resign your current online game."
+          );
+
+
+        if (
+          !confirmed
+        ) {
+          return;
+        }
+
+
+        const resigned =
+          await resignOnlineGame(
+            false
+          );
+
+
+        if (
+          !resigned
+        ) {
+          return;
+        }
+
+      }
+
+
       await stopOnlineRealtime();
 
       gameMode =
@@ -8379,6 +8424,12 @@ function initializeControls() {
         null;
 
       onlineStartedRoomId =
+        null;
+
+      onlineResultReason =
+        null;
+
+      onlineWinnerColor =
         null;
 
       localStorage.removeItem(
@@ -8472,11 +8523,45 @@ function initializeControls() {
 
   leaveOnlineRoomBtn.addEventListener(
     "click",
-    function() {
+    async function() {
 
       playMenuClick();
 
-      leaveOnlineRoom();
+
+      if (
+        onlineRoom &&
+        onlineRoom.status === "active"
+      ) {
+
+        const confirmed =
+          window.confirm(
+            "Leave this online game? This will count as a resignation."
+          );
+
+
+        if (
+          !confirmed
+        ) {
+          return;
+        }
+
+
+        const resigned =
+          await resignOnlineGame(
+            false
+          );
+
+
+        if (
+          !resigned
+        ) {
+          return;
+        }
+
+      }
+
+
+      await leaveOnlineRoom();
 
     }
   );
