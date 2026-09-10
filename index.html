@@ -12871,6 +12871,97 @@ function clearDragGhost() {
 }
 
 
+function freezeDragGhostAtDestination(
+  state,
+  squareName
+) {
+
+  if (
+    !state ||
+    !state.ghost ||
+    !squareName
+  ) {
+    return null;
+  }
+
+
+  const destinationSquare =
+    boardEl.querySelector(
+      `[data-square="${squareName}"]`
+    );
+
+
+  if (
+    !destinationSquare
+  ) {
+
+    state.ghost.remove();
+
+    return null;
+
+  }
+
+
+  const rect =
+    destinationSquare.getBoundingClientRect();
+
+
+  state.ghost.style.left =
+    (
+      rect.left +
+      rect.width / 2
+    ) + "px";
+
+  state.ghost.style.top =
+    (
+      rect.top +
+      rect.height / 2
+    ) + "px";
+
+  state.ghost.style.opacity =
+    ".58";
+
+  state.ghost.style.pointerEvents =
+    "none";
+
+
+  return state.ghost;
+
+}
+
+
+function removeCommitGhostAfterPaint(
+  ghost
+) {
+
+  if (
+    !ghost
+  ) {
+    return;
+  }
+
+
+  requestAnimationFrame(
+    () => {
+
+      requestAnimationFrame(
+        () => {
+
+          if (
+            ghost.isConnected
+          ) {
+            ghost.remove();
+          }
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
 function squareFromPoint(
   x,
   y
@@ -12976,11 +13067,6 @@ function finishPieceDrag(
       event.clientY
     );
 
-  clearDragGhost();
-
-  dragState =
-    null;
-
   ignoreBoardClickUntil =
     performance.now() + 250;
 
@@ -13002,10 +13088,44 @@ function finishPieceDrag(
       );
 
 
+    let commitGhost =
+      null;
+
+
+    if (
+      useGhost
+    ) {
+
+      /*
+       * Freeze the drag ghost exactly on the chosen destination.
+       * It remains there until the real piece has completed its travel,
+       * the move has been committed, and the final board has painted.
+       */
+      commitGhost =
+        freezeDragGhostAtDestination(
+          state,
+          destination
+        );
+
+    }
+
+    else if (
+      state.ghost
+    ) {
+
+      state.ghost.remove();
+
+    }
+
+
+    dragState =
+      null;
+
+
     /*
      * Pawns and kings commit immediately with the traditional drag.
-     * Queens, rooks, bishops, and knights use the ghost proxy first,
-     * then the real piece performs the committed travel animation.
+     * Queens, rooks, bishops, and knights leave the destination ghost
+     * in place while the real piece travels to it.
      */
     drawBoard();
 
@@ -13037,11 +13157,23 @@ function finishPieceDrag(
       !useGhost,
       useGhost
         ? 420
-        : MOVE_ANIMATION_DURATION
+        : MOVE_ANIMATION_DURATION,
+      commitGhost
     );
 
     return;
   }
+
+  if (
+    state.ghost
+  ) {
+    state.ghost.remove();
+  }
+
+
+  dragState =
+    null;
+
 
   if (
     destination === state.from
@@ -13530,7 +13662,8 @@ async function completePlayerMove(
   to,
   promotion,
   skipAnimation = false,
-  animationDuration = MOVE_ANIMATION_DURATION
+  animationDuration = MOVE_ANIMATION_DURATION,
+  commitGhost = null
 ) {
 
   if (
@@ -13553,6 +13686,14 @@ async function completePlayerMove(
   if (
     !plannedMove
   ) {
+
+    if (
+      commitGhost &&
+      commitGhost.isConnected
+    ) {
+      commitGhost.remove();
+    }
+
 
     playSound(
       "invalid"
@@ -13604,6 +13745,14 @@ async function completePlayerMove(
       false;
 
 
+    if (
+      commitGhost &&
+      commitGhost.isConnected
+    ) {
+      commitGhost.remove();
+    }
+
+
     updateUndoButton();
 
 
@@ -13628,6 +13777,14 @@ async function completePlayerMove(
 
       moveAnimating =
         false;
+
+
+      if (
+        commitGhost &&
+        commitGhost.isConnected
+      ) {
+        commitGhost.remove();
+      }
 
 
       playSound(
@@ -13668,6 +13825,11 @@ async function completePlayerMove(
     );
 
 
+    removeCommitGhostAfterPaint(
+      commitGhost
+    );
+
+
     if (
       gameMode === "online"
     ) {
@@ -13694,6 +13856,14 @@ async function completePlayerMove(
 
     moveAnimating =
       false;
+
+
+    if (
+      commitGhost &&
+      commitGhost.isConnected
+    ) {
+      commitGhost.remove();
+    }
 
 
     playSound(
