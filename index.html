@@ -972,7 +972,7 @@ select {
   pointer-events:none;
   transform:translate(-50%,-50%) scale(1.06);
   filter:drop-shadow(0 8px 10px rgba(0,0,0,.28));
-  opacity:.96;
+  opacity:.90;
 }
 
 .square.drag-source .piece {
@@ -4196,19 +4196,6 @@ function playSoundForMove(move) {
 
     }
 
-
-    if (
-      move.piece === "q"
-    ) {
-
-      playBufferedSound(
-        move.color === "w"
-          ? "queenwhoosh-w"
-          : "queenwhoosh-b",
-        1
-      );
-
-    }
 
   }
 
@@ -8531,6 +8518,22 @@ async function animateLegalMove(
   to,
   plannedMove
 ) {
+
+  if (
+    plannedMove &&
+    plannedMove.piece === "q" &&
+    plannedMove.captured
+  ) {
+
+    playBufferedSound(
+      plannedMove.color === "w"
+        ? "queenwhoosh-w"
+        : "queenwhoosh-b",
+      1
+    );
+
+  }
+
 
   const animations = [
 
@@ -12932,6 +12935,11 @@ function startActiveDrag(
     return;
   }
 
+  /*
+   * The floating image is only a drag proxy.
+   * The real board piece stays on its origin square until
+   * the player releases on a legal destination.
+   */
   dragState.active =
     true;
 
@@ -13140,7 +13148,7 @@ function finishPieceDrag(
       openPromotion(
         state.from,
         destination,
-        true
+        false
       );
       return;
     }
@@ -13149,7 +13157,7 @@ function finishPieceDrag(
       state.from,
       destination,
       undefined,
-      true
+      false
     );
 
     return;
