@@ -1345,6 +1345,117 @@ th {
 }
 
 
+
+/* ===================================================== */
+/* POLISH PASS                                           */
+/* ===================================================== */
+
+.setup-note {
+  text-align:center;
+}
+
+.matchup-title {
+  margin-bottom:8px;
+  padding-bottom:7px;
+  border-bottom:1px solid #e4ddd2;
+  color:var(--green);
+  font-size:13px;
+  font-weight:800;
+  line-height:1.3;
+}
+
+.match-line {
+  margin-bottom:4px;
+  font-size:12px;
+  line-height:1.38;
+}
+
+.match-line:last-child {
+  margin-bottom:0;
+}
+
+.room-code-copy {
+  width:100%;
+  margin-top:7px;
+  font-size:11px;
+  font-weight:700;
+}
+
+.move-box tbody tr.latest-move-row td {
+  background:#f1ece2;
+  font-weight:700;
+}
+
+.move-box tbody tr.latest-move-row td:first-child {
+  color:var(--green);
+}
+
+.game-over-box {
+  position:relative;
+  overflow:hidden;
+  border-color:#cdb77e;
+  background:linear-gradient(180deg,#fffdf8 0%,#f8f1e4 100%);
+}
+
+.game-over-box::before {
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  height:3px;
+  background:#c99e3d;
+}
+
+.game-over-result {
+  padding-top:4px;
+  font-family:Georgia,"Times New Roman",serif;
+  letter-spacing:.04em;
+}
+
+.game-over-matchup {
+  margin:3px 0 10px;
+  color:var(--green);
+  font-size:13px;
+  font-weight:800;
+  line-height:1.35;
+}
+
+.promotion-card {
+  background:linear-gradient(180deg,#fffdf8 0%,#f6efe2 100%);
+  border:2px solid #c99e3d;
+  box-shadow:0 18px 50px rgba(0,0,0,.24),inset 0 0 0 1px rgba(255,255,255,.55);
+}
+
+.promotion-kicker {
+  margin-bottom:5px;
+  color:#9a7424;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.16em;
+}
+
+.promotion-card h2 {
+  color:var(--green);
+  font-family:Georgia,"Times New Roman",serif;
+  letter-spacing:.02em;
+}
+
+.promotion-option {
+  background:#fffaf0;
+  border-color:#d5c39a;
+}
+
+.promotion-option:hover {
+  background:#f0e6d2;
+  border-color:#c99e3d;
+}
+
+.promotion-option:focus-visible {
+  outline:2px solid var(--green);
+  outline-offset:2px;
+}
+
 /* ===================================================== */
 /* PROMOTION                                             */
 /* ===================================================== */
@@ -1973,6 +2084,13 @@ th {
           </button>
         </div>
 
+        <button id="copyOnlineRoomCodeBtn"
+                class="online-action room-code-copy"
+                type="button"
+                disabled>
+          Copy Room Code
+        </button>
+
         <button id="lockOnlineFormationBtn"
                 class="online-action"
                 type="button"
@@ -2061,8 +2179,8 @@ th {
       </div>
 
 
-      <div class="small-note">
-        Hover or tap formations and difficulty settings for guidance.
+      <div class="small-note setup-note">
+        Choose your formation, side, and difficulty, then begin.
       </div>
 
     </div>
@@ -2230,7 +2348,7 @@ th {
 
       <div id="gameOverSection" class="section">
 
-        <div class="label">Game Over</div>
+        <div class="label">Match Complete</div>
 
         <div class="game-over-box">
 
@@ -2342,9 +2460,10 @@ th {
 
   <div class="promotion-card">
 
-    <h2>Promote Your Pawn</h2>
+    <div class="promotion-kicker">IMPERIUM PROMOTION</div>
+    <h2>Choose Your Champion</h2>
 
-    <p>Choose the piece your pawn becomes.</p>
+    <p>Your pawn has reached the final rank. Select its new piece.</p>
 
     <div id="promotionOptions" class="promotion-options"></div>
 
@@ -2509,81 +2628,39 @@ const FORMATIONS = [
 const FORMATION_GUIDES = {
 
   RNB: {
-
-    description:
-      "The familiar classical formation and the most natural starting point for traditional chess players.",
-
-    strength:
-      "Balanced development with familiar piece relationships.",
-
-    tip:
-      "Normal opening principles work well here: develop your knights and bishops, fight for the center, and connect your rooks."
-
+    description:"The classical formation: familiar, balanced, and flexible.",
+    strength:"Natural development and the only formation that can castle.",
+    tip:"Best when you want traditional chess structure with Imperium rules."
   },
 
   RBN: {
-
-    description:
-      "The knights move inward while the bishops take their places beside the corner rooks.",
-
-    strength:
-      "Knights begin with useful routes toward the center and can become active quickly.",
-
-    tip:
-      "Your bishops need deliberate pawn openings from the b- and g-files, so make sure they do not get buried behind your pawns."
-
+    description:"Bishops move outward while the knights sit closer to the center.",
+    strength:"Quick knight activity with unusual bishop lanes.",
+    tip:"Open paths for the bishops early so they do not become boxed in."
   },
 
   NRB: {
-
-    description:
-      "The bishops remain in familiar positions while the knights begin on the outside and the rooks move inward.",
-
-    strength:
-      "Familiar bishop development combined with rooks positioned closer to central files.",
-
-    tip:
-      "Pay special attention to your corner knights. Their path into the battle may take more planning than usual."
-
+    description:"Familiar bishops, wing knights, and rooks shifted toward the center.",
+    strength:"Central rook potential with recognizable bishop development.",
+    tip:"Plan a route for the corner knights before the position gets crowded."
   },
 
   NBR: {
-
-    description:
-      "An unconventional formation with knights on the wings and rooks stationed close to the center.",
-
-    strength:
-      "The central rooks can become powerful once the position opens.",
-
-    tip:
-      "Do not rush to activate the rooks too early. Develop your lighter pieces and create safe lanes for them first."
-
+    description:"Knights guard the wings while the rooks begin near the center.",
+    strength:"Powerful central rooks once files begin to open.",
+    tip:"Develop patiently before exposing those rooks."
   },
 
   BRN: {
-
-    description:
-      "The bishops guard the outer edges while the knights occupy strong central starting squares and the rooks sit just inside them.",
-
-    strength:
-      "Convenient knight development and potentially active rooks once files begin to open.",
-
-    tip:
-      "Activate the corner bishops early so they can command important diagonals instead of remaining trapped behind the pawn line."
-
+    description:"Bishops occupy the corners, with knights and rooks drawn inward.",
+    strength:"Active knights and strong diagonal potential.",
+    tip:"Free the corner bishops early and let them use the long diagonals."
   },
 
   BNR: {
-
-    description:
-      "A compact formation with bishops on the wings, knights inside them, and the rooks closest to the king and queen.",
-
-    strength:
-      "Centralized heavy pieces can become formidable once the position opens.",
-
-    tip:
-      "Free your bishops early and resist exposing the central rooks before your king position is secure."
-
+    description:"Bishops on the wings, knights inside, and rooks nearest the royal pair.",
+    strength:"Heavy pieces begin centrally and can become dangerous quickly.",
+    tip:"Secure the king before opening lanes for the central rooks."
   }
 
 };
@@ -3667,6 +3744,10 @@ const createOnlineRoomBtn =
 const joinOnlineRoomBtn =
   document.getElementById("joinOnlineRoomBtn");
 
+
+const copyOnlineRoomCodeBtn =
+  document.getElementById("copyOnlineRoomCodeBtn");
+
 const onlineRoomCodeInput =
   document.getElementById("onlineRoomCodeInput");
 
@@ -4365,6 +4446,77 @@ function setOnlineStatus(
 
   onlineStatusBox.textContent =
     text;
+
+}
+
+
+async function copyOnlineRoomCode() {
+
+  const code =
+    onlineRoomCodeInput.value
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    code.length !== 6
+  ) {
+    return;
+  }
+
+
+  try {
+
+    await navigator.clipboard.writeText(
+      code
+    );
+
+    copyOnlineRoomCodeBtn.textContent =
+      "Copied " + code;
+
+  }
+
+  catch(error) {
+
+    onlineRoomCodeInput.focus();
+    onlineRoomCodeInput.select();
+
+    try {
+      document.execCommand("copy");
+      copyOnlineRoomCodeBtn.textContent =
+        "Copied " + code;
+    }
+    catch(fallbackError) {
+      copyOnlineRoomCodeBtn.textContent =
+        "Room Code: " + code;
+    }
+
+  }
+
+
+  setTimeout(
+    () => {
+
+      copyOnlineRoomCodeBtn.textContent =
+        "Copy Room Code";
+
+    },
+    1800
+  );
+
+}
+
+
+function refreshRoomCodeCopyButton() {
+
+  const code =
+    onlineRoomCodeInput.value
+      .trim()
+      .toUpperCase();
+
+
+  copyOnlineRoomCodeBtn.disabled =
+    code.length !== 6;
 
 }
 
@@ -6630,6 +6782,8 @@ async function applyOnlineRoomUpdate(
   onlineRoomCodeInput.value =
     room.room_code;
 
+  refreshRoomCodeCopyButton();
+
 
   localStorage.setItem(
     ONLINE_ROOM_CODE_KEY,
@@ -7309,6 +7463,8 @@ async function createOnlineRoom() {
 
       onlineRoomCodeInput.value =
         data.room_code;
+
+      refreshRoomCodeCopyButton();
 
       localStorage.setItem(
         ONLINE_ROOM_CODE_KEY,
@@ -8081,6 +8237,8 @@ async function leaveOnlineRoom() {
   onlineRoomCodeInput.value =
     "";
 
+  refreshRoomCodeCopyButton();
+
 
   leaveOnlineRoomBtn.disabled =
     true;
@@ -8159,6 +8317,8 @@ async function reconnectOnlineRoomIfAvailable() {
 
   onlineRoomCodeInput.value =
     savedCode;
+
+  refreshRoomCodeCopyButton();
 
 
   setOnlineStatus(
@@ -9170,21 +9330,16 @@ function getFormationTooltipHTML(code) {
       "</div>" +
 
       "<div class='tooltip-description'>" +
-      "Let the game choose one of the six formations for you." +
+      "The game chooses one of the six formations when play begins." +
       "</div>" +
 
       "<div class='tooltip-line'>" +
-      "<strong>Strength:</strong> " +
-      "Forces you to adapt and explore formations you might not normally select." +
-      "</div>" +
-
-      "<div class='tooltip-line'>" +
-      "<strong>Tip:</strong> " +
-      "Use Random when you want to practice reacting to unfamiliar starting positions." +
+      "<strong>Best for:</strong> " +
+      "Variety, experimentation, and practicing unfamiliar starts." +
       "</div>" +
 
       "<div class='tooltip-note'>" +
-      "The preview may change when the game begins." +
+      "The preview may reroll when the game begins." +
       "</div>"
 
     );
@@ -10333,6 +10488,24 @@ function initializeControls() {
   );
 
 
+  copyOnlineRoomCodeBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      copyOnlineRoomCode();
+
+    }
+  );
+
+
+  onlineRoomCodeInput.addEventListener(
+    "input",
+    refreshRoomCodeCopyButton
+  );
+
+
   lockOnlineFormationBtn.addEventListener(
     "click",
     function() {
@@ -11343,7 +11516,7 @@ function renderPreview() {
 
   previewBar.innerHTML =
 
-    "<strong>Preview:</strong>&nbsp;" +
+    "<strong>Formation Preview:</strong>&nbsp;" +
 
     previewText +
 
@@ -15113,9 +15286,19 @@ function renderMoveList() {
     i+=2
   ) {
 
+    const isLatestRow =
+      i + 2 >= history.length;
+
+
     html +=
 
-      "<tr>" +
+      "<tr" +
+      (
+        isLatestRow
+          ? " class='latest-move-row'"
+          : ""
+      ) +
+      ">" +
 
       "<td>" +
       (
@@ -15358,6 +15541,22 @@ function updateGameOverSummary() {
 
 
   gameOverDetails.innerHTML =
+
+    "<div class='game-over-matchup'>" +
+    FORMATION_MAP[
+      actualPlayerFormation
+    ] +
+    " (" +
+    actualPlayerFormation +
+    ")" +
+    " &nbsp;vs&nbsp; " +
+    FORMATION_MAP[
+      actualComputerFormation
+    ] +
+    " (" +
+    actualComputerFormation +
+    ")" +
+    "</div>" +
 
     "<div class='game-over-line'>" +
     "<strong>Your formation:</strong> " +
@@ -16043,52 +16242,17 @@ function setStatus(
 
 function updateInfoPanel() {
 
+  const formationText =
+    code => (
+      code
+        ? FORMATION_MAP[code] + " (" + code + ")"
+        : "—"
+    );
+
+
   if (
     gameMode === "online"
   ) {
-
-    let yourFormationText =
-      playerFormationChoice === "RANDOM"
-        ? "Random"
-        : (
-            FORMATION_MAP[
-              playerFormationChoice
-            ] +
-            " (" +
-            playerFormationChoice +
-            ")"
-          );
-
-
-    let opponentFormationText =
-      "Hidden until both players lock in";
-
-
-    if (
-      gameStarted &&
-      actualPlayerFormation &&
-      actualComputerFormation
-    ) {
-
-      yourFormationText =
-        FORMATION_MAP[
-          actualPlayerFormation
-        ] +
-        " (" +
-        actualPlayerFormation +
-        ")";
-
-
-      opponentFormationText =
-        FORMATION_MAP[
-          actualComputerFormation
-        ] +
-        " (" +
-        actualComputerFormation +
-        ")";
-
-    }
-
 
     const colorText =
       onlineRole === "white"
@@ -16098,37 +16262,51 @@ function updateInfoPanel() {
           : "Not assigned";
 
 
-    const castlingText =
+    if (
       gameStarted &&
-      castlingEnabledForCurrentGame()
-        ? "Castling enabled"
-        : gameStarted
-          ? "Castling disabled"
-          : "Determined after formation reveal";
+      actualPlayerFormation &&
+      actualComputerFormation
+    ) {
 
+      infoBox.innerHTML =
+        "<div class='matchup-title'>" +
+        formationText(actualPlayerFormation) +
+        " &nbsp;vs&nbsp; " +
+        formationText(actualComputerFormation) +
+        "</div>" +
 
-    infoBox.innerHTML =
+        "<div class='match-line'><strong>You:</strong> " +
+        colorText +
+        "</div>" +
 
-      "<div class='match-line'>" +
-      "<strong>You:</strong> " +
-      yourFormationText +
-      " · " +
-      colorText +
-      "</div>" +
+        "<div class='match-line'><strong>Castling:</strong> " +
+        (
+          castlingEnabledForCurrentGame()
+            ? "Enabled"
+            : "Disabled"
+        ) +
+        "</div>";
 
-      "<div class='match-line'>" +
-      "<strong>Opponent:</strong> " +
-      opponentFormationText +
-      "</div>" +
+    }
 
-      "<div class='match-line'>" +
-      "<strong>Mode:</strong> Online Multiplayer" +
-      "</div>" +
+    else {
 
-      "<div class='match-line'>" +
-      "<strong>Castling:</strong> " +
-      castlingText +
-      "</div>";
+      infoBox.innerHTML =
+        "<div class='match-line'><strong>You:</strong> " +
+        (
+          playerFormationChoice === "RANDOM"
+            ? "Random"
+            : formationText(playerFormationChoice)
+        ) +
+        " · " +
+        colorText +
+        "</div>" +
+
+        "<div class='match-line'><strong>Opponent:</strong> " +
+        "Formation hidden until both players lock in" +
+        "</div>";
+
+    }
 
 
     return;
@@ -16137,202 +16315,90 @@ function updateInfoPanel() {
 
 
   const difficulty =
-    DIFFICULTIES[difficultyKey];
+    DIFFICULTY_GUIDES[difficultyKey];
 
 
-  let playerFormationText;
-
-
-  if (
+  const playerFormationText =
     gameStarted
-  ) {
-
-    playerFormationText =
-
-      FORMATION_MAP[
-        actualPlayerFormation
-      ] +
-
-      " (" +
-
-      actualPlayerFormation +
-
-      ")";
-
-  }
-
-  else if (
-    playerFormationChoice === "RANDOM"
-  ) {
-
-    playerFormationText =
-      "Random";
-
-  }
-
-  else {
-
-    playerFormationText =
-
-      FORMATION_MAP[
-        playerFormationChoice
-      ] +
-
-      " (" +
-
-      playerFormationChoice +
-
-      ")";
-
-  }
+      ? formationText(actualPlayerFormation)
+      : playerFormationChoice === "RANDOM"
+        ? "Random"
+        : formationText(playerFormationChoice);
 
 
-  let computerText;
-
-
-  if (
+  const computerFormationText =
     gameStarted
-  ) {
-
-    computerText =
-
-      FORMATION_MAP[
-        actualComputerFormation
-      ] +
-
-      " (" +
-
-      actualComputerFormation +
-
-      ")";
-
-  }
-
-  else if (
-    computerFormationChoice === "RANDOM"
-  ) {
-
-    computerText =
-      "Random";
-
-  }
-
-  else {
-
-    computerText =
-
-      FORMATION_MAP[
-        computerFormationChoice
-      ] +
-
-      " (" +
-
-      computerFormationChoice +
-
-      ")";
-
-  }
+      ? formationText(actualComputerFormation)
+      : computerFormationChoice === "RANDOM"
+        ? "Random"
+        : formationText(computerFormationChoice);
 
 
-  let colorText;
-
-
-  if (
+  const colorText =
     gameStarted
-  ) {
-
-    colorText =
-
-      playerColor === "w"
-
-        ? "White"
-
-        : "Black";
-
-  }
-
-  else if (
-    playerColorChoice === "RANDOM"
-  ) {
-
-    colorText =
-      "Random";
-
-  }
-
-  else {
-
-    colorText =
-
-      playerColorChoice === "w"
-
-        ? "White"
-
-        : "Black";
-
-  }
+      ? (
+          playerColor === "w"
+            ? "White"
+            : "Black"
+        )
+      : playerColorChoice === "RANDOM"
+        ? "Random"
+        : (
+            playerColorChoice === "w"
+              ? "White"
+              : "Black"
+          );
 
 
-  let castlingText =
-    "Castling disabled";
-
-
-  if (
-    gameStarted &&
-    castlingEnabledForCurrentGame()
-  ) {
-
-    castlingText =
-      "Castling enabled";
-
-  }
-
-  else if (
-    !gameStarted &&
-    playerFormationChoice === "RNB" &&
-    computerFormationChoice === "RNB"
-  ) {
-
-    castlingText =
-      "Castling enabled if this matchup begins";
-
-  }
+  const castlingText =
+    gameStarted
+      ? (
+          castlingEnabledForCurrentGame()
+            ? "Enabled"
+            : "Disabled"
+        )
+      : (
+          playerFormationChoice === "RNB" &&
+          computerFormationChoice === "RNB"
+            ? "Available if this matchup begins"
+            : "Disabled"
+        );
 
 
   infoBox.innerHTML =
+    (
+      gameStarted
+        ? (
+            "<div class='matchup-title'>" +
+            playerFormationText +
+            " &nbsp;vs&nbsp; " +
+            computerFormationText +
+            "</div>"
+          )
+        : ""
+    ) +
 
-    "<div class='match-line'>" +
-
-    "<strong>You:</strong> " +
+    "<div class='match-line'><strong>You:</strong> " +
     playerFormationText +
     " · " +
     colorText +
-
     "</div>" +
 
-    "<div class='match-line'>" +
-
-    "<strong>Computer:</strong> " +
-    computerText +
-
+    "<div class='match-line'><strong>Computer:</strong> " +
+    computerFormationText +
     "</div>" +
 
-    "<div class='match-line'>" +
-
-    "<strong>Difficulty:</strong> " +
-    difficulty.label +
-
+    "<div class='match-line'><strong>Difficulty:</strong> " +
+    difficulty.title +
+    " · ≈ " +
+    difficulty.elo +
     "</div>" +
 
-    "<div class='match-line'>" +
-
-    "<strong>Castling:</strong> " +
+    "<div class='match-line'><strong>Castling:</strong> " +
     castlingText +
-
     "</div>";
 
 }
-
 
 
 /* ===================================================== */
