@@ -230,6 +230,9 @@ button:disabled {
 }
 
 .difficulty-btn {
+  display:flex;
+  align-items:center;
+  justify-content:center;
   font-size:12px;
   min-height:48px;
   line-height:1.12;
@@ -249,9 +252,15 @@ button:disabled {
 }
 
 .difficulty-rating-primary {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
   margin-top:0;
-  font-size:15px;
+  font-size:17px;
+  line-height:1;
   font-weight:700;
+  letter-spacing:.01em;
   opacity:.92;
 }
 
@@ -1760,28 +1769,28 @@ th {
             id="difficultyRelaxed"
             class="difficulty-btn active"
             type="button">
-            <span class="difficulty-rating difficulty-rating-primary">≈ 700</span>
+            <span class="difficulty-rating difficulty-rating-primary">700</span>
           </button>
 
           <button
             id="difficultyStandard"
             class="difficulty-btn"
             type="button">
-            <span class="difficulty-rating difficulty-rating-primary">≈ 1000</span>
+            <span class="difficulty-rating difficulty-rating-primary">1000</span>
           </button>
 
           <button
             id="difficultyFierce"
             class="difficulty-btn"
             type="button">
-            <span class="difficulty-rating difficulty-rating-primary">≈ 1350</span>
+            <span class="difficulty-rating difficulty-rating-primary">1350</span>
           </button>
 
           <button
             id="difficultyRuthless"
             class="difficulty-btn"
             type="button">
-            <span class="difficulty-rating difficulty-rating-primary">≈ 1750</span>
+            <span class="difficulty-rating difficulty-rating-primary">1750</span>
           </button>
 
         </div>
@@ -2407,28 +2416,28 @@ const DIFFICULTY_GUIDES = {
 
   casual: {
     title:"Relaxed",
-    elo:"≈ 700",
+    elo:"700",
     bestFor:
       "Exploring formations, testing ideas, and lower-pressure games."
   },
 
   beginner: {
     title:"Standard",
-    elo:"≈ 1000",
+    elo:"1000",
     bestFor:
       "A balanced game with steady resistance and room to recover from mistakes."
   },
 
   intermediate: {
     title:"Fierce",
-    elo:"≈ 1350",
+    elo:"1350",
     bestFor:
       "Players who want meaningful tactical and strategic pressure."
   },
 
   hard: {
     title:"Ruthless",
-    elo:"≈ 1750",
+    elo:"1750",
     bestFor:
       "Players who want the toughest computer challenge currently available."
   }
