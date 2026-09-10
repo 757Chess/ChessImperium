@@ -972,7 +972,7 @@ select {
   pointer-events:none;
   transform:translate(-50%,-50%) scale(1.06);
   filter:drop-shadow(0 8px 10px rgba(0,0,0,.28));
-  opacity:.90;
+  opacity:.84;
 }
 
 .square.drag-source .piece {
@@ -8329,7 +8329,8 @@ function getCastlingRookSquares(
 
 function animateSinglePiece(
   fromSquare,
-  toSquare
+  toSquare,
+  duration = MOVE_ANIMATION_DURATION
 ) {
 
   return new Promise(
@@ -8482,7 +8483,7 @@ function animateSinglePiece(
 
           {
             duration:
-              MOVE_ANIMATION_DURATION,
+              duration,
 
             easing:
               "cubic-bezier(.22,.61,.36,1)",
@@ -8504,7 +8505,7 @@ function animateSinglePiece(
 
       setTimeout(
         finish,
-        MOVE_ANIMATION_DURATION + 80
+        duration + 80
       );
 
     }
@@ -8516,7 +8517,8 @@ function animateSinglePiece(
 async function animateLegalMove(
   from,
   to,
-  plannedMove
+  plannedMove,
+  duration = MOVE_ANIMATION_DURATION
 ) {
 
   if (
@@ -8539,7 +8541,8 @@ async function animateLegalMove(
 
     animateSinglePiece(
       from,
-      to
+      to,
+      duration
     )
 
   ];
@@ -8559,7 +8562,8 @@ async function animateLegalMove(
 
       animateSinglePiece(
         rookMove.from,
-        rookMove.to
+        rookMove.to,
+        duration
       )
 
     );
@@ -13148,7 +13152,8 @@ function finishPieceDrag(
       openPromotion(
         state.from,
         destination,
-        false
+        false,
+        420
       );
       return;
     }
@@ -13157,7 +13162,8 @@ function finishPieceDrag(
       state.from,
       destination,
       undefined,
-      false
+      false,
+      420
     );
 
     return;
@@ -13532,13 +13538,15 @@ function selectSquare(
 function openPromotion(
   from,
   to,
-  skipAnimation = false
+  skipAnimation = false,
+  animationDuration = MOVE_ANIMATION_DURATION
 ) {
 
   promotionPending = {
     from,
     to,
-    skipAnimation
+    skipAnimation,
+    animationDuration
   };
 
 
@@ -13620,6 +13628,11 @@ function choosePromotion(
     );
 
 
+  const animationDuration =
+    promotionPending.animationDuration ||
+    MOVE_ANIMATION_DURATION;
+
+
   promotionPending =
     null;
 
@@ -13631,7 +13644,8 @@ function choosePromotion(
     from,
     to,
     pieceType,
-    skipAnimation
+    skipAnimation,
+    animationDuration
   );
 
 }
@@ -13641,7 +13655,8 @@ async function completePlayerMove(
   from,
   to,
   promotion,
-  skipAnimation = false
+  skipAnimation = false,
+  animationDuration = MOVE_ANIMATION_DURATION
 ) {
 
   if (
@@ -13699,7 +13714,8 @@ async function completePlayerMove(
     await animateLegalMove(
       from,
       to,
-      plannedMove
+      plannedMove,
+      animationDuration
     );
 
   }
