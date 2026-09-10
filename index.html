@@ -90,12 +90,16 @@ h1 {
 
 .chess-imperium-banner-wrap {
   width:100%;
-  max-width:576px;
+  max-width:604px;
   margin:0 auto 1px;
-  transform:translateX(10px);
+  display:grid;
+  grid-template-columns:20px minmax(0,576px);
+  justify-content:center;
+  box-sizing:border-box;
 }
 
 .chess-imperium-banner {
+  grid-column:2;
   display:block;
   width:100%;
   height:auto;
@@ -1662,10 +1666,10 @@ th {
   }
 
   .chess-imperium-banner-wrap {
-    width:calc(100% - 15px);
+    width:100%;
     max-width:none;
-    margin:0 0 1px 15px;
-    transform:none;
+    margin:0 0 1px;
+    grid-template-columns:15px minmax(0,1fr);
   }
 
   .chess-imperium-banner {
