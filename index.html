@@ -12695,7 +12695,8 @@ function beginPieceDrag(
     startY:event.clientY,
     active:false,
     imageSrc:pieceImage.src,
-    ghost:null
+    ghost:null,
+    oneSquareMode:false
   };
 
 }
@@ -12755,6 +12756,11 @@ function startActiveDrag(
     event.clientY
   );
 
+  updateDragPresentation(
+    event.clientX,
+    event.clientY
+  );
+
 }
 
 
@@ -12775,6 +12781,124 @@ function moveDragGhost(
 
   dragState.ghost.style.top =
     y + "px";
+
+}
+
+
+function squareDistance(
+  from,
+  to
+) {
+
+  if (
+    !from ||
+    !to
+  ) {
+    return Infinity;
+  }
+
+
+  const files =
+    "abcdefgh";
+
+
+  const fileDistance =
+    Math.abs(
+      files.indexOf(
+        from[0]
+      ) -
+      files.indexOf(
+        to[0]
+      )
+    );
+
+
+  const rankDistance =
+    Math.abs(
+      Number(from[1]) -
+      Number(to[1])
+    );
+
+
+  return Math.max(
+    fileDistance,
+    rankDistance
+  );
+
+}
+
+
+function updateDragPresentation(
+  x,
+  y
+) {
+
+  if (
+    !dragState ||
+    !dragState.active ||
+    !dragState.ghost
+  ) {
+    return;
+  }
+
+
+  const hoverSquare =
+    squareFromPoint(
+      x,
+      y
+    );
+
+
+  const oneSquareMove =
+    squareDistance(
+      dragState.from,
+      hoverSquare
+    ) === 1;
+
+
+  dragState.oneSquareMode =
+    oneSquareMove;
+
+
+  /*
+   * Adjacent-square drag:
+   * behave like the traditional direct drag.
+   * The floating piece is fully opaque and the board piece is hidden.
+   *
+   * Longer drag:
+   * use the new ghost model.
+   * The translucent proxy moves while the real piece remains visible.
+   */
+  dragState.ghost.style.opacity =
+    oneSquareMove
+      ? "1"
+      : ".58";
+
+
+  const originSquare =
+    boardEl.querySelector(
+      `[data-square="${dragState.from}"]`
+    );
+
+
+  const originPiece =
+    originSquare
+      ? originSquare.querySelector(
+          ".piece"
+        )
+      : null;
+
+
+  if (
+    originPiece
+  ) {
+
+    originPiece.style.opacity =
+      oneSquareMove
+        ? "0"
+        : "1";
+
+  }
 
 }
 
@@ -12859,6 +12983,11 @@ function handleDragMove(
       event.clientX,
       event.clientY
     );
+
+    updateDragPresentation(
+      event.clientX,
+      event.clientY
+    );
   }
 
 }
@@ -12914,10 +13043,19 @@ function finishPieceDrag(
     destinationMoves.length > 0
   ) {
 
+    const oneSquareMove =
+      squareDistance(
+        state.from,
+        destination
+      ) === 1;
+
+
     /*
-     * Drag intent is over. Re-render the untouched board position now
-     * so the real opaque piece is visibly sitting on its origin square
-     * before the committed move animation begins.
+     * Adjacent-square moves stay simple:
+     * no ghost-style commit animation and no travel sound window.
+     *
+     * Longer moves use the ghost-drag model, then the real piece
+     * visibly travels to the chosen square.
      */
     drawBoard();
 
@@ -12934,8 +13072,10 @@ function finishPieceDrag(
       openPromotion(
         state.from,
         destination,
-        false,
-        420
+        oneSquareMove,
+        oneSquareMove
+          ? MOVE_ANIMATION_DURATION
+          : 420
       );
       return;
     }
@@ -12944,8 +13084,10 @@ function finishPieceDrag(
       state.from,
       destination,
       undefined,
-      false,
-      420
+      oneSquareMove,
+      oneSquareMove
+        ? MOVE_ANIMATION_DURATION
+        : 420
     );
 
     return;
