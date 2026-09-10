@@ -231,6 +231,25 @@ button:disabled {
 
 .difficulty-btn {
   font-size:12px;
+  min-height:48px;
+  line-height:1.12;
+}
+
+.difficulty-name {
+  display:block;
+  font-weight:700;
+}
+
+.difficulty-rating {
+  display:block;
+  margin-top:3px;
+  font-size:11px;
+  font-weight:600;
+  opacity:.78;
+}
+
+.difficulty-btn.active .difficulty-rating {
+  opacity:.92;
 }
 
 select {
@@ -1726,7 +1745,7 @@ th {
 
       <div id="difficultySection" class="section">
 
-        <div class="label">Difficulty</div>
+        <div class="label">Difficulty Rating</div>
 
         <div class="difficulty-grid">
 
@@ -1734,28 +1753,32 @@ th {
             id="difficultyRelaxed"
             class="difficulty-btn active"
             type="button">
-            Relaxed
+            <span class="difficulty-name">Relaxed</span>
+            <span class="difficulty-rating">≈ 700</span>
           </button>
 
           <button
             id="difficultyStandard"
             class="difficulty-btn"
             type="button">
-            Standard
+            <span class="difficulty-name">Standard</span>
+            <span class="difficulty-rating">≈ 1000</span>
           </button>
 
           <button
             id="difficultyFierce"
             class="difficulty-btn"
             type="button">
-            Fierce
+            <span class="difficulty-name">Fierce</span>
+            <span class="difficulty-rating">≈ 1350</span>
           </button>
 
           <button
             id="difficultyRuthless"
             class="difficulty-btn"
             type="button">
-            Ruthless
+            <span class="difficulty-name">Ruthless</span>
+            <span class="difficulty-rating">≈ 1750</span>
           </button>
 
         </div>
@@ -2380,71 +2403,31 @@ const FORMATION_GUIDES = {
 const DIFFICULTY_GUIDES = {
 
   casual: {
-
     title:"Relaxed",
-
-    elo:"≈ 600–800",
-
-    description:
-      "A forgiving opponent designed for experimenting with formations and enjoying a lower-pressure game.",
-
-    behavior:
-      "Uses low engine strength and will sometimes choose an ordinary legal move instead of the strongest move.",
-
+    elo:"≈ 700",
     bestFor:
-      "Exploring unfamiliar positions, testing ideas, or playing without constant tactical pressure."
-
+      "Exploring formations, testing ideas, and lower-pressure games."
   },
 
   beginner: {
-
     title:"Standard",
-
-    elo:"≈ 900–1100",
-
-    description:
-      "A steady opponent that generally plays sensible chess while still leaving opportunities to exploit.",
-
-    behavior:
-      "Develops coherently but will make strategic and tactical mistakes that can be punished.",
-
+    elo:"≈ 1000",
     bestFor:
-      "A balanced game that offers resistance without demanding near-perfect play."
-
+      "A balanced game with steady resistance and room to recover from mistakes."
   },
 
   intermediate: {
-
     title:"Fierce",
-
-    elo:"≈ 1200–1500",
-
-    description:
-      "A stronger opponent that demands careful play and better tactical awareness.",
-
-    behavior:
-      "Punishes loose pieces, spots common tactics, and follows coherent plans more consistently.",
-
+    elo:"≈ 1350",
     bestFor:
-      "Testing formation strategy against meaningful resistance."
-
+      "Players who want meaningful tactical and strategic pressure."
   },
 
   hard: {
-
     title:"Ruthless",
-
-    elo:"≈ 1600–1900",
-
-    description:
-      "The strongest computer setting currently available in this version of the game.",
-
-    behavior:
-      "Plays much more accurately, sees tactics more reliably, and gives away very little material for free.",
-
+    elo:"≈ 1750",
     bestFor:
-      "Players who want the toughest available test of their strategy."
-
+      "Players who want the toughest computer challenge currently available."
   }
 
 };
@@ -9057,29 +9040,13 @@ function getDifficultyTooltipHTML(key) {
 
     "<div class='tooltip-title'>" +
     guide.title +
-    "</div>" +
-
-    "<div class='tooltip-description'>" +
-    guide.description +
-    "</div>" +
-
-    "<div class='tooltip-line'>" +
-    "<strong>Approx. Elo:</strong> " +
+    " · " +
     guide.elo +
-    "</div>" +
-
-    "<div class='tooltip-line'>" +
-    "<strong>How it plays:</strong> " +
-    guide.behavior +
     "</div>" +
 
     "<div class='tooltip-line'>" +
     "<strong>Best for:</strong> " +
     guide.bestFor +
-    "</div>" +
-
-    "<div class='tooltip-line tooltip-muted'>" +
-    "Elo is a rough in-game equivalent, not a calibrated rating." +
     "</div>"
 
   );
