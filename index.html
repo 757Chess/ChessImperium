@@ -12696,7 +12696,11 @@ function beginPieceDrag(
     active:false,
     imageSrc:pieceImage.src,
     ghost:null,
-    oneSquareMode:false
+    pieceType:piece.type,
+    useGhostMode:
+      pieceUsesGhostDrag(
+        piece.type
+      )
   };
 
 }
@@ -12714,10 +12718,10 @@ function startActiveDrag(
   }
 
   /*
-   * TRUE GHOST-DRAG MODEL:
-   * The floating image is the temporary ghost/proxy.
-   * The real board piece remains fully opaque and stationary on its
-   * origin square until the player releases on a legal destination.
+   * PIECE-BASED DRAG MODEL:
+   * Pawns and kings use a direct drag.
+   * Queens, rooks, bishops, and knights use a temporary ghost/proxy
+   * while the real piece remains fully opaque on its origin square.
    */
   dragState.active =
     true;
@@ -12756,10 +12760,7 @@ function startActiveDrag(
     event.clientY
   );
 
-  updateDragPresentation(
-    event.clientX,
-    event.clientY
-  );
+  updateDragPresentation();
 
 }
 
@@ -12785,53 +12786,21 @@ function moveDragGhost(
 }
 
 
-function squareDistance(
-  from,
-  to
+function pieceUsesGhostDrag(
+  pieceType
 ) {
 
-  if (
-    !from ||
-    !to
-  ) {
-    return Infinity;
-  }
-
-
-  const files =
-    "abcdefgh";
-
-
-  const fileDistance =
-    Math.abs(
-      files.indexOf(
-        from[0]
-      ) -
-      files.indexOf(
-        to[0]
-      )
-    );
-
-
-  const rankDistance =
-    Math.abs(
-      Number(from[1]) -
-      Number(to[1])
-    );
-
-
-  return Math.max(
-    fileDistance,
-    rankDistance
+  return (
+    pieceType === "q" ||
+    pieceType === "r" ||
+    pieceType === "b" ||
+    pieceType === "n"
   );
 
 }
 
 
-function updateDragPresentation(
-  x,
-  y
-) {
+function updateDragPresentation() {
 
   if (
     !dragState ||
@@ -12842,37 +12811,24 @@ function updateDragPresentation(
   }
 
 
-  const hoverSquare =
-    squareFromPoint(
-      x,
-      y
+  const useGhost =
+    pieceUsesGhostDrag(
+      dragState.pieceType
     );
 
 
-  const oneSquareMove =
-    squareDistance(
-      dragState.from,
-      hoverSquare
-    ) === 1;
-
-
-  dragState.oneSquareMode =
-    oneSquareMove;
+  dragState.useGhostMode =
+    useGhost;
 
 
   /*
-   * Adjacent-square drag:
-   * behave like the traditional direct drag.
-   * The floating piece is fully opaque and the board piece is hidden.
-   *
-   * Longer drag:
-   * use the new ghost model.
-   * The translucent proxy moves while the real piece remains visible.
+   * Pawns and kings use a traditional direct drag.
+   * Queens, rooks, bishops, and knights use the ghost-drag model.
    */
   dragState.ghost.style.opacity =
-    oneSquareMove
-      ? "1"
-      : ".58";
+    useGhost
+      ? ".58"
+      : "1";
 
 
   const originSquare =
@@ -12894,9 +12850,9 @@ function updateDragPresentation(
   ) {
 
     originPiece.style.opacity =
-      oneSquareMove
-        ? "0"
-        : "1";
+      useGhost
+        ? "1"
+        : "0";
 
   }
 
@@ -12984,10 +12940,7 @@ function handleDragMove(
       event.clientY
     );
 
-    updateDragPresentation(
-      event.clientX,
-      event.clientY
-    );
+    updateDragPresentation();
   }
 
 }
@@ -13043,19 +12996,16 @@ function finishPieceDrag(
     destinationMoves.length > 0
   ) {
 
-    const oneSquareMove =
-      squareDistance(
-        state.from,
-        destination
-      ) === 1;
+    const useGhost =
+      pieceUsesGhostDrag(
+        state.pieceType
+      );
 
 
     /*
-     * Adjacent-square moves stay simple:
-     * no ghost-style commit animation and no travel sound window.
-     *
-     * Longer moves use the ghost-drag model, then the real piece
-     * visibly travels to the chosen square.
+     * Pawns and kings commit immediately with the traditional drag.
+     * Queens, rooks, bishops, and knights use the ghost proxy first,
+     * then the real piece performs the committed travel animation.
      */
     drawBoard();
 
@@ -13072,10 +13022,10 @@ function finishPieceDrag(
       openPromotion(
         state.from,
         destination,
-        oneSquareMove,
-        oneSquareMove
-          ? MOVE_ANIMATION_DURATION
-          : 420
+        !useGhost,
+        useGhost
+          ? 420
+          : MOVE_ANIMATION_DURATION
       );
       return;
     }
@@ -13084,10 +13034,10 @@ function finishPieceDrag(
       state.from,
       destination,
       undefined,
-      oneSquareMove,
-      oneSquareMove
-        ? MOVE_ANIMATION_DURATION
-        : 420
+      !useGhost,
+      useGhost
+        ? 420
+        : MOVE_ANIMATION_DURATION
     );
 
     return;
