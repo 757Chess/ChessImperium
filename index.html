@@ -248,8 +248,15 @@ button:disabled {
   opacity:.78;
 }
 
-.difficulty-btn.active .difficulty-rating {
+.difficulty-rating-primary {
+  margin-top:0;
+  font-size:15px;
+  font-weight:700;
   opacity:.92;
+}
+
+.difficulty-btn.active .difficulty-rating {
+  opacity:1;
 }
 
 select {
@@ -1745,7 +1752,7 @@ th {
 
       <div id="difficultySection" class="section">
 
-        <div class="label">Difficulty Rating</div>
+        <div class="label">Computer Difficulty Rating</div>
 
         <div class="difficulty-grid">
 
@@ -1753,32 +1760,28 @@ th {
             id="difficultyRelaxed"
             class="difficulty-btn active"
             type="button">
-            <span class="difficulty-name">Relaxed</span>
-            <span class="difficulty-rating">≈ 700</span>
+            <span class="difficulty-rating difficulty-rating-primary">≈ 700</span>
           </button>
 
           <button
             id="difficultyStandard"
             class="difficulty-btn"
             type="button">
-            <span class="difficulty-name">Standard</span>
-            <span class="difficulty-rating">≈ 1000</span>
+            <span class="difficulty-rating difficulty-rating-primary">≈ 1000</span>
           </button>
 
           <button
             id="difficultyFierce"
             class="difficulty-btn"
             type="button">
-            <span class="difficulty-name">Fierce</span>
-            <span class="difficulty-rating">≈ 1350</span>
+            <span class="difficulty-rating difficulty-rating-primary">≈ 1350</span>
           </button>
 
           <button
             id="difficultyRuthless"
             class="difficulty-btn"
             type="button">
-            <span class="difficulty-name">Ruthless</span>
-            <span class="difficulty-rating">≈ 1750</span>
+            <span class="difficulty-rating difficulty-rating-primary">≈ 1750</span>
           </button>
 
         </div>
