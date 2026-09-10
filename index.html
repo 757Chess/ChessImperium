@@ -1604,13 +1604,19 @@ th {
 .analysis-replay-square.move-to::after {
   content:"";
   position:absolute;
-  inset:5px;
+  left:50%;
+  top:50%;
+  width:calc(100% - 10px);
+  height:calc(100% - 10px);
+  transform:translate(-50%,-50%);
+  box-sizing:border-box;
   border:2px solid rgba(201,158,61,.85);
   pointer-events:none;
 }
 
 .analysis-replay-square.move-to::after {
-  inset:3px;
+  width:calc(100% - 6px);
+  height:calc(100% - 6px);
   border-width:3px;
 }
 
