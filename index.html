@@ -1556,6 +1556,151 @@ th {
   transition:width .18s ease;
 }
 
+
+.analysis-replay {
+  display:none;
+  grid-template-columns:minmax(0,360px) minmax(190px,1fr);
+  gap:14px;
+  align-items:start;
+  margin-bottom:15px;
+}
+
+.analysis-replay.visible {
+  display:grid;
+}
+
+.analysis-replay-board-wrap {
+  width:100%;
+  max-width:360px;
+  border:2px solid #4a443c;
+  background:#3f3a34;
+}
+
+.analysis-replay-board {
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  width:100%;
+  aspect-ratio:1 / 1;
+  background-image:url("./boardtexture.png");
+  background-size:100% 100%;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+
+.analysis-replay-square {
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  min-height:0;
+}
+
+.analysis-replay-square.move-from::after,
+.analysis-replay-square.move-to::after {
+  content:"";
+  position:absolute;
+  inset:5px;
+  border:2px solid rgba(201,158,61,.85);
+  pointer-events:none;
+}
+
+.analysis-replay-square.move-to::after {
+  inset:3px;
+  border-width:3px;
+}
+
+.analysis-replay-piece {
+  position:relative;
+  z-index:2;
+  width:92%;
+  height:92%;
+  object-fit:contain;
+  pointer-events:none;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.18));
+}
+
+.analysis-replay-panel {
+  padding:12px;
+  border:1px solid #ddd2bd;
+  border-radius:11px;
+  background:#fffaf2;
+}
+
+.analysis-replay-label {
+  color:#9a7424;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.15em;
+}
+
+.analysis-replay-move {
+  margin-top:4px;
+  color:var(--green);
+  font-size:19px;
+  font-weight:800;
+  line-height:1.25;
+}
+
+.analysis-replay-detail {
+  min-height:48px;
+  margin:6px 0 11px;
+  color:#504a43;
+  font-size:11px;
+  line-height:1.45;
+}
+
+.analysis-replay-controls {
+  display:grid;
+  grid-template-columns:38px 38px minmax(72px,1fr) 38px 38px;
+  gap:5px;
+}
+
+.analysis-replay-controls button {
+  min-height:36px;
+  padding:5px;
+  border:1px solid #cbbd9e;
+  border-radius:8px;
+  background:#fffdf8;
+  color:var(--green);
+  cursor:pointer;
+  font-size:11px;
+  font-weight:800;
+}
+
+.analysis-replay-controls button:hover:not(:disabled) {
+  background:#eee6d6;
+}
+
+.analysis-replay-controls button:disabled {
+  opacity:.4;
+  cursor:default;
+}
+
+.analysis-replay-counter {
+  margin-top:8px;
+  text-align:center;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+}
+
+.analysis-list-heading {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin:4px 0 6px;
+  color:var(--green);
+  font-size:12px;
+  font-weight:800;
+}
+
+.analysis-list-heading span {
+  color:var(--muted);
+  font-size:10px;
+  font-weight:600;
+}
+
 .analysis-summary {
   display:none;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -1604,9 +1749,29 @@ th {
   grid-template-columns:48px 78px 92px minmax(0,1fr);
   gap:8px;
   align-items:center;
+  width:100%;
   padding:8px 4px;
+  border:none;
   border-top:1px solid #e3dbcf;
+  border-radius:0;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
   font-size:12px;
+}
+
+.analysis-move-row:hover {
+  background:#f5eee1;
+}
+
+.analysis-move-row.active {
+  background:#eee5d4;
+  box-shadow:inset 3px 0 0 #c99e3d;
+}
+
+.analysis-move-row.opponent-move {
+  opacity:.78;
 }
 
 .analysis-move-row:first-child {
@@ -1673,6 +1838,15 @@ th {
   .analysis-card {
     padding:18px 14px;
     max-height:90vh;
+  }
+
+  .analysis-replay {
+    grid-template-columns:1fr;
+  }
+
+  .analysis-replay-board-wrap {
+    max-width:420px;
+    margin:0 auto;
   }
 
   .analysis-summary {
@@ -2747,7 +2921,46 @@ th {
       </div>
     </div>
 
+    <div id="analysisReplay" class="analysis-replay">
+
+      <div class="analysis-replay-board-wrap">
+        <div id="analysisReplayBoard" class="analysis-replay-board"></div>
+      </div>
+
+      <div class="analysis-replay-panel">
+
+        <div class="analysis-replay-label">MOVE REPLAY</div>
+
+        <div id="analysisReplayMove" class="analysis-replay-move">
+          Starting position
+        </div>
+
+        <div id="analysisReplayDetail" class="analysis-replay-detail">
+          Step through the game move by move.
+        </div>
+
+        <div class="analysis-replay-controls">
+          <button id="analysisReplayStart" type="button" aria-label="Go to start">⏮</button>
+          <button id="analysisReplayPrev" type="button" aria-label="Previous move">◀</button>
+          <button id="analysisReplayPlay" type="button" aria-label="Play replay">▶ Play</button>
+          <button id="analysisReplayNext" type="button" aria-label="Next move">▶</button>
+          <button id="analysisReplayEnd" type="button" aria-label="Go to end">⏭</button>
+        </div>
+
+        <div id="analysisReplayCounter" class="analysis-replay-counter">
+          Position 0 of 0
+        </div>
+
+      </div>
+
+    </div>
+
     <div id="analysisSummary" class="analysis-summary"></div>
+
+    <div class="analysis-list-heading">
+      Move Review
+      <span>Click a move to jump to it.</span>
+    </div>
 
     <div id="analysisMoves" class="analysis-moves"></div>
 
@@ -3927,6 +4140,37 @@ const analysisSummary =
 const analysisMoves =
   document.getElementById("analysisMoves");
 
+
+const analysisReplay =
+  document.getElementById("analysisReplay");
+
+const analysisReplayBoard =
+  document.getElementById("analysisReplayBoard");
+
+const analysisReplayMove =
+  document.getElementById("analysisReplayMove");
+
+const analysisReplayDetail =
+  document.getElementById("analysisReplayDetail");
+
+const analysisReplayCounter =
+  document.getElementById("analysisReplayCounter");
+
+const analysisReplayStart =
+  document.getElementById("analysisReplayStart");
+
+const analysisReplayPrev =
+  document.getElementById("analysisReplayPrev");
+
+const analysisReplayPlay =
+  document.getElementById("analysisReplayPlay");
+
+const analysisReplayNext =
+  document.getElementById("analysisReplayNext");
+
+const analysisReplayEnd =
+  document.getElementById("analysisReplayEnd");
+
 const playWhiteBtn =
   document.getElementById("playWhiteBtn");
 
@@ -4318,6 +4562,15 @@ let analysisRunning =
 
 let analysisCancelled =
   false;
+
+let analysisReplayData =
+  null;
+
+let analysisReplayIndex =
+  0;
+
+let analysisReplayTimer =
+  null;
 
 const ANALYSIS_NODES =
   7000;
@@ -11125,6 +11378,80 @@ analyzeGameBtn.addEventListener(
 );
 
 
+analysisReplayStart.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    jumpAnalysisReplay(
+      0
+    );
+
+  }
+);
+
+
+analysisReplayPrev.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    jumpAnalysisReplay(
+      analysisReplayIndex - 1
+    );
+
+  }
+);
+
+
+analysisReplayPlay.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    toggleAnalysisReplay();
+
+  }
+);
+
+
+analysisReplayNext.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    jumpAnalysisReplay(
+      analysisReplayIndex + 1
+    );
+
+  }
+);
+
+
+analysisReplayEnd.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    if (
+      analysisReplayData
+    ) {
+
+      jumpAnalysisReplay(
+        analysisReplayData.positions.length - 1
+      );
+
+    }
+
+  }
+);
+
+
 analysisClose.addEventListener(
   "click",
   function() {
@@ -16844,6 +17171,397 @@ function analysisMoveNote(
 }
 
 
+
+function stopAnalysisReplay() {
+
+  if (
+    analysisReplayTimer
+  ) {
+
+    clearInterval(
+      analysisReplayTimer
+    );
+
+    analysisReplayTimer =
+      null;
+
+  }
+
+
+  analysisReplayPlay.textContent =
+    "▶ Play";
+
+}
+
+
+function analysisReplayPositionLabel(
+  index
+) {
+
+  if (
+    !analysisReplayData ||
+    index <= 0
+  ) {
+
+    return "Starting position";
+
+  }
+
+
+  const entry =
+    analysisReplayData.entries[
+      index - 1
+    ];
+
+
+  if (
+    !entry
+  ) {
+
+    return "Starting position";
+
+  }
+
+
+  const moveNumber =
+    Math.floor(
+      entry.index / 2
+    ) +
+    1;
+
+
+  return (
+    moveNumber +
+    (
+      entry.move.color === "w"
+        ? ". "
+        : "... "
+    ) +
+    entry.move.san
+  );
+
+}
+
+
+function renderAnalysisReplayBoard(
+  index
+) {
+
+  if (
+    !analysisReplayData
+  ) {
+    return;
+  }
+
+
+  analysisReplayIndex =
+    Math.max(
+      0,
+      Math.min(
+        index,
+        analysisReplayData.positions.length - 1
+      )
+    );
+
+
+  const fen =
+    analysisReplayData.positions[
+      analysisReplayIndex
+    ];
+
+
+  const replayGame =
+    new Chess(
+      fen
+    );
+
+
+  const board =
+    replayGame.board();
+
+
+  const latestEntry =
+    analysisReplayIndex > 0
+      ? analysisReplayData.entries[
+          analysisReplayIndex - 1
+        ]
+      : null;
+
+
+  const orientationWhite =
+    playerColor === "w";
+
+
+  const files =
+    orientationWhite
+      ? ["a","b","c","d","e","f","g","h"]
+      : ["h","g","f","e","d","c","b","a"];
+
+
+  const ranks =
+    orientationWhite
+      ? [8,7,6,5,4,3,2,1]
+      : [1,2,3,4,5,6,7,8];
+
+
+  let html =
+    "";
+
+
+  for (
+    let rowIndex=0;
+    rowIndex<8;
+    rowIndex++
+  ) {
+
+    for (
+      let columnIndex=0;
+      columnIndex<8;
+      columnIndex++
+    ) {
+
+      const sourceRow =
+        orientationWhite
+          ? rowIndex
+          : 7 - rowIndex;
+
+
+      const sourceColumn =
+        orientationWhite
+          ? columnIndex
+          : 7 - columnIndex;
+
+
+      const piece =
+        board[sourceRow][sourceColumn];
+
+
+      const squareName =
+        files[columnIndex] +
+        ranks[rowIndex];
+
+
+      let squareClass =
+        "analysis-replay-square";
+
+
+      if (
+        latestEntry &&
+        squareName ===
+          latestEntry.move.from
+      ) {
+
+        squareClass +=
+          " move-from";
+
+      }
+
+
+      if (
+        latestEntry &&
+        squareName ===
+          latestEntry.move.to
+      ) {
+
+        squareClass +=
+          " move-to";
+
+      }
+
+
+      html +=
+        "<div class='" +
+        squareClass +
+        "'>" +
+        (
+          piece
+            ? (
+                "<img class='analysis-replay-piece' " +
+                "src='" +
+                PIECE_IMAGES[
+                  piece.color +
+                  piece.type
+                ] +
+                "' alt=''>"
+              )
+            : ""
+        ) +
+        "</div>";
+
+    }
+
+  }
+
+
+  analysisReplayBoard.innerHTML =
+    html;
+
+
+  analysisReplayMove.textContent =
+    analysisReplayPositionLabel(
+      analysisReplayIndex
+    );
+
+
+  if (
+    !latestEntry
+  ) {
+
+    analysisReplayDetail.textContent =
+      "Initial formation before the first move.";
+
+  }
+
+  else {
+
+    analysisReplayDetail.innerHTML =
+      "<strong>" +
+      (
+        latestEntry.move.color ===
+          playerColor
+          ? "Your move"
+          : (
+              gameMode === "online"
+                ? "Opponent move"
+                : "Computer move"
+            )
+      ) +
+      ":</strong> " +
+      "<span class='analysis-badge " +
+      latestEntry.classification.className +
+      "'>" +
+      latestEntry.classification.label +
+      "</span>" +
+      "<br>" +
+      analysisMoveNote(
+        latestEntry
+      );
+
+  }
+
+
+  analysisReplayCounter.textContent =
+    "Position " +
+    analysisReplayIndex +
+    " of " +
+    (
+      analysisReplayData.positions.length -
+      1
+    );
+
+
+  analysisReplayStart.disabled =
+    analysisReplayIndex === 0;
+
+  analysisReplayPrev.disabled =
+    analysisReplayIndex === 0;
+
+  analysisReplayNext.disabled =
+    analysisReplayIndex >=
+      analysisReplayData.positions.length - 1;
+
+  analysisReplayEnd.disabled =
+    analysisReplayIndex >=
+      analysisReplayData.positions.length - 1;
+
+
+  document
+    .querySelectorAll(
+      ".analysis-move-row"
+    )
+    .forEach(
+      row => {
+
+        row.classList.toggle(
+          "active",
+          Number(
+            row.dataset.analysisIndex
+          ) ===
+            analysisReplayIndex - 1
+        );
+
+      }
+    );
+
+}
+
+function jumpAnalysisReplay(
+  index
+) {
+
+  stopAnalysisReplay();
+
+  renderAnalysisReplayBoard(
+    index
+  );
+
+}
+
+
+function toggleAnalysisReplay() {
+
+  if (
+    !analysisReplayData
+  ) {
+    return;
+  }
+
+
+  if (
+    analysisReplayTimer
+  ) {
+
+    stopAnalysisReplay();
+
+    return;
+
+  }
+
+
+  if (
+    analysisReplayIndex >=
+      analysisReplayData.positions.length - 1
+  ) {
+
+    renderAnalysisReplayBoard(
+      0
+    );
+
+  }
+
+
+  analysisReplayPlay.textContent =
+    "❚❚ Pause";
+
+
+  analysisReplayTimer =
+    setInterval(
+      () => {
+
+        if (
+          !analysisReplayData ||
+          analysisReplayIndex >=
+            analysisReplayData.positions.length - 1
+        ) {
+
+          stopAnalysisReplay();
+
+          return;
+
+        }
+
+
+        renderAnalysisReplayBoard(
+          analysisReplayIndex + 1
+        );
+
+      },
+      900
+    );
+
+}
+
+
 function renderAnalysisResults(
   entries
 ) {
@@ -16982,7 +17700,7 @@ function renderAnalysisResults(
     "</div>";
 
 
-  playerEntries.forEach(
+  entries.forEach(
     entry => {
 
       const moveNumber =
@@ -16993,7 +17711,16 @@ function renderAnalysisResults(
 
 
       html +=
-        "<div class='analysis-move-row'>" +
+        "<button class='analysis-move-row" +
+        (
+          entry.move.color !==
+            playerColor
+            ? " opponent-move"
+            : ""
+        ) +
+        "' type='button' data-analysis-index='" +
+        entry.index +
+        "'>" +
 
         "<div class='analysis-move-num'>" +
         moveNumber +
@@ -17020,19 +17747,19 @@ function renderAnalysisResults(
         ) +
         "</div>" +
 
-        "</div>";
+        "</button>";
 
     }
   );
 
 
   if (
-    playerEntries.length === 0
+    entries.length === 0
   ) {
 
     html =
       "<div class='analysis-empty'>" +
-      "There are no player moves to review." +
+      "There are no moves to review." +
       "</div>";
 
   }
@@ -17040,6 +17767,34 @@ function renderAnalysisResults(
 
   analysisMoves.innerHTML =
     html;
+
+
+  analysisMoves
+    .querySelectorAll(
+      ".analysis-move-row"
+    )
+    .forEach(
+      row => {
+
+        row.addEventListener(
+          "click",
+          function() {
+
+            const moveIndex =
+              Number(
+                row.dataset.analysisIndex
+              );
+
+
+            jumpAnalysisReplay(
+              moveIndex + 1
+            );
+
+          }
+        );
+
+      }
+    );
 
 }
 
@@ -17066,6 +17821,18 @@ async function runPostGameAnalysis() {
 
   analyzeGameBtn.textContent =
     "Analyzing...";
+
+  stopAnalysisReplay();
+
+  analysisReplayData =
+    null;
+
+  analysisReplayIndex =
+    0;
+
+  analysisReplay.classList.remove(
+    "visible"
+  );
 
   analysisSummary.classList.remove(
     "visible"
@@ -17186,8 +17953,22 @@ async function runPostGameAnalysis() {
     analysisProgressText.textContent =
       "Analysis complete.";
 
+    analysisReplayData = {
+      positions:
+        data.positions,
+      entries
+    };
+
+    analysisReplay.classList.add(
+      "visible"
+    );
+
     renderAnalysisResults(
       entries
+    );
+
+    renderAnalysisReplayBoard(
+      0
     );
 
   }
@@ -17241,6 +18022,8 @@ function closeAnalysis() {
 
   analysisCancelled =
     true;
+
+  stopAnalysisReplay();
 
 
   if (
