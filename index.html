@@ -971,24 +971,10 @@ select {
   object-fit:contain;
   pointer-events:none;
   transform:translate(-50%,-50%) scale(1.06);
-  filter:drop-shadow(0 8px 10px rgba(0,0,0,.28));
-  opacity:.84;
+  filter:drop-shadow(0 6px 8px rgba(0,0,0,.18));
+  opacity:.58;
 }
 
-.square.drag-source .piece {
-  opacity:.36;
-  animation:none !important;
-  transform:scale(1) !important;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.10)) !important;
-}
-
-.drag-source-piece {
-  opacity:0 !important;
-  animation:none !important;
-  filter:none !important;
-}
-
-.drag-origin-ghost,
 .glide-origin-ghost {
   position:absolute;
   z-index:3;
@@ -12047,32 +12033,6 @@ function drawBoard() {
 
 
       if (
-        isActiveDragSource &&
-        piece
-      ) {
-
-        const dragOriginGhost =
-          document.createElement(
-            "img"
-          );
-
-        dragOriginGhost.className =
-          "drag-origin-ghost";
-
-        dragOriginGhost.src =
-          PIECE_IMAGES[
-            piece.color +
-            piece.type
-          ];
-
-        square.appendChild(
-          dragOriginGhost
-        );
-
-      }
-
-
-      if (
         piece
       ) {
 
@@ -12085,44 +12045,31 @@ function drawBoard() {
           "piece";
 
         if (
-          isActiveDragSource
+          isCaptureTarget
         ) {
-
           pieceClassName +=
-            " drag-source-piece";
-
+            " capture-target-piece";
         }
 
-        else {
+        if (
+          squareName === checkedSquare
+        ) {
+          pieceClassName +=
+            " checked-king-piece";
+        }
 
-          if (
-            isCaptureTarget
-          ) {
-            pieceClassName +=
-              " capture-target-piece";
-          }
+        if (
+          squareName === checkmateAttackerSquare
+        ) {
+          pieceClassName +=
+            " checkmate-attacker-piece";
+        }
 
-          if (
-            squareName === checkedSquare
-          ) {
-            pieceClassName +=
-              " checked-king-piece";
-          }
-
-          if (
-            squareName === checkmateAttackerSquare
-          ) {
-            pieceClassName +=
-              " checkmate-attacker-piece";
-          }
-
-          if (
-            squareName === checkmatedKingSquare
-          ) {
-            pieceClassName +=
-              " checkmated-king-piece";
-          }
-
+        if (
+          squareName === checkmatedKingSquare
+        ) {
+          pieceClassName +=
+            " checkmated-king-piece";
         }
 
         image.className =
@@ -12940,9 +12887,10 @@ function startActiveDrag(
   }
 
   /*
-   * The floating image is only a drag proxy.
-   * The real board piece stays on its origin square until
-   * the player releases on a legal destination.
+   * TRUE GHOST-DRAG MODEL:
+   * The floating image is the temporary ghost/proxy.
+   * The real board piece remains fully opaque and stationary on its
+   * origin square until the player releases on a legal destination.
    */
   dragState.active =
     true;
@@ -13139,6 +13087,14 @@ function finishPieceDrag(
   if (
     destinationMoves.length > 0
   ) {
+
+    /*
+     * Drag intent is over. Re-render the untouched board position now
+     * so the real opaque piece is visibly sitting on its origin square
+     * before the committed move animation begins.
+     */
+    drawBoard();
+
 
     const promotionMoves =
       destinationMoves.filter(
