@@ -1456,6 +1456,236 @@ th {
   outline-offset:2px;
 }
 
+
+/* ===================================================== */
+/* POST-GAME ANALYSIS                                    */
+/* ===================================================== */
+
+.analyze-game-btn {
+  grid-column:1 / -1;
+  background:#fffaf0;
+  border-color:#cdb77e;
+  color:var(--green);
+  font-weight:800;
+}
+
+.analysis-overlay {
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:rgba(0,0,0,.46);
+  z-index:1200;
+}
+
+.analysis-overlay.visible {
+  display:flex;
+}
+
+.analysis-card {
+  width:720px;
+  max-width:100%;
+  max-height:88vh;
+  overflow:auto;
+  position:relative;
+  padding:22px;
+  background:linear-gradient(180deg,#fffdf8 0%,#f7f0e4 100%);
+  border:2px solid #c99e3d;
+  border-radius:16px;
+  box-shadow:0 20px 65px rgba(0,0,0,.30);
+}
+
+.analysis-close {
+  position:absolute;
+  top:9px;
+  right:11px;
+  border:none;
+  background:transparent;
+  color:#777;
+  font-size:26px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.analysis-close:hover {
+  background:transparent;
+  color:#222;
+}
+
+.analysis-kicker {
+  color:#9a7424;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.16em;
+}
+
+.analysis-card h2 {
+  margin:3px 34px 15px 0;
+  color:var(--green);
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:24px;
+}
+
+.analysis-progress-wrap {
+  margin-bottom:15px;
+  padding:10px 11px;
+  border:1px solid #ddd2bd;
+  border-radius:10px;
+  background:#fffaf2;
+}
+
+.analysis-progress-text {
+  margin-bottom:7px;
+  font-size:12px;
+  font-weight:700;
+}
+
+.analysis-progress-track {
+  height:7px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#e7dfd2;
+}
+
+.analysis-progress-bar {
+  width:0%;
+  height:100%;
+  background:var(--green);
+  transition:width .18s ease;
+}
+
+.analysis-summary {
+  display:none;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+  margin-bottom:14px;
+}
+
+.analysis-summary.visible {
+  display:grid;
+}
+
+.analysis-stat {
+  padding:9px 7px;
+  border:1px solid #ddd2bd;
+  border-radius:10px;
+  background:#fffdf9;
+  text-align:center;
+}
+
+.analysis-stat-value {
+  display:block;
+  color:var(--green);
+  font-size:20px;
+  font-weight:800;
+}
+
+.analysis-stat-label {
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+}
+
+.analysis-headline {
+  margin:0 0 12px;
+  padding:11px 12px;
+  border-left:4px solid #c99e3d;
+  background:#fffaf0;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.analysis-move-row {
+  display:grid;
+  grid-template-columns:48px 78px 92px minmax(0,1fr);
+  gap:8px;
+  align-items:center;
+  padding:8px 4px;
+  border-top:1px solid #e3dbcf;
+  font-size:12px;
+}
+
+.analysis-move-row:first-child {
+  border-top:none;
+}
+
+.analysis-move-num {
+  color:var(--muted);
+  font-weight:700;
+}
+
+.analysis-san {
+  font-weight:800;
+}
+
+.analysis-badge {
+  display:inline-block;
+  padding:4px 7px;
+  border-radius:999px;
+  text-align:center;
+  font-size:10px;
+  font-weight:800;
+}
+
+.analysis-badge.best {
+  background:#e1efe5;
+  color:#245d3e;
+}
+
+.analysis-badge.good {
+  background:#edf1e5;
+  color:#4e6233;
+}
+
+.analysis-badge.inaccuracy {
+  background:#fff0c9;
+  color:#7a5b12;
+}
+
+.analysis-badge.mistake {
+  background:#f6dcc7;
+  color:#8a4b22;
+}
+
+.analysis-badge.blunder {
+  background:#f0cccc;
+  color:#8e2d2d;
+}
+
+.analysis-note {
+  min-width:0;
+  color:#4e4942;
+  line-height:1.35;
+}
+
+.analysis-empty {
+  padding:14px;
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+}
+
+@media (max-width:700px) {
+  .analysis-card {
+    padding:18px 14px;
+    max-height:90vh;
+  }
+
+  .analysis-summary {
+    grid-template-columns:1fr 1fr;
+  }
+
+  .analysis-move-row {
+    grid-template-columns:38px 64px 82px minmax(0,1fr);
+    gap:5px;
+    font-size:11px;
+  }
+}
+
 /* ===================================================== */
 /* PROMOTION                                             */
 /* ===================================================== */
@@ -2372,6 +2602,13 @@ th {
               ↻ Rematch
             </button>
 
+            <button
+              id="analyzeGameBtn"
+              class="summary-btn analyze-game-btn"
+              type="button">
+              ♟ Analyze Game
+            </button>
+
           </div>
 
           <div id="copyStatus" class="copy-status"></div>
@@ -2478,6 +2715,45 @@ th {
 
 </div>
 
+
+
+<!-- POST-GAME ANALYSIS -->
+
+<div id="analysisOverlay" class="analysis-overlay">
+
+  <div
+    class="analysis-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="analysisTitle">
+
+    <button
+      id="analysisClose"
+      class="analysis-close"
+      type="button"
+      aria-label="Close game analysis">
+      ×
+    </button>
+
+    <div class="analysis-kicker">IMPERIUM REVIEW</div>
+    <h2 id="analysisTitle">Post-Game Analysis</h2>
+
+    <div class="analysis-progress-wrap">
+      <div id="analysisProgressText" class="analysis-progress-text">
+        Ready to analyze.
+      </div>
+      <div class="analysis-progress-track">
+        <div id="analysisProgressBar" class="analysis-progress-bar"></div>
+      </div>
+    </div>
+
+    <div id="analysisSummary" class="analysis-summary"></div>
+
+    <div id="analysisMoves" class="analysis-moves"></div>
+
+  </div>
+
+</div>
 
 
 <!-- FEEDBACK -->
@@ -3629,6 +3905,28 @@ const rematchBtn =
 const copyStatus =
   document.getElementById("copyStatus");
 
+
+const analyzeGameBtn =
+  document.getElementById("analyzeGameBtn");
+
+const analysisOverlay =
+  document.getElementById("analysisOverlay");
+
+const analysisClose =
+  document.getElementById("analysisClose");
+
+const analysisProgressText =
+  document.getElementById("analysisProgressText");
+
+const analysisProgressBar =
+  document.getElementById("analysisProgressBar");
+
+const analysisSummary =
+  document.getElementById("analysisSummary");
+
+const analysisMoves =
+  document.getElementById("analysisMoves");
+
 const playWhiteBtn =
   document.getElementById("playWhiteBtn");
 
@@ -4001,6 +4299,28 @@ const engine =
   new Worker(
     "./stockfish-18-lite-single.js"
   );
+
+
+let analysisWorker =
+  null;
+
+let analysisWorkerReadyPromise =
+  null;
+
+let analysisSearchResolve =
+  null;
+
+let analysisLatestScore =
+  null;
+
+let analysisRunning =
+  false;
+
+let analysisCancelled =
+  false;
+
+const ANALYSIS_NODES =
+  7000;
 
 
 
@@ -10793,6 +11113,46 @@ copyGameBtn.addEventListener(
 );
 
 
+analyzeGameBtn.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    runPostGameAnalysis();
+
+  }
+);
+
+
+analysisClose.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    closeAnalysis();
+
+  }
+);
+
+
+analysisOverlay.addEventListener(
+  "click",
+  function(event) {
+
+    if (
+      event.target === analysisOverlay
+    ) {
+
+      closeAnalysis();
+
+    }
+
+  }
+);
+
+
 rematchBtn.addEventListener(
   "click",
   function() {
@@ -15863,6 +16223,1045 @@ async function copyGameRecord() {
 
 
 
+
+/* ===================================================== */
+/* POST-GAME ANALYSIS                                    */
+/* ===================================================== */
+
+function getAnalysisInitialFen() {
+
+  const whiteSetup =
+    playerColor === "w"
+      ? actualPlayerFormation
+      : actualComputerFormation;
+
+  const blackSetup =
+    playerColor === "b"
+      ? actualPlayerFormation
+      : actualComputerFormation;
+
+
+  return buildFen(
+    whiteSetup,
+    blackSetup,
+    castlingEnabledForCurrentGame()
+  );
+
+}
+
+
+function buildAnalysisPositions() {
+
+  const verboseHistory =
+    game.history({
+      verbose:true
+    });
+
+
+  const replay =
+    new Chess(
+      getAnalysisInitialFen()
+    );
+
+
+  const positions = [
+    replay.fen()
+  ];
+
+
+  const moves = [];
+
+
+  verboseHistory.forEach(
+    move => {
+
+      const beforeFen =
+        replay.fen();
+
+
+      const played =
+        replay.move({
+          from:move.from,
+          to:move.to,
+          promotion:move.promotion
+        });
+
+
+      if (
+        !played
+      ) {
+        return;
+      }
+
+
+      moves.push({
+        san:played.san,
+        from:played.from,
+        to:played.to,
+        promotion:
+          played.promotion ||
+          "",
+        color:played.color,
+        uci:
+          played.from +
+          played.to +
+          (
+            played.promotion ||
+            ""
+          ),
+        beforeFen,
+        afterFen:
+          replay.fen()
+      });
+
+
+      positions.push(
+        replay.fen()
+      );
+
+    }
+  );
+
+
+  return {
+    positions,
+    moves
+  };
+
+}
+
+
+function ensureAnalysisWorker() {
+
+  if (
+    analysisWorker &&
+    analysisWorkerReadyPromise
+  ) {
+
+    return analysisWorkerReadyPromise;
+
+  }
+
+
+  analysisWorker =
+    new Worker(
+      "./stockfish-18-lite-single.js"
+    );
+
+
+  analysisWorkerReadyPromise =
+    new Promise(
+      resolve => {
+
+        let ready =
+          false;
+
+
+        analysisWorker.onmessage =
+          function(event) {
+
+            const message =
+              String(
+                event.data || ""
+              );
+
+
+            if (
+              message === "uciok"
+            ) {
+
+              analysisWorker.postMessage(
+                "isready"
+              );
+
+              return;
+
+            }
+
+
+            if (
+              message === "readyok" &&
+              !ready
+            ) {
+
+              ready =
+                true;
+
+              resolve();
+
+              return;
+
+            }
+
+
+            if (
+              message.startsWith("info ")
+            ) {
+
+              const mateMatch =
+                message.match(
+                  /\bscore mate (-?\d+)/
+                );
+
+
+              const cpMatch =
+                message.match(
+                  /\bscore cp (-?\d+)/
+                );
+
+
+              if (
+                mateMatch
+              ) {
+
+                analysisLatestScore = {
+                  type:"mate",
+                  value:
+                    Number(
+                      mateMatch[1]
+                    )
+                };
+
+              }
+
+              else if (
+                cpMatch
+              ) {
+
+                analysisLatestScore = {
+                  type:"cp",
+                  value:
+                    Number(
+                      cpMatch[1]
+                    )
+                };
+
+              }
+
+
+              return;
+
+            }
+
+
+            if (
+              message.startsWith(
+                "bestmove"
+              ) &&
+              analysisSearchResolve
+            ) {
+
+              const move =
+                message.split(/\s+/)[1] ||
+                "(none)";
+
+
+              const resolveSearch =
+                analysisSearchResolve;
+
+
+              analysisSearchResolve =
+                null;
+
+
+              resolveSearch({
+                score:
+                  analysisLatestScore,
+                bestmove:move
+              });
+
+            }
+
+          };
+
+
+        analysisWorker.onerror =
+          function(error) {
+
+            console.error(
+              "Analysis engine error:",
+              error
+            );
+
+          };
+
+
+        analysisWorker.postMessage(
+          "uci"
+        );
+
+      }
+    );
+
+
+  return analysisWorkerReadyPromise;
+
+}
+
+
+function terminalWhiteEvaluation(
+  fen
+) {
+
+  const position =
+    new Chess(
+      fen
+    );
+
+
+  if (
+    !position.isGameOver()
+  ) {
+    return null;
+  }
+
+
+  if (
+    position.isCheckmate()
+  ) {
+
+    return (
+      position.turn() === "w"
+        ? -100000
+        : 100000
+    );
+
+  }
+
+
+  return 0;
+
+}
+
+
+async function analyzeFen(
+  fen
+) {
+
+  const terminal =
+    terminalWhiteEvaluation(
+      fen
+    );
+
+
+  if (
+    terminal !== null
+  ) {
+
+    return {
+      whiteEval:terminal,
+      bestmove:"(none)"
+    };
+
+  }
+
+
+  await ensureAnalysisWorker();
+
+
+  if (
+    analysisCancelled
+  ) {
+
+    throw new Error(
+      "Analysis cancelled"
+    );
+
+  }
+
+
+  analysisLatestScore =
+    null;
+
+
+  const result =
+    await new Promise(
+      resolve => {
+
+        analysisSearchResolve =
+          resolve;
+
+
+        analysisWorker.postMessage(
+          "position fen " +
+          fen
+        );
+
+
+        analysisWorker.postMessage(
+          "go nodes " +
+          ANALYSIS_NODES
+        );
+
+      }
+    );
+
+
+  const turn =
+    fen.split(" ")[1];
+
+
+  let value =
+    0;
+
+
+  if (
+    result.score
+  ) {
+
+    if (
+      result.score.type === "mate"
+    ) {
+
+      const mate =
+        result.score.value;
+
+
+      value =
+        (
+          mate >= 0
+            ? 1
+            : -1
+        ) *
+        (
+          100000 -
+          Math.min(
+            99000,
+            Math.abs(mate) * 1000
+          )
+        );
+
+    }
+
+    else {
+
+      value =
+        result.score.value;
+
+    }
+
+  }
+
+
+  if (
+    turn === "b"
+  ) {
+
+    value =
+      -value;
+
+  }
+
+
+  return {
+    whiteEval:value,
+    bestmove:
+      result.bestmove
+  };
+
+}
+
+
+function classifyAnalyzedMove(
+  move,
+  beforeResult,
+  beforeEval,
+  afterEval
+) {
+
+  const isBest =
+    beforeResult &&
+    beforeResult.bestmove ===
+      move.uci;
+
+
+  if (
+    isBest
+  ) {
+
+    return {
+      label:"Best",
+      className:"best",
+      loss:0
+    };
+
+  }
+
+
+  let loss =
+    move.color === "w"
+      ? beforeEval - afterEval
+      : afterEval - beforeEval;
+
+
+  loss =
+    Math.max(
+      0,
+      loss
+    );
+
+
+  if (
+    loss <= 25
+  ) {
+
+    return {
+      label:"Best",
+      className:"best",
+      loss
+    };
+
+  }
+
+
+  if (
+    loss <= 60
+  ) {
+
+    return {
+      label:"Good",
+      className:"good",
+      loss
+    };
+
+  }
+
+
+  if (
+    loss <= 120
+  ) {
+
+    return {
+      label:"Inaccuracy",
+      className:"inaccuracy",
+      loss
+    };
+
+  }
+
+
+  if (
+    loss <= 250
+  ) {
+
+    return {
+      label:"Mistake",
+      className:"mistake",
+      loss
+    };
+
+  }
+
+
+  return {
+    label:"Blunder",
+    className:"blunder",
+    loss
+  };
+
+}
+
+
+function formatEval(
+  value
+) {
+
+  if (
+    Math.abs(value) >= 90000
+  ) {
+
+    return (
+      value > 0
+        ? "Winning for White"
+        : "Winning for Black"
+    );
+
+  }
+
+
+  const pawns =
+    value / 100;
+
+
+  return (
+    pawns >= 0
+      ? "+"
+      : ""
+  ) +
+  pawns.toFixed(1);
+
+}
+
+
+function analysisMoveNote(
+  entry
+) {
+
+  const swing =
+    (
+      entry.classification.loss /
+      100
+    ).toFixed(1);
+
+
+  if (
+    entry.classification.label === "Best"
+  ) {
+
+    return (
+      "Keeps the position on course · Eval " +
+      formatEval(
+        entry.afterEval
+      )
+    );
+
+  }
+
+
+  if (
+    entry.classification.label === "Good"
+  ) {
+
+    return (
+      "Solid choice · Eval " +
+      formatEval(
+        entry.afterEval
+      )
+    );
+
+  }
+
+
+  return (
+    "≈ " +
+    swing +
+    " pawn swing · Eval " +
+    formatEval(
+      entry.afterEval
+    )
+  );
+
+}
+
+
+function renderAnalysisResults(
+  entries
+) {
+
+  const playerEntries =
+    entries.filter(
+      entry =>
+        entry.move.color ===
+        playerColor
+    );
+
+
+  const counts = {
+    Best:0,
+    Good:0,
+    Inaccuracy:0,
+    Mistake:0,
+    Blunder:0
+  };
+
+
+  playerEntries.forEach(
+    entry => {
+
+      counts[
+        entry.classification.label
+      ]++;
+
+    }
+  );
+
+
+  const serious =
+    counts.Mistake +
+    counts.Blunder;
+
+
+  const biggest =
+    playerEntries
+      .slice()
+      .sort(
+        (a,b) =>
+          b.classification.loss -
+          a.classification.loss
+      )[0];
+
+
+  const bestCount =
+    counts.Best +
+    counts.Good;
+
+
+  const quality =
+    playerEntries.length
+      ? Math.round(
+          100 *
+          bestCount /
+          playerEntries.length
+        )
+      : 0;
+
+
+  analysisSummary.innerHTML =
+    "<div class='analysis-stat'>" +
+    "<span class='analysis-stat-value'>" +
+    quality +
+    "%</span>" +
+    "<span class='analysis-stat-label'>Best / Good</span>" +
+    "</div>" +
+
+    "<div class='analysis-stat'>" +
+    "<span class='analysis-stat-value'>" +
+    counts.Best +
+    "</span>" +
+    "<span class='analysis-stat-label'>Best</span>" +
+    "</div>" +
+
+    "<div class='analysis-stat'>" +
+    "<span class='analysis-stat-value'>" +
+    serious +
+    "</span>" +
+    "<span class='analysis-stat-label'>Mistakes / Blunders</span>" +
+    "</div>" +
+
+    "<div class='analysis-stat'>" +
+    "<span class='analysis-stat-value'>" +
+    playerEntries.length +
+    "</span>" +
+    "<span class='analysis-stat-label'>Moves Reviewed</span>" +
+    "</div>";
+
+
+  analysisSummary.classList.add(
+    "visible"
+  );
+
+
+  let headline =
+    "No major turning point was detected.";
+
+
+  if (
+    biggest &&
+    biggest.classification.loss > 120
+  ) {
+
+    const moveNumber =
+      Math.floor(
+        biggest.index / 2
+      ) +
+      1;
+
+
+    headline =
+      "<strong>Biggest swing:</strong> " +
+      moveNumber +
+      (
+        biggest.move.color === "w"
+          ? ". "
+          : "... "
+      ) +
+      biggest.move.san +
+      " — approximately " +
+      (
+        biggest.classification.loss /
+        100
+      ).toFixed(1) +
+      " pawns.";
+
+  }
+
+
+  let html =
+    "<div class='analysis-headline'>" +
+    headline +
+    "</div>";
+
+
+  playerEntries.forEach(
+    entry => {
+
+      const moveNumber =
+        Math.floor(
+          entry.index / 2
+        ) +
+        1;
+
+
+      html +=
+        "<div class='analysis-move-row'>" +
+
+        "<div class='analysis-move-num'>" +
+        moveNumber +
+        (
+          entry.move.color === "w"
+            ? "."
+            : "..."
+        ) +
+        "</div>" +
+
+        "<div class='analysis-san'>" +
+        entry.move.san +
+        "</div>" +
+
+        "<div><span class='analysis-badge " +
+        entry.classification.className +
+        "'>" +
+        entry.classification.label +
+        "</span></div>" +
+
+        "<div class='analysis-note'>" +
+        analysisMoveNote(
+          entry
+        ) +
+        "</div>" +
+
+        "</div>";
+
+    }
+  );
+
+
+  if (
+    playerEntries.length === 0
+  ) {
+
+    html =
+      "<div class='analysis-empty'>" +
+      "There are no player moves to review." +
+      "</div>";
+
+  }
+
+
+  analysisMoves.innerHTML =
+    html;
+
+}
+
+
+async function runPostGameAnalysis() {
+
+  if (
+    analysisRunning ||
+    !game ||
+    !gameStarted
+  ) {
+    return;
+  }
+
+
+  analysisRunning =
+    true;
+
+  analysisCancelled =
+    false;
+
+  analyzeGameBtn.disabled =
+    true;
+
+  analyzeGameBtn.textContent =
+    "Analyzing...";
+
+  analysisSummary.classList.remove(
+    "visible"
+  );
+
+  analysisSummary.innerHTML =
+    "";
+
+  analysisMoves.innerHTML =
+    "";
+
+  analysisProgressBar.style.width =
+    "0%";
+
+  analysisProgressText.textContent =
+    "Preparing Stockfish review...";
+
+
+  analysisOverlay.classList.add(
+    "visible"
+  );
+
+
+  try {
+
+    const data =
+      buildAnalysisPositions();
+
+
+    const evaluations =
+      [];
+
+    const engineResults =
+      [];
+
+
+    for (
+      let i=0;
+      i<data.positions.length;
+      i++
+    ) {
+
+      if (
+        analysisCancelled
+      ) {
+
+        throw new Error(
+          "Analysis cancelled"
+        );
+
+      }
+
+
+      analysisProgressText.textContent =
+        "Analyzing position " +
+        (i + 1) +
+        " of " +
+        data.positions.length +
+        "...";
+
+
+      analysisProgressBar.style.width =
+        Math.round(
+          100 *
+          i /
+          Math.max(
+            1,
+            data.positions.length
+          )
+        ) +
+        "%";
+
+
+      const result =
+        await analyzeFen(
+          data.positions[i]
+        );
+
+
+      evaluations.push(
+        result.whiteEval
+      );
+
+      engineResults.push(
+        result
+      );
+
+    }
+
+
+    const entries =
+      data.moves.map(
+        (move,index) => {
+
+          return {
+            index,
+            move,
+            beforeEval:
+              evaluations[index],
+            afterEval:
+              evaluations[index + 1],
+            classification:
+              classifyAnalyzedMove(
+                move,
+                engineResults[index],
+                evaluations[index],
+                evaluations[index + 1]
+              )
+          };
+
+        }
+      );
+
+
+    analysisProgressBar.style.width =
+      "100%";
+
+    analysisProgressText.textContent =
+      "Analysis complete.";
+
+    renderAnalysisResults(
+      entries
+    );
+
+  }
+
+  catch(error) {
+
+    if (
+      analysisCancelled
+    ) {
+
+      analysisProgressText.textContent =
+        "Analysis stopped.";
+
+    }
+
+    else {
+
+      analysisProgressText.textContent =
+        "Analysis could not be completed.";
+
+      analysisMoves.innerHTML =
+        "<div class='analysis-empty'>" +
+        "Stockfish analysis encountered an error. Try again." +
+        "</div>";
+
+      console.error(
+        error
+      );
+
+    }
+
+  }
+
+  finally {
+
+    analysisRunning =
+      false;
+
+    analyzeGameBtn.disabled =
+      false;
+
+    analyzeGameBtn.textContent =
+      "♟ Analyze Game";
+
+  }
+
+}
+
+
+function closeAnalysis() {
+
+  analysisCancelled =
+    true;
+
+
+  if (
+    analysisWorker &&
+    analysisRunning
+  ) {
+
+    analysisWorker.postMessage(
+      "stop"
+    );
+
+  }
+
+
+  analysisOverlay.classList.remove(
+    "visible"
+  );
+
+}
+
+
 /* ===================================================== */
 /* STATUS                                                */
 /* ===================================================== */
@@ -16566,6 +17965,20 @@ feedbackOverlay.addEventListener(
 document.addEventListener(
   "keydown",
   function(event) {
+
+    if (
+      event.key === "Escape" &&
+      analysisOverlay.classList.contains(
+        "visible"
+      )
+    ) {
+
+      closeAnalysis();
+
+      return;
+
+    }
+
 
     if (
       event.key === "Escape" &&
