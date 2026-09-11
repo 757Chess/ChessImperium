@@ -1650,11 +1650,80 @@ th {
   display:grid;
 }
 
+.analysis-replay-board-area {
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr);
+  gap:7px;
+  width:100%;
+  max-width:397px;
+  align-items:stretch;
+}
+
 .analysis-replay-board-wrap {
   width:100%;
   max-width:360px;
   border:2px solid #4a443c;
   background:#3f3a34;
+}
+
+.analysis-eval-meter {
+  position:relative;
+  min-height:100%;
+  overflow:hidden;
+  border:2px solid #4a443c;
+  border-radius:3px;
+  background:#171717;
+  box-sizing:border-box;
+}
+
+.analysis-eval-white {
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  height:50%;
+  background:#f4f0e8;
+  transition:height .28s ease;
+}
+
+.analysis-eval-side {
+  position:absolute;
+  left:50%;
+  z-index:3;
+  transform:translateX(-50%);
+  font-size:9px;
+  font-weight:900;
+  line-height:1;
+  pointer-events:none;
+}
+
+.analysis-eval-side-white {
+  top:5px;
+  color:#222;
+}
+
+.analysis-eval-side-black {
+  bottom:5px;
+  color:#fff;
+}
+
+.analysis-eval-value {
+  position:absolute;
+  left:50%;
+  top:50%;
+  z-index:4;
+  transform:translate(-50%,-50%) rotate(-90deg);
+  min-width:42px;
+  padding:3px 5px;
+  border-radius:999px;
+  background:rgba(255,253,248,.92);
+  box-shadow:0 1px 4px rgba(0,0,0,.22);
+  color:#2f2b27;
+  text-align:center;
+  font-size:9px;
+  font-weight:900;
+  white-space:nowrap;
+  pointer-events:none;
 }
 
 .analysis-replay-board {
@@ -1739,6 +1808,23 @@ th {
   color:#504a43;
   font-size:11px;
   line-height:1.45;
+}
+
+.analysis-coach-note {
+  margin-top:8px;
+  padding:8px 9px;
+  border-left:3px solid #c99e3d;
+  border-radius:0 7px 7px 0;
+  background:#fff8e9;
+}
+
+.analysis-preferred-line {
+  margin-top:6px;
+  color:#3f493f;
+}
+
+.analysis-preferred-line strong {
+  color:var(--green);
 }
 
 .analysis-replay-controls {
@@ -1935,9 +2021,15 @@ th {
     grid-template-columns:1fr;
   }
 
-  .analysis-replay-board-wrap {
-    max-width:420px;
+  .analysis-replay-board-area {
+    width:min(100%,430px);
+    max-width:430px;
     margin:0 auto;
+  }
+
+  .analysis-replay-board-wrap {
+    max-width:none;
+    margin:0;
   }
 
   .analysis-summary {
@@ -3024,8 +3116,23 @@ th {
 
     <div id="analysisReplay" class="analysis-replay">
 
-      <div class="analysis-replay-board-wrap">
-        <div id="analysisReplayBoard" class="analysis-replay-board"></div>
+      <div class="analysis-replay-board-area">
+
+        <div id="analysisEvalMeter"
+             class="analysis-eval-meter"
+             aria-label="Position evaluation">
+          <div id="analysisEvalWhite"
+               class="analysis-eval-white"></div>
+          <div class="analysis-eval-side analysis-eval-side-white">W</div>
+          <div class="analysis-eval-side analysis-eval-side-black">B</div>
+          <div id="analysisEvalValue"
+               class="analysis-eval-value">0.0</div>
+        </div>
+
+        <div class="analysis-replay-board-wrap">
+          <div id="analysisReplayBoard" class="analysis-replay-board"></div>
+        </div>
+
       </div>
 
       <div class="analysis-replay-panel">
@@ -4271,6 +4378,15 @@ const analysisReplay =
 const analysisReplayBoard =
   document.getElementById("analysisReplayBoard");
 
+const analysisEvalMeter =
+  document.getElementById("analysisEvalMeter");
+
+const analysisEvalWhite =
+  document.getElementById("analysisEvalWhite");
+
+const analysisEvalValue =
+  document.getElementById("analysisEvalValue");
+
 const analysisReplayMove =
   document.getElementById("analysisReplayMove");
 
@@ -4680,6 +4796,9 @@ let analysisSearchResolve =
 
 let analysisLatestScore =
   null;
+
+let analysisLatestPv =
+  [];
 
 let analysisRunning =
   false;
@@ -16910,6 +17029,30 @@ function ensureAnalysisWorker() {
               message.startsWith("info ")
             ) {
 
+              const pvMatch =
+                message.match(
+                  /\bpv\s+(.+)$/
+                );
+
+
+              if (
+                pvMatch
+              ) {
+
+                analysisLatestPv =
+                  pvMatch[1]
+                    .trim()
+                    .split(/\s+/)
+                    .filter(
+                      move =>
+                        /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(
+                          move
+                        )
+                    );
+
+              }
+
+
               const mateMatch =
                 message.match(
                   /\bscore mate (-?\d+)/
@@ -16979,7 +17122,9 @@ function ensureAnalysisWorker() {
               resolveSearch({
                 score:
                   analysisLatestScore,
-                bestmove:move
+                bestmove:move,
+                pv:
+                  analysisLatestPv.slice()
               });
 
             }
@@ -17062,7 +17207,8 @@ async function analyzeFen(
 
     return {
       whiteEval:terminal,
-      bestmove:"(none)"
+      bestmove:"(none)",
+      pv:[]
     };
 
   }
@@ -17084,6 +17230,9 @@ async function analyzeFen(
 
   analysisLatestScore =
     null;
+
+  analysisLatestPv =
+    [];
 
 
   const result =
@@ -17168,7 +17317,11 @@ async function analyzeFen(
   return {
     whiteEval:value,
     bestmove:
-      result.bestmove
+      result.bestmove,
+    pv:
+      Array.isArray(result.pv)
+        ? result.pv
+        : []
   };
 
 }
@@ -17301,6 +17454,406 @@ function formatEval(
       : ""
   ) +
   pawns.toFixed(1);
+
+}
+
+
+
+function formatEvalCompact(
+  value
+) {
+
+  if (
+    Math.abs(value) >= 90000
+  ) {
+    return value > 0
+      ? "WHITE"
+      : "BLACK";
+  }
+
+
+  const pawns =
+    value / 100;
+
+
+  return (
+    pawns >= 0
+      ? "+"
+      : ""
+  ) +
+  pawns.toFixed(1);
+
+}
+
+
+function evaluationWhiteShare(
+  value
+) {
+
+  if (
+    value >= 90000
+  ) {
+    return 98;
+  }
+
+
+  if (
+    value <= -90000
+  ) {
+    return 2;
+  }
+
+
+  const pawns =
+    value / 100;
+
+
+  return Math.max(
+    2,
+    Math.min(
+      98,
+      50 +
+      46 *
+      Math.tanh(
+        pawns / 4
+      )
+    )
+  );
+
+}
+
+
+function updateAnalysisEvalMeter(
+  value
+) {
+
+  analysisEvalWhite.style.height =
+    evaluationWhiteShare(
+      value
+    ).toFixed(1) +
+    "%";
+
+
+  analysisEvalValue.textContent =
+    formatEvalCompact(
+      value
+    );
+
+
+  analysisEvalMeter.setAttribute(
+    "aria-label",
+    (
+      value > 25
+        ? "White is favored"
+        : value < -25
+          ? "Black is favored"
+          : "Position is approximately even"
+    ) +
+    ". Evaluation " +
+    formatEval(
+      value
+    )
+  );
+
+}
+
+
+function uciMoveObject(
+  uci
+) {
+
+  if (
+    !uci ||
+    !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(
+      uci
+    )
+  ) {
+    return null;
+  }
+
+
+  return {
+    from:uci.slice(0,2),
+    to:uci.slice(2,4),
+    promotion:
+      uci.length > 4
+        ? uci[4]
+        : undefined
+  };
+
+}
+
+
+function analysisBestMoveInfo(
+  fen,
+  uci
+) {
+
+  const moveObject =
+    uciMoveObject(
+      uci
+    );
+
+
+  if (
+    !moveObject
+  ) {
+    return null;
+  }
+
+
+  try {
+
+    const position =
+      new Chess(
+        fen
+      );
+
+
+    const move =
+      position.move(
+        moveObject
+      );
+
+
+    if (
+      !move
+    ) {
+      return null;
+    }
+
+
+    return {
+      san:move.san,
+      captured:move.captured || null,
+      givesCheck:position.inCheck(),
+      givesMate:position.isCheckmate(),
+      promotion:move.promotion || null
+    };
+
+  }
+
+  catch(error) {
+
+    return null;
+
+  }
+
+}
+
+
+function analysisPvToSan(
+  fen,
+  pv,
+  maxPlies = 4
+) {
+
+  if (
+    !Array.isArray(pv) ||
+    pv.length === 0
+  ) {
+    return "";
+  }
+
+
+  const position =
+    new Chess(
+      fen
+    );
+
+
+  const sans =
+    [];
+
+
+  for (
+    let i=0;
+    i<Math.min(
+      maxPlies,
+      pv.length
+    );
+    i++
+  ) {
+
+    const moveObject =
+      uciMoveObject(
+        pv[i]
+      );
+
+
+    if (
+      !moveObject
+    ) {
+      break;
+    }
+
+
+    try {
+
+      const move =
+        position.move(
+          moveObject
+        );
+
+
+      if (
+        !move
+      ) {
+        break;
+      }
+
+
+      sans.push(
+        move.san
+      );
+
+    }
+
+    catch(error) {
+
+      break;
+
+    }
+
+  }
+
+
+  return sans.join(
+    " "
+  );
+
+}
+
+
+function analysisCoachNote(
+  entry
+) {
+
+  if (
+    !entry ||
+    !entry.bestmoveSan
+  ) {
+
+    return (
+      "Stockfish did not return a clear alternative for this position."
+    );
+
+  }
+
+
+  if (
+    entry.bestmoveUci ===
+      entry.move.uci
+  ) {
+
+    return (
+      "This matches Stockfish’s first choice."
+    );
+
+  }
+
+
+  const info =
+    entry.bestMoveInfo;
+
+
+  if (
+    info &&
+    info.givesMate
+  ) {
+
+    return (
+      "Stockfish found a mating move here. " +
+      entry.bestmoveSan +
+      " creates an immediate forced finish."
+    );
+
+  }
+
+
+  if (
+    info &&
+    info.givesCheck
+  ) {
+
+    return (
+      "Stockfish preferred the forcing check " +
+      entry.bestmoveSan +
+      ". Checks often matter because the opponent has fewer replies."
+    );
+
+  }
+
+
+  if (
+    info &&
+    info.captured
+  ) {
+
+    const capturedName =
+      PIECE_NAMES[
+        info.captured
+      ] ||
+      "Piece";
+
+
+    return (
+      "Stockfish preferred " +
+      entry.bestmoveSan +
+      ", an immediate capture of the " +
+      capturedName.toLowerCase() +
+      "."
+    );
+
+  }
+
+
+  if (
+    info &&
+    info.promotion
+  ) {
+
+    return (
+      "Stockfish preferred " +
+      entry.bestmoveSan +
+      ", using the promotion opportunity immediately."
+    );
+
+  }
+
+
+  if (
+    entry.classification.label === "Inaccuracy"
+  ) {
+
+    return (
+      "Your move was playable, but Stockfish preferred " +
+      entry.bestmoveSan +
+      " because it preserved more of the position’s value."
+    );
+
+  }
+
+
+  if (
+    entry.classification.label === "Mistake" ||
+    entry.classification.label === "Blunder"
+  ) {
+
+    return (
+      "The key alternative was " +
+      entry.bestmoveSan +
+      ". The suggested line below shows the continuation Stockfish expected."
+    );
+
+  }
+
+
+  return (
+    "Stockfish slightly preferred " +
+    entry.bestmoveSan +
+    ", although your move remained close in evaluation."
+  );
 
 }
 
@@ -17588,6 +18141,19 @@ function renderAnalysisReplayBoard(
     );
 
 
+  const currentEval =
+    analysisReplayData.evaluations[
+      analysisReplayIndex
+    ];
+
+
+  updateAnalysisEvalMeter(
+    Number.isFinite(currentEval)
+      ? currentEval
+      : 0
+  );
+
+
   if (
     !latestEntry
   ) {
@@ -17598,6 +18164,31 @@ function renderAnalysisReplayBoard(
   }
 
   else {
+
+    const preferredText =
+      latestEntry.bestmoveSan
+        ? (
+            latestEntry.bestmoveUci ===
+              latestEntry.move.uci
+              ? "Stockfish preferred this move."
+              : (
+                  "<strong>Stockfish preferred:</strong> " +
+                  latestEntry.bestmoveSan
+                )
+          )
+        : "No preferred move available.";
+
+
+    const lineText =
+      latestEntry.bestLineSan
+        ? (
+            "<div class='analysis-preferred-line'>" +
+            "<strong>Suggested line:</strong> " +
+            latestEntry.bestLineSan +
+            "</div>"
+          )
+        : "";
+
 
     analysisReplayDetail.innerHTML =
       "<strong>" +
@@ -17620,7 +18211,15 @@ function renderAnalysisReplayBoard(
       "<br>" +
       analysisMoveNote(
         latestEntry
-      );
+      ) +
+      "<div class='analysis-coach-note'>" +
+      preferredText +
+      "<br>" +
+      analysisCoachNote(
+        latestEntry
+      ) +
+      lineText +
+      "</div>";
 
   }
 
@@ -17930,6 +18529,21 @@ function renderAnalysisResults(
         analysisMoveNote(
           entry
         ) +
+        (
+          entry.bestmoveSan &&
+          entry.bestmoveUci !==
+            entry.move.uci &&
+          (
+            entry.classification.label === "Inaccuracy" ||
+            entry.classification.label === "Mistake" ||
+            entry.classification.label === "Blunder"
+          )
+            ? (
+                "<br><strong>Better:</strong> " +
+                entry.bestmoveSan
+              )
+            : ""
+        ) +
         "</div>" +
 
         "</button>";
@@ -18112,6 +18726,33 @@ async function runPostGameAnalysis() {
       data.moves.map(
         (move,index) => {
 
+          const beforeFen =
+            data.positions[
+              index
+            ];
+
+
+          const beforeResult =
+            engineResults[
+              index
+            ];
+
+
+          const bestmoveUci =
+            beforeResult &&
+            beforeResult.bestmove &&
+            beforeResult.bestmove !== "(none)"
+              ? beforeResult.bestmove
+              : "";
+
+
+          const bestMoveInfo =
+            analysisBestMoveInfo(
+              beforeFen,
+              bestmoveUci
+            );
+
+
           return {
             index,
             move,
@@ -18119,10 +18760,24 @@ async function runPostGameAnalysis() {
               evaluations[index],
             afterEval:
               evaluations[index + 1],
+            bestmoveUci,
+            bestmoveSan:
+              bestMoveInfo
+                ? bestMoveInfo.san
+                : "",
+            bestMoveInfo,
+            bestLineSan:
+              analysisPvToSan(
+                beforeFen,
+                beforeResult
+                  ? beforeResult.pv
+                  : [],
+                4
+              ),
             classification:
               classifyAnalyzedMove(
                 move,
-                engineResults[index],
+                beforeResult,
                 evaluations[index],
                 evaluations[index + 1]
               )
@@ -18141,6 +18796,7 @@ async function runPostGameAnalysis() {
     analysisReplayData = {
       positions:
         data.positions,
+      evaluations,
       entries
     };
 
