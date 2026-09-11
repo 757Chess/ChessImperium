@@ -300,8 +300,7 @@ select {
   gap:6px;
 }
 
-.undo-action,
-.reset-action {
+.undo-action {
   grid-column:1 / -1;
 }
 
@@ -1336,14 +1335,6 @@ th {
   background:var(--green-hover);
 }
 
-.copy-status {
-  min-height:14px;
-  margin-top:7px;
-  text-align:center;
-  font-size:10px;
-  color:var(--green);
-}
-
 
 
 /* ===================================================== */
@@ -1457,17 +1448,80 @@ th {
 }
 
 
+
+/* ===================================================== */
+/* CENTER POST-GAME ACTIONS                              */
+/* ===================================================== */
+
+.center-postgame-actions {
+  display:none;
+  width:100%;
+  max-width:576px;
+  margin:0 auto 7px;
+  transform:translateX(10px);
+  padding:9px 10px;
+  border:1px solid #cdb77e;
+  border-radius:10px;
+  background:linear-gradient(180deg,#fffdf8 0%,#f7f0e4 100%);
+  box-sizing:border-box;
+}
+
+.center-postgame-actions.visible {
+  display:block;
+}
+
+.center-postgame-title {
+  margin-bottom:7px;
+  text-align:center;
+  color:var(--green);
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:15px;
+  font-weight:800;
+}
+
+.center-postgame-buttons {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+
+.center-postgame-btn {
+  min-height:42px;
+  padding:8px 10px;
+  border:1px solid #cdb77e;
+  border-radius:9px;
+  background:#fffaf0;
+  color:var(--green);
+  cursor:pointer;
+  font-weight:800;
+}
+
+.center-postgame-btn.primary {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.center-postgame-btn:hover:not(:disabled) {
+  background:#f0e7d6;
+}
+
+.center-postgame-btn.primary:hover:not(:disabled) {
+  background:var(--green-hover);
+}
+
+@media (max-width:700px) {
+  .center-postgame-actions {
+    width:100%;
+    max-width:none;
+    margin:0 0 7px;
+    transform:none;
+  }
+}
+
 /* ===================================================== */
 /* POST-GAME ANALYSIS                                    */
 /* ===================================================== */
-
-.analyze-game-btn {
-  grid-column:1 / -1;
-  background:#fffaf0;
-  border-color:#cdb77e;
-  color:var(--green);
-  font-weight:800;
-}
 
 .analysis-overlay {
   position:fixed;
@@ -2583,13 +2637,6 @@ th {
           Undo (3)
         </button>
 
-        <button
-          id="resetBtn"
-          class="action-btn reset-action"
-          type="button">
-          Reset Current Game
-        </button>
-
       </div>
 
 
@@ -2613,6 +2660,22 @@ th {
       </div>
 
       <div id="ruleToast"></div>
+
+      <div id="centerPostGameActions" class="center-postgame-actions">
+        <div class="center-postgame-title">Match Complete</div>
+        <div class="center-postgame-buttons">
+          <button id="rematchBtn"
+                  class="center-postgame-btn primary"
+                  type="button">
+            ↻ Rematch
+          </button>
+          <button id="analyzeGameBtn"
+                  class="center-postgame-btn"
+                  type="button">
+            ♟ Analyze Game
+          </button>
+        </div>
+      </div>
 
       <div id="onlineClockTop" class="online-clock">
         <span class="clock-role">Opponent</span>
@@ -2770,32 +2833,6 @@ th {
 
           <div id="gameOverDetails"></div>
 
-          <div class="game-over-actions">
-
-            <button
-              id="copyGameBtn"
-              class="summary-btn"
-              type="button">
-              📋 Copy Game Record
-            </button>
-
-            <button
-              id="rematchBtn"
-              class="summary-btn primary-summary"
-              type="button">
-              ↻ Rematch
-            </button>
-
-            <button
-              id="analyzeGameBtn"
-              class="summary-btn analyze-game-btn"
-              type="button">
-              ♟ Analyze Game
-            </button>
-
-          </div>
-
-          <div id="copyStatus" class="copy-status"></div>
 
         </div>
 
@@ -4119,14 +4156,11 @@ const gameOverResult =
 const gameOverDetails =
   document.getElementById("gameOverDetails");
 
-const copyGameBtn =
-  document.getElementById("copyGameBtn");
-
 const rematchBtn =
   document.getElementById("rematchBtn");
 
-const copyStatus =
-  document.getElementById("copyStatus");
+const centerPostGameActions =
+  document.getElementById("centerPostGameActions");
 
 
 const analyzeGameBtn =
@@ -4210,9 +4244,6 @@ const endGameBtn =
 
 const undoBtn =
   document.getElementById("undoBtn");
-
-const resetBtn =
-  document.getElementById("resetBtn");
 
 const soundButton =
   document.getElementById("soundButton");
@@ -4447,6 +4478,9 @@ let ruleToastTimer =
 
 let formationAnimationTimers =
   [];
+
+let localResultReason =
+  null;
 
 
 /* ===================================================== */
@@ -5289,6 +5323,10 @@ function updateGameModeUI() {
   updateUndoButton();
 
   updateOnlineClockDisplay();
+
+  updateEndGameButton();
+
+  updateCenterPostGameActions();
 
 }
 
@@ -11227,7 +11265,21 @@ function initializeControls() {
 
       hideTooltip();
 
-      endCurrentGame();
+      if (
+        game &&
+        gameStarted &&
+        game.history().length >= 2
+      ) {
+
+        resignComputerGame();
+
+      }
+
+      else {
+
+        endCurrentGame();
+
+      }
 
     }
   );
@@ -11246,19 +11298,6 @@ function initializeControls() {
     }
   );
 
-
-  resetBtn.addEventListener(
-    "click",
-    function() {
-
-      playMenuClick();
-
-      hideTooltip();
-
-      resetCurrentGame();
-
-    }
-  );
 
 
   promotionCancel.addEventListener(
@@ -11363,17 +11402,6 @@ function initializeControls() {
 /* ===================================================== */
 /* GAME OVER CONTROLS                                    */
 /* ===================================================== */
-
-copyGameBtn.addEventListener(
-  "click",
-  async function() {
-
-    playMenuClick();
-
-    await copyGameRecord();
-
-  }
-);
 
 
 analyzeGameBtn.addEventListener(
@@ -11657,6 +11685,7 @@ function updateUndoButton() {
 
     gameStarted &&
     game &&
+    !localGameFinished() &&
     !game.isGameOver() &&
     hasPlayerMove &&
     undosRemaining > 0 &&
@@ -11881,6 +11910,8 @@ function undoPlayerTurn() {
 
   updateUndoButton();
 
+  updateEndGameButton();
+
 }
 
 
@@ -12103,6 +12134,9 @@ function renderPreview() {
   gameStarted =
     false;
 
+  localResultReason =
+    null;
+
 
   updateStartGameAttention();
 
@@ -12196,6 +12230,10 @@ function renderPreview() {
   updateInfoPanel();
 
   updateUndoButton();
+
+  updateEndGameButton();
+
+  updateCenterPostGameActions();
 
 
   const previewText =
@@ -12335,23 +12373,165 @@ function startNewGame() {
 }
 
 
-function resetCurrentGame() {
+function localGameFinished() {
+
+  return (
+    gameMode !== "online" &&
+    localResultReason === "resignation"
+  );
+
+}
+
+
+function updateEndGameButton() {
 
   if (
-    !actualPlayerFormation ||
-    !actualComputerFormation ||
-    !actualPlayerColor
+    gameMode === "online"
+  ) {
+    return;
+  }
+
+
+  if (
+    !gameStarted ||
+    !game ||
+    game.isGameOver() ||
+    localGameFinished()
   ) {
 
-    startNewGame();
-
-
+    endGameBtn.disabled = true;
+    endGameBtn.textContent = "End Game";
     return;
 
   }
 
 
-  beginGame();
+  endGameBtn.disabled = false;
+
+  endGameBtn.textContent =
+    game.history().length >= 2
+      ? "Resign Game"
+      : "End Game";
+
+}
+
+
+function updateCenterPostGameActions() {
+
+  const onlineFinished =
+    gameMode === "online" &&
+    onlineRoom &&
+    onlineRoom.status === "finished";
+
+
+  const finished =
+    Boolean(
+      gameStarted &&
+      game &&
+      (
+        game.isGameOver() ||
+        onlineFinished ||
+        localGameFinished()
+      )
+    );
+
+
+  centerPostGameActions.classList.toggle(
+    "visible",
+    finished
+  );
+
+}
+
+
+async function resignComputerGame() {
+
+  if (
+    gameMode === "online" ||
+    !gameStarted ||
+    !game ||
+    game.isGameOver() ||
+    localGameFinished()
+  ) {
+    return;
+  }
+
+
+  if (
+    game.history().length < 2
+  ) {
+
+    endCurrentGame();
+    return;
+
+  }
+
+
+  if (
+    !window.confirm(
+      "Resign this game?"
+    )
+  ) {
+    return;
+  }
+
+
+  fadeOutOpeningTheme(
+    5000
+  );
+
+  cancelPieceDrag();
+
+  clearFormationAnimationTimers();
+
+  clearEngineMoveTimer();
+
+  hideRuleToast();
+
+
+  if (
+    engineSearchActive
+  ) {
+
+    ignoreStoppedBestmove = true;
+
+  }
+
+
+  engine.postMessage(
+    "stop"
+  );
+
+
+  engineSearchActive = false;
+  engineThinking = false;
+  moveAnimating = false;
+  selectedSquare = null;
+  legalMoves = [];
+  promotionPending = null;
+
+  hidePromotion();
+  clearCaptureToast();
+
+  localResultReason =
+    "resignation";
+
+
+  drawBoard();
+
+  renderMoveList();
+
+  updateCapturedPieces();
+
+  updateStatus();
+
+  updateGameOverSummary();
+
+  updateUndoButton();
+
+  updateEndGameButton();
+
+  updateCenterPostGameActions();
 
 }
 
@@ -12500,6 +12680,9 @@ function beginGame(
   gameStarted =
     true;
 
+  localResultReason =
+    null;
+
 
   updateStartGameAttention();
 
@@ -12621,6 +12804,10 @@ function beginGame(
 
   updateUndoButton();
 
+  updateEndGameButton();
+
+  updateCenterPostGameActions();
+
 
   previewBar.innerHTML =
 
@@ -12733,6 +12920,8 @@ function isPlayerTurn() {
     !moveAnimating &&
 
     !promotionPending &&
+
+    !localGameFinished() &&
 
     !game.isGameOver()
 
@@ -15448,6 +15637,10 @@ function afterMove(
 
   updateUndoButton();
 
+  updateEndGameButton();
+
+  updateCenterPostGameActions();
+
   playSoundForMove(
     move
   );
@@ -16039,6 +16232,15 @@ function renderMoveList() {
 function getGameResultText() {
 
   if (
+    localGameFinished()
+  ) {
+
+    return "Defeat — you resigned.";
+
+  }
+
+
+  if (
     gameMode === "online" &&
     onlineRoom &&
     onlineRoom.status === "finished"
@@ -16189,12 +16391,17 @@ function updateGameOverSummary() {
     onlineRoom.status === "finished";
 
 
+  const localFinished =
+    localGameFinished();
+
+
   if (
     !gameStarted ||
     !game ||
     (
       !game.isGameOver() &&
-      !onlineFinished
+      !onlineFinished &&
+      !localFinished
     )
   ) {
 
@@ -16308,13 +16515,11 @@ function updateGameOverSummary() {
     "</div>";
 
 
-  copyStatus.textContent =
-    "";
-
-
   gameOverSection.classList.add(
     "visible"
   );
+
+  updateCenterPostGameActions();
 
 }
 
@@ -16325,240 +16530,9 @@ function hideGameOverSummary() {
     "visible"
   );
 
-
-  copyStatus.textContent =
-    "";
+  updateCenterPostGameActions();
 
 }
-
-
-function buildFullMoveText() {
-
-  const history =
-    game.history();
-
-
-  const lines =
-    [];
-
-
-  for (
-    let i=0;
-    i<history.length;
-    i+=2
-  ) {
-
-    const moveNumber =
-      Math.floor(
-        i / 2
-      ) +
-      1;
-
-
-    const whiteMove =
-      history[i] ||
-      "";
-
-
-    const blackMove =
-      history[i+1] ||
-      "";
-
-
-    lines.push(
-
-      moveNumber +
-      ". " +
-      whiteMove +
-      (
-        blackMove
-
-          ? " " +
-            blackMove
-
-          : ""
-      )
-
-    );
-
-  }
-
-
-  return lines.join(
-    "\n"
-  );
-
-}
-
-
-function buildGameRecord() {
-
-  const colorName =
-
-    playerColor === "w"
-
-      ? "White"
-
-      : "Black";
-
-
-  const castlingText =
-
-    castlingEnabledForCurrentGame()
-
-      ? "Enabled"
-
-      : "Disabled";
-
-
-  return (
-
-    "Chess Imperium\n" +
-
-    "A Strategic Chess Variant\n\n" +
-
-    "Result: " +
-    getGameResultText() +
-    "\n" +
-
-    "Player formation: " +
-    FORMATION_MAP[
-      actualPlayerFormation
-    ] +
-    " (" +
-    actualPlayerFormation +
-    ")\n" +
-
-    "Computer formation: " +
-    FORMATION_MAP[
-      actualComputerFormation
-    ] +
-    " (" +
-    actualComputerFormation +
-    ")\n" +
-
-    "Player color: " +
-    colorName +
-    "\n" +
-
-    "Difficulty: " +
-    DIFFICULTIES[
-      difficultyKey
-    ].label +
-    "\n" +
-
-    "Castling: " +
-    castlingText +
-    "\n\n" +
-
-    "Moves\n" +
-    "-----\n" +
-
-    buildFullMoveText()
-
-  );
-
-}
-
-
-async function copyGameRecord() {
-
-  if (
-    !game ||
-    !game.isGameOver()
-  ) {
-
-    return;
-
-  }
-
-
-  const record =
-    buildGameRecord();
-
-
-  try {
-
-    await navigator.clipboard.writeText(
-      record
-    );
-
-
-    copyStatus.textContent =
-      "Game record copied.";
-
-  }
-
-  catch(
-    error
-  ) {
-
-    const textarea =
-      document.createElement(
-        "textarea"
-      );
-
-
-    textarea.value =
-      record;
-
-
-    textarea.style.position =
-      "fixed";
-
-
-    textarea.style.opacity =
-      "0";
-
-
-    document.body.appendChild(
-      textarea
-    );
-
-
-    textarea.select();
-
-
-    try {
-
-      document.execCommand(
-        "copy"
-      );
-
-
-      copyStatus.textContent =
-        "Game record copied.";
-
-    }
-
-    catch(
-      fallbackError
-    ) {
-
-      copyStatus.textContent =
-        "Unable to copy automatically.";
-
-    }
-
-
-    textarea.remove();
-
-  }
-
-
-  setTimeout(
-    () => {
-
-      copyStatus.textContent =
-        "";
-
-    },
-    2500
-  );
-
-}
-
-
 
 
 /* ===================================================== */
@@ -18244,6 +18218,20 @@ function updateStatus() {
   if (
     !gameStarted
   ) {
+
+    return;
+
+  }
+
+
+  if (
+    localGameFinished()
+  ) {
+
+    setStatus(
+      "DEFEAT — YOU RESIGNED",
+      "defeat"
+    );
 
     return;
 
