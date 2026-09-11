@@ -3442,6 +3442,12 @@ const MOVE_SOUND_VOLUME = .68;
 const CAPTURE_SOUND_VOLUME = .68;
 const STACKING_SOUND_VOLUME = .05;
 
+/*
+ * Global game-audio boost.
+ * Individual sound ratios remain unchanged; this lifts everything together.
+ */
+const MASTER_AUDIO_GAIN = 1.5;
+
 
 const SOUND_FILES = {
 
@@ -3522,6 +3528,27 @@ const audioContext =
   AudioContextClass
     ? new AudioContextClass()
     : null;
+
+
+const masterAudioGain =
+  audioContext
+    ? audioContext.createGain()
+    : null;
+
+
+if (
+  masterAudioGain
+) {
+
+  masterAudioGain.gain.value =
+    MASTER_AUDIO_GAIN;
+
+
+  masterAudioGain.connect(
+    audioContext.destination
+  );
+
+}
 
 
 const audioBuffers =
@@ -3886,10 +3913,7 @@ async function playBufferedSound(
   gain.gain.value =
     Math.max(
       0,
-      Math.min(
-        1,
-        volume
-      )
+      volume
     );
 
 
@@ -3899,6 +3923,7 @@ async function playBufferedSound(
 
 
   gain.connect(
+    masterAudioGain ||
     audioContext.destination
   );
 
@@ -3982,6 +4007,7 @@ async function playOpeningTheme() {
 
 
   openingThemeGain.connect(
+    masterAudioGain ||
     audioContext.destination
   );
 
@@ -5376,6 +5402,8 @@ function updateGameModeUI() {
 
   updateCenterPostGameActions();
 
+  updateSetupControlAvailability();
+
 }
 
 
@@ -5410,6 +5438,9 @@ function setOnlineFormationControlsLocked(
       onlineRoom.status === "waiting" ||
       onlineRoom.status === "active"
     );
+
+
+  updateSetupControlAvailability();
 
 }
 
@@ -12067,6 +12098,114 @@ function refreshDifficultyButtons() {
 }
 
 
+function updateSetupControlAvailability() {
+
+  if (
+    gameMode === "online"
+  ) {
+
+    formationButtonsEl
+      .querySelectorAll(
+        ".choice-btn"
+      )
+      .forEach(
+        button => {
+          button.disabled =
+            onlineFormationLocked;
+        }
+      );
+
+
+    randomFormationBtn.disabled =
+      onlineFormationLocked;
+
+
+    /*
+     * These controls are hidden in online mode, but reset
+     * their disabled state so they are ready if the player
+     * returns to Vs Computer.
+     */
+    computerFormationSelect.disabled =
+      false;
+
+    playWhiteBtn.disabled =
+      false;
+
+    playRandomBtn.disabled =
+      false;
+
+    playBlackBtn.disabled =
+      false;
+
+    difficultyRelaxed.disabled =
+      false;
+
+    difficultyStandard.disabled =
+      false;
+
+    difficultyFierce.disabled =
+      false;
+
+    difficultyRuthless.disabled =
+      false;
+
+
+    return;
+
+  }
+
+
+  const computerGameActive =
+    Boolean(
+      gameStarted &&
+      game &&
+      !game.isGameOver() &&
+      !localGameFinished()
+    );
+
+
+  formationButtonsEl
+    .querySelectorAll(
+      ".choice-btn"
+    )
+    .forEach(
+      button => {
+        button.disabled =
+          computerGameActive;
+      }
+    );
+
+
+  randomFormationBtn.disabled =
+    computerGameActive;
+
+  computerFormationSelect.disabled =
+    computerGameActive;
+
+  playWhiteBtn.disabled =
+    computerGameActive;
+
+  playRandomBtn.disabled =
+    computerGameActive;
+
+  playBlackBtn.disabled =
+    computerGameActive;
+
+  difficultyRelaxed.disabled =
+    computerGameActive;
+
+  difficultyStandard.disabled =
+    computerGameActive;
+
+  difficultyFierce.disabled =
+    computerGameActive;
+
+  difficultyRuthless.disabled =
+    computerGameActive;
+
+}
+
+
 
 /* ===================================================== */
 /* COORDINATES                                           */
@@ -12282,6 +12421,8 @@ function renderPreview() {
   updateEndGameButton();
 
   updateCenterPostGameActions();
+
+  updateSetupControlAvailability();
 
 
   const previewText =
@@ -12581,6 +12722,8 @@ async function resignComputerGame() {
 
   updateCenterPostGameActions();
 
+  updateSetupControlAvailability();
+
 }
 
 
@@ -12855,6 +12998,8 @@ function beginGame(
   updateEndGameButton();
 
   updateCenterPostGameActions();
+
+  updateSetupControlAvailability();
 
 
   previewBar.innerHTML =
@@ -15688,6 +15833,8 @@ function afterMove(
   updateEndGameButton();
 
   updateCenterPostGameActions();
+
+  updateSetupControlAvailability();
 
   playSoundForMove(
     move
@@ -19295,6 +19442,8 @@ refreshFormationButtons();
 refreshSideButtons();
 
 refreshDifficultyButtons();
+
+updateSetupControlAvailability();
 
 updateGameModeUI();
 
