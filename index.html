@@ -90,16 +90,13 @@ h1 {
 
 .chess-imperium-banner-wrap {
   width:100%;
-  max-width:604px;
+  max-width:576px;
   margin:0 auto 1px;
-  display:grid;
-  grid-template-columns:20px minmax(0,576px);
-  justify-content:center;
+  display:block;
   box-sizing:border-box;
 }
 
 .chess-imperium-banner {
-  grid-column:2;
   display:block;
   width:100%;
   height:auto;
@@ -999,52 +996,83 @@ select {
 
 .board-wrap {
   width:100%;
-  max-width:604px;
+  max-width:576px;
   margin:0 auto;
 }
 
 .board-coordinate-frame {
   position:relative;
   width:100%;
-  display:grid;
-  grid-template-columns:20px minmax(0,576px);
-  grid-template-rows:minmax(0,576px) 20px;
-  justify-content:center;
-  align-items:stretch;
+  max-width:576px;
+  margin:0 auto;
+}
+
+/* Coordinates now sit inside the 8x8 board instead of reserving
+   outside gutters. The shadow + translucent backing keeps them
+   readable over both light and dark textured squares. */
+.rank-coordinates,
+.file-coordinates {
+  position:absolute;
+  inset:0;
+  z-index:24;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-select:none;
+  font-size:12px;
+  line-height:1;
+  font-weight:800;
+  color:#fffdf6;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,.95),
+    0 0 2px rgba(0,0,0,.95),
+    1px 0 1px rgba(0,0,0,.75),
+    -1px 0 1px rgba(0,0,0,.75);
 }
 
 .rank-coordinates {
-  grid-column:1;
-  grid-row:1;
   display:grid;
   grid-template-rows:repeat(8,1fr);
+  align-items:start;
+  justify-items:start;
+}
+
+.rank-coordinates span {
+  margin:5px 0 0 5px;
+  min-width:15px;
+  height:15px;
+  display:flex;
   align-items:center;
-  justify-items:center;
-  font-size:11px;
-  font-weight:bold;
-  color:#4f4a43;
+  justify-content:center;
+  border-radius:4px;
+  background:rgba(20,18,15,.34);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08);
 }
 
 .file-coordinates {
-  grid-column:2;
-  grid-row:2;
   display:grid;
   grid-template-columns:repeat(8,1fr);
+  align-items:end;
+  justify-items:end;
+}
+
+.file-coordinates span {
+  margin:0 5px 5px 0;
+  min-width:15px;
+  height:15px;
+  display:flex;
   align-items:center;
-  justify-items:center;
-  font-size:11px;
-  font-weight:bold;
-  color:#4f4a43;
+  justify-content:center;
+  border-radius:4px;
+  background:rgba(20,18,15,.34);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08);
+  text-transform:lowercase;
 }
 
 .coordinate-corner {
-  grid-column:1;
-  grid-row:2;
+  display:none;
 }
 
 #board {
-  grid-column:2;
-  grid-row:1;
   position:relative;
   display:grid;
   grid-template-columns:repeat(8,1fr);
@@ -2562,8 +2590,7 @@ th {
   .chess-imperium-banner-wrap {
     width:100%;
     max-width:none;
-    margin:0 0 1px;
-    grid-template-columns:15px minmax(0,1fr);
+    margin:0 auto 1px;
   }
 
 
@@ -2620,13 +2647,24 @@ th {
   }
 
   .board-coordinate-frame {
-    grid-template-columns:15px minmax(0,1fr);
-    grid-template-rows:minmax(0,1fr) 15px;
+    max-width:none;
   }
 
   .rank-coordinates,
   .file-coordinates {
-    font-size:8px;
+    font-size:10px;
+  }
+
+  .rank-coordinates span {
+    margin:3px 0 0 3px;
+    min-width:13px;
+    height:13px;
+  }
+
+  .file-coordinates span {
+    margin:0 3px 3px 0;
+    min-width:13px;
+    height:13px;
   }
 
   .selected::after,
@@ -3886,13 +3924,13 @@ const AudioContextClass =
   window.webkitAudioContext;
 
 
-const audioContext =
+let audioContext =
   AudioContextClass
     ? new AudioContextClass()
     : null;
 
 
-const masterAudioGain =
+let masterAudioGain =
   audioContext
     ? audioContext.createGain()
     : null;
@@ -3911,6 +3949,10 @@ if (
   );
 
 }
+
+
+let audioNeedsHardReset =
+  false;
 
 
 const audioBuffers =
@@ -14592,6 +14634,10 @@ function drawBoard() {
         image.className =
           pieceClassName;
 
+        // Keep native browser image-dragging out of the way.
+        // Chess Imperium uses its own pointer-based drag/ghost system.
+        image.draggable = false;
+
 
         image.src =
           PIECE_IMAGES[
@@ -15408,17 +15454,14 @@ function startActiveDrag(
     return;
   }
 
-  /*
-   * PIECE-BASED DRAG MODEL:
-   * Pawns and kings use a direct drag.
-   * Queens, rooks, bishops, and knights use a temporary ghost/proxy
-   * while the real piece remains fully opaque on its origin square.
-   */
+
   dragState.active =
     true;
 
+
   selectedSquare =
     dragState.from;
+
 
   legalMoves =
     game.moves({
@@ -15426,32 +15469,135 @@ function startActiveDrag(
       verbose:true
     });
 
+
+  const useGhost =
+    pieceUsesGhostDrag(
+      dragState.pieceType
+    );
+
+
+  dragState.useGhostMode =
+    useGhost;
+
+
+  /*
+   * FINAL CHESS IMPERIUM DRAG MODEL
+   * --------------------------------
+   * Queen / rook / bishop / knight:
+   *   - the real piece stays fully opaque on its origin square
+   *   - a translucent ghost follows the pointer
+   *   - on a legal drop, that ghost freezes on the destination square
+   *   - the real piece glides to the destination
+   *   - the ghost disappears only after the final board paint
+   *
+   * Pawn / king:
+   *   - traditional direct drag
+   *   - no translucent ghost behavior
+   */
   drawBoard();
 
-  const ghost =
+
+  const originSquare =
+    boardEl.querySelector(
+      `[data-square="${dragState.from}"]`
+    );
+
+
+  const originPiece =
+    originSquare
+      ? originSquare.querySelector(
+          ".piece"
+        )
+      : null;
+
+
+  if (
+    originPiece
+  ) {
+    originPiece.draggable = false;
+  }
+
+
+  const proxy =
     document.createElement(
       "img"
     );
 
-  ghost.className =
+
+  proxy.className =
     "drag-piece";
 
-  ghost.src =
+
+  proxy.src =
     dragState.imageSrc;
 
-  document.body.appendChild(
-    ghost
+
+  proxy.draggable =
+    false;
+
+
+  proxy.setAttribute(
+    "aria-hidden",
+    "true"
   );
 
+
+  /*
+   * Match the actual rendered board-piece size instead of relying on
+   * a hard-coded pixel value. This keeps the ghost visually identical
+   * at every board size / browser zoom level.
+   */
+  if (
+    originPiece
+  ) {
+
+    const pieceRect =
+      originPiece.getBoundingClientRect();
+
+    if (
+      pieceRect.width > 0 &&
+      pieceRect.height > 0
+    ) {
+      proxy.style.width =
+        pieceRect.width + "px";
+      proxy.style.height =
+        pieceRect.height + "px";
+    }
+
+  }
+
+
+  proxy.style.opacity =
+    useGhost
+      ? ".58"
+      : "1";
+
+
+  document.body.appendChild(
+    proxy
+  );
+
+
   dragState.ghost =
-    ghost;
+    proxy;
+
+
+  if (
+    originPiece
+  ) {
+
+    originPiece.style.opacity =
+      useGhost
+        ? "1"
+        : "0";
+
+  }
+
 
   moveDragGhost(
     event.clientX,
     event.clientY
   );
-
-  updateDragPresentation();
 
 }
 
@@ -15467,6 +15613,7 @@ function moveDragGhost(
   ) {
     return;
   }
+
 
   dragState.ghost.style.left =
     x + "px";
@@ -15512,10 +15659,6 @@ function updateDragPresentation() {
     useGhost;
 
 
-  /*
-   * Pawns and kings use a traditional direct drag.
-   * Queens, rooks, bishops, and knights use the ghost-drag model.
-   */
   dragState.ghost.style.opacity =
     useGhost
       ? ".58"
@@ -15593,8 +15736,16 @@ function freezeDragGhostAtDestination(
   }
 
 
+  const destinationPiece =
+    destinationSquare.querySelector(
+      ".piece"
+    );
+
+
   const rect =
-    destinationSquare.getBoundingClientRect();
+    destinationPiece
+      ? destinationPiece.getBoundingClientRect()
+      : destinationSquare.getBoundingClientRect();
 
 
   state.ghost.style.left =
@@ -15609,6 +15760,8 @@ function freezeDragGhostAtDestination(
       rect.height / 2
     ) + "px";
 
+
+  /* If the square is empty, keep the piece-sized proxy dimensions. */
   state.ghost.style.opacity =
     ".58";
 
@@ -15632,6 +15785,11 @@ function removeCommitGhostAfterPaint(
   }
 
 
+  /*
+   * Two animation frames are intentional: the first lets the real
+   * destination piece be committed, and the second lets the browser
+   * paint it firmly in place before the ghost is removed.
+   */
   requestAnimationFrame(
     () => {
 
@@ -21212,6 +21370,9 @@ document.addEventListener(
       audioGesturePrimed =
         false;
 
+      audioNeedsHardReset =
+        true;
+
       return;
 
     }
@@ -21318,8 +21479,7 @@ function primeAudioContextSilently() {
 async function recoverAudioAfterBackground() {
 
   if (
-    !audioContext ||
-    audioContext.state === "closed"
+    !AudioContextClass
   ) {
 
     return;
@@ -21328,33 +21488,123 @@ async function recoverAudioAfterBackground() {
 
 
   /*
-   * Safari may interrupt Web Audio when this tab/window loses
-   * focus. Mark the context as needing a fresh silent prime.
+   * Safari can leave a resumed AudioContext in a state where it
+   * appears to be running but produces no audible output after
+   * the page has been backgrounded. Do not trust that old context.
+   * Mark it for replacement on the next genuine user gesture.
    */
   audioGesturePrimed =
     false;
 
+  audioNeedsHardReset =
+    true;
+
+}
+
+
+function attachAudioContextStateListener() {
+
+  if (
+    !audioContext
+  ) {
+
+    return;
+
+  }
+
+
+  audioContext.addEventListener(
+    "statechange",
+    function() {
+
+      if (
+        audioContext &&
+        audioContext.state !== "running"
+      ) {
+
+        audioGesturePrimed =
+          false;
+
+      }
+
+    }
+  );
+
+}
+
+
+function rebuildAudioContextFromGesture() {
+
+  if (
+    !AudioContextClass
+  ) {
+
+    return false;
+
+  }
+
+
+  const oldContext =
+    audioContext;
+
 
   try {
 
-    await audioContext.resume();
+    audioContext =
+      new AudioContextClass();
+
+    masterAudioGain =
+      audioContext.createGain();
+
+    masterAudioGain.gain.value =
+      MASTER_AUDIO_GAIN;
+
+    masterAudioGain.connect(
+      audioContext.destination
+    );
+
+    openingThemeSource =
+      null;
+
+    openingThemeGain =
+      null;
+
+    audioGesturePrimed =
+      false;
+
+    audioNeedsHardReset =
+      false;
+
+    attachAudioContextStateListener();
+
+
+    if (
+      oldContext &&
+      oldContext !== audioContext &&
+      oldContext.state !== "closed"
+    ) {
+
+      try {
+        oldContext.close();
+      }
+      catch(error) {
+        /* Ignore Safari close failures on a stale context. */
+      }
+
+    }
+
+
+    return true;
 
   }
   catch(error) {
 
     console.log(
-      "Audio background recovery resume failed:",
+      "Audio context hard reset failed:",
       error
     );
 
-  }
-
-
-  if (
-    audioContext.state === "running"
-  ) {
-
-    primeAudioContextSilently();
+    return false;
 
   }
 
@@ -21362,6 +21612,15 @@ async function recoverAudioAfterBackground() {
 
 
 function unlockAudioFromGesture() {
+
+  if (
+    audioNeedsHardReset
+  ) {
+
+    rebuildAudioContextFromGesture();
+
+  }
+
 
   if (
     !audioContext ||
@@ -21448,27 +21707,7 @@ function unlockAudioFromGesture() {
 }
 
 
-if (
-  audioContext
-) {
-
-  audioContext.addEventListener(
-    "statechange",
-    function() {
-
-      if (
-        audioContext.state !== "running"
-      ) {
-
-        audioGesturePrimed =
-          false;
-
-      }
-
-    }
-  );
-
-}
+attachAudioContextStateListener();
 
 
 window.addEventListener(
