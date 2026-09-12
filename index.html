@@ -3817,6 +3817,7 @@ const SOUND_FILES = {
   menuclick:"./menuclick.wav",
   checkmate:"./Checkmate.wav",
   draw:"./Stalemate.wav",
+  pawncoronation:"./pawncoronation.wav",
   invalid:"./Invalidmove.wav",
   stacking:"./stackingpieces.wav"
 
@@ -5416,6 +5417,20 @@ function playSoundForMove(move) {
     !soundEnabled
   ) {
     return;
+  }
+
+
+  if (
+    move &&
+    move.promotion &&
+    !game.inCheck() &&
+    !game.isCheckmate()
+  ) {
+
+    playSound(
+      "pawncoronation"
+    );
+
   }
 
 
@@ -8445,11 +8460,6 @@ async function resignOnlineGame(
   }
 
 
-  playSound(
-    "checkmate"
-  );
-
-
   await applyOnlineRoomUpdate(
     finished
   );
@@ -8647,6 +8657,35 @@ async function applyOnlineRoomUpdate(
   if (
     room.status === "finished"
   ) {
+
+    if (
+      previousRoom &&
+      previousRoom.status === "active" &&
+      room.result_reason === "resignation"
+    ) {
+
+      const myColor =
+        onlineRole === "white"
+          ? "w"
+          : onlineRole === "black"
+            ? "b"
+            : null;
+
+
+      if (
+        myColor
+      ) {
+
+        playSound(
+          room.winner_color === myColor
+            ? "checkmate"
+            : "draw"
+        );
+
+      }
+
+    }
+
 
     onlineResultReason =
       room.result_reason ||
@@ -13860,7 +13899,7 @@ async function resignComputerGame() {
 
 
   playSound(
-    "checkmate"
+    "draw"
   );
 
 
