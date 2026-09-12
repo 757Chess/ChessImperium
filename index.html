@@ -600,8 +600,8 @@ select {
 
 .online-chat-message {
   margin-bottom:7px;
-  font-size:11px;
-  line-height:1.35;
+  font-size:13px;
+  line-height:1.4;
 }
 
 .online-chat-message:last-child {
@@ -646,7 +646,7 @@ select {
   background:#fff;
   color:var(--text);
   outline:none;
-  font-size:11px;
+  font-size:13px;
   text-transform:none;
 }
 
@@ -662,7 +662,7 @@ select {
   background:var(--green);
   color:#fff;
   cursor:pointer;
-  font-size:11px;
+  font-size:13px;
   font-weight:800;
 }
 
@@ -8219,6 +8219,11 @@ async function resignOnlineGame(
   }
 
 
+  playSound(
+    "checkmate"
+  );
+
+
   await applyOnlineRoomUpdate(
     finished
   );
@@ -13569,6 +13574,12 @@ async function resignComputerGame() {
   fadeOutOpeningTheme(
     5000
   );
+
+
+  playSound(
+    "checkmate"
+  );
+
 
   cancelPieceDrag();
 
