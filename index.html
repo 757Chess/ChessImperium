@@ -3894,7 +3894,8 @@ registerAudioBuffer(
 async function ensureAudioContextReady() {
 
   if (
-    !audioContext
+    !audioContext ||
+    audioContext.state === "closed"
   ) {
 
     return false;
@@ -3902,8 +3903,13 @@ async function ensureAudioContextReady() {
   }
 
 
+  /*
+   * Safari/iOS can report an AudioContext as "interrupted"
+   * after navigating into the page. Treat every non-running
+   * state as needing a resume attempt, not only "suspended".
+   */
   if (
-    audioContext.state === "suspended"
+    audioContext.state !== "running"
   ) {
 
     try {
@@ -20061,9 +20067,126 @@ document.addEventListener(
 /* STARTUP                                               */
 /* ===================================================== */
 
+let audioGesturePrimed =
+  false;
+
+
 function unlockAudioFromGesture() {
 
-  ensureAudioContextReady();
+  if (
+    !audioContext ||
+    audioContext.state === "closed"
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * Resume immediately while still inside the trusted
+   * user-gesture call stack. This is important on Safari/iOS.
+   */
+  try {
+
+    const resumePromise =
+      audioContext.resume();
+
+
+    if (
+      resumePromise &&
+      typeof resumePromise.catch === "function"
+    ) {
+
+      resumePromise.catch(
+        error => {
+
+          console.log(
+            "Audio gesture resume failed:",
+            error
+          );
+
+        }
+      );
+
+    }
+
+  }
+  catch(error) {
+
+    console.log(
+      "Audio gesture resume failed:",
+      error
+    );
+
+  }
+
+
+  /*
+   * A one-sample silent source is a long-standing Web Audio
+   * unlock technique for Safari/iOS. It gives the browser an
+   * actual audio start command during the user's gesture.
+   */
+  if (
+    !audioGesturePrimed
+  ) {
+
+    try {
+
+      const unlockBuffer =
+        audioContext.createBuffer(
+          1,
+          1,
+          22050
+        );
+
+
+      const unlockSource =
+        audioContext.createBufferSource();
+
+
+      const unlockGain =
+        audioContext.createGain();
+
+
+      unlockSource.buffer =
+        unlockBuffer;
+
+
+      unlockGain.gain.value =
+        0;
+
+
+      unlockSource.connect(
+        unlockGain
+      );
+
+
+      unlockGain.connect(
+        masterAudioGain ||
+        audioContext.destination
+      );
+
+
+      unlockSource.start(
+        0
+      );
+
+
+      audioGesturePrimed =
+        true;
+
+    }
+    catch(error) {
+
+      console.log(
+        "Audio gesture prime failed:",
+        error
+      );
+
+    }
+
+  }
 
 }
 
@@ -20087,6 +20210,13 @@ window.addEventListener(
 
 window.addEventListener(
   "keydown",
+  unlockAudioFromGesture,
+  {capture:true}
+);
+
+
+window.addEventListener(
+  "click",
   unlockAudioFromGesture,
   {capture:true}
 );
