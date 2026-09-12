@@ -20096,6 +20096,9 @@ window.addEventListener(
   "focus",
   function() {
 
+    recoverAudioAfterBackground();
+
+
     if (
       gameMode === "online" &&
       onlineRoom &&
@@ -20117,7 +20120,21 @@ document.addEventListener(
   function() {
 
     if (
-      document.visibilityState === "visible" &&
+      document.visibilityState === "hidden"
+    ) {
+
+      audioGesturePrimed =
+        false;
+
+      return;
+
+    }
+
+
+    recoverAudioAfterBackground();
+
+
+    if (
       gameMode === "online" &&
       onlineRoom &&
       !onlineMoveSyncInFlight
@@ -20142,6 +20159,122 @@ let audioGesturePrimed =
   false;
 
 
+function primeAudioContextSilently() {
+
+  if (
+    !audioContext ||
+    audioContext.state === "closed"
+  ) {
+
+    return;
+
+  }
+
+
+  try {
+
+    const unlockBuffer =
+      audioContext.createBuffer(
+        1,
+        1,
+        22050
+      );
+
+
+    const unlockSource =
+      audioContext.createBufferSource();
+
+
+    const unlockGain =
+      audioContext.createGain();
+
+
+    unlockSource.buffer =
+      unlockBuffer;
+
+
+    unlockGain.gain.value =
+      0;
+
+
+    unlockSource.connect(
+      unlockGain
+    );
+
+
+    unlockGain.connect(
+      masterAudioGain ||
+      audioContext.destination
+    );
+
+
+    unlockSource.start(
+      0
+    );
+
+
+    audioGesturePrimed =
+      true;
+
+  }
+  catch(error) {
+
+    console.log(
+      "Audio context prime failed:",
+      error
+    );
+
+  }
+
+}
+
+
+async function recoverAudioAfterBackground() {
+
+  if (
+    !audioContext ||
+    audioContext.state === "closed"
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * Safari may interrupt Web Audio when this tab/window loses
+   * focus. Mark the context as needing a fresh silent prime.
+   */
+  audioGesturePrimed =
+    false;
+
+
+  try {
+
+    await audioContext.resume();
+
+  }
+  catch(error) {
+
+    console.log(
+      "Audio background recovery resume failed:",
+      error
+    );
+
+  }
+
+
+  if (
+    audioContext.state === "running"
+  ) {
+
+    primeAudioContextSilently();
+
+  }
+
+}
+
+
 function unlockAudioFromGesture() {
 
   if (
@@ -20152,6 +20285,11 @@ function unlockAudioFromGesture() {
     return;
 
   }
+
+
+  const needsFreshPrime =
+    !audioGesturePrimed ||
+    audioContext.state !== "running";
 
 
   /*
@@ -20166,19 +20304,34 @@ function unlockAudioFromGesture() {
 
     if (
       resumePromise &&
-      typeof resumePromise.catch === "function"
+      typeof resumePromise.then === "function"
     ) {
 
-      resumePromise.catch(
-        error => {
+      resumePromise
+        .then(
+          () => {
 
-          console.log(
-            "Audio gesture resume failed:",
-            error
-          );
+            if (
+              needsFreshPrime ||
+              !audioGesturePrimed
+            ) {
 
-        }
-      );
+              primeAudioContextSilently();
+
+            }
+
+          }
+        )
+        .catch(
+          error => {
+
+            console.log(
+              "Audio gesture resume failed:",
+              error
+            );
+
+          }
+        );
 
     }
 
@@ -20194,70 +20347,40 @@ function unlockAudioFromGesture() {
 
 
   /*
-   * A one-sample silent source is a long-standing Web Audio
-   * unlock technique for Safari/iOS. It gives the browser an
-   * actual audio start command during the user's gesture.
+   * Also issue the silent start while still inside the
+   * gesture. If Safari has queued the context for resume,
+   * the source begins as soon as the context is available.
    */
   if (
-    !audioGesturePrimed
+    needsFreshPrime
   ) {
 
-    try {
-
-      const unlockBuffer =
-        audioContext.createBuffer(
-          1,
-          1,
-          22050
-        );
-
-
-      const unlockSource =
-        audioContext.createBufferSource();
-
-
-      const unlockGain =
-        audioContext.createGain();
-
-
-      unlockSource.buffer =
-        unlockBuffer;
-
-
-      unlockGain.gain.value =
-        0;
-
-
-      unlockSource.connect(
-        unlockGain
-      );
-
-
-      unlockGain.connect(
-        masterAudioGain ||
-        audioContext.destination
-      );
-
-
-      unlockSource.start(
-        0
-      );
-
-
-      audioGesturePrimed =
-        true;
-
-    }
-    catch(error) {
-
-      console.log(
-        "Audio gesture prime failed:",
-        error
-      );
-
-    }
+    primeAudioContextSilently();
 
   }
+
+}
+
+
+if (
+  audioContext
+) {
+
+  audioContext.addEventListener(
+    "statechange",
+    function() {
+
+      if (
+        audioContext.state !== "running"
+      ) {
+
+        audioGesturePrimed =
+          false;
+
+      }
+
+    }
+  );
 
 }
 
@@ -20290,6 +20413,16 @@ window.addEventListener(
   "click",
   unlockAudioFromGesture,
   {capture:true}
+);
+
+
+window.addEventListener(
+  "pageshow",
+  function() {
+
+    recoverAudioAfterBackground();
+
+  }
 );
 
 
