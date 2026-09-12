@@ -132,6 +132,33 @@ h1 {
   font-size:14px;
 }
 
+.player-name-wrap {
+  margin:0 0 11px;
+}
+
+.player-name-input {
+  width:100%;
+  padding:8px 9px;
+  border:1px solid #cec5b8;
+  border-radius:8px;
+  background:#fff;
+  color:var(--text);
+  outline:none;
+  font-size:13px;
+  box-sizing:border-box;
+  text-transform:none;
+}
+
+.player-name-input:focus {
+  border-color:var(--green);
+  box-shadow:0 0 0 2px rgba(53,92,77,.10);
+}
+
+.player-name-input:disabled {
+  opacity:.52;
+  cursor:not-allowed;
+}
+
 
 /* ===================================================== */
 /* CONTROLS                                              */
@@ -2689,6 +2716,19 @@ th {
           How to Play
         </button>
 
+        <div class="player-name-wrap">
+          <label class="label"
+                 for="playerNameInput">
+            Player name or tag (optional)
+          </label>
+          <input id="playerNameInput"
+                 class="player-name-input"
+                 type="text"
+                 maxlength="24"
+                 autocomplete="nickname"
+                 placeholder="e.g. Wesley, Hitman, SydeQwest">
+        </div>
+
         <div class="label">Your formation</div>
 
         <div id="formationButtons" class="formation-grid"></div>
@@ -4512,6 +4552,9 @@ const ruleToast =
 const computerFormationSelect =
   document.getElementById("computerFormationSelect");
 
+const playerNameInput =
+  document.getElementById("playerNameInput");
+
 const statusBox =
   document.getElementById("statusBox");
 
@@ -4929,6 +4972,22 @@ const ONLINE_PLAYER_ID_KEY =
 
 const ONLINE_ROOM_CODE_KEY =
   "chessImperiumOnlineRoomCode";
+
+const PLAYER_DISPLAY_NAME_KEY =
+  "chessImperiumPlayerDisplayName";
+
+let playerDisplayName =
+  (
+    localStorage.getItem(
+      PLAYER_DISPLAY_NAME_KEY
+    ) ||
+    ""
+  )
+    .trim()
+    .slice(
+      0,
+      24
+    );
 
 let onlinePlayerId =
   localStorage.getItem(
@@ -5522,9 +5581,22 @@ function onlineChatSenderLabel(
   senderId
 ) {
 
-  return senderId === onlinePlayerId
-    ? "You"
-    : "Opponent";
+  if (
+    senderId === onlinePlayerId
+  ) {
+
+    return (
+      getMyOnlineDisplayName() ||
+      "You"
+    );
+
+  }
+
+
+  return (
+    getOpponentOnlineDisplayName() ||
+    "Opponent"
+  );
 
 }
 
@@ -6032,6 +6104,125 @@ function makeOnlineRoomCode() {
 
 
   return code;
+
+}
+
+
+function normalizedPlayerDisplayName() {
+
+  return (
+    playerDisplayName ||
+    ""
+  )
+    .trim()
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .slice(
+      0,
+      24
+    );
+
+}
+
+
+function possessiveLabel(
+  name
+) {
+
+  const clean =
+    (
+      name ||
+      ""
+    ).trim();
+
+
+  if (
+    !clean
+  ) {
+    return "";
+  }
+
+
+  return (
+    clean.endsWith(
+      "s"
+    )
+      ? clean + "’"
+      : clean + "’s"
+  );
+
+}
+
+
+function getOnlineDisplayNameForColor(
+  room,
+  color
+) {
+
+  if (
+    !room
+  ) {
+    return "";
+  }
+
+
+  return (
+    color === "w"
+      ? room.white_display_name
+      : room.black_display_name
+  ) || "";
+
+}
+
+
+function getMyOnlineDisplayName(
+  room = onlineRoom
+) {
+
+  if (
+    !room ||
+    !onlineRole
+  ) {
+    return normalizedPlayerDisplayName();
+  }
+
+
+  return onlineRole === "white"
+    ? (
+        room.white_display_name ||
+        normalizedPlayerDisplayName()
+      )
+    : (
+        room.black_display_name ||
+        normalizedPlayerDisplayName()
+      );
+
+}
+
+
+function getOpponentOnlineDisplayName(
+  room = onlineRoom
+) {
+
+  if (
+    !room ||
+    !onlineRole
+  ) {
+    return "";
+  }
+
+
+  return onlineRole === "white"
+    ? (
+        room.black_display_name ||
+        ""
+      )
+    : (
+        room.white_display_name ||
+        ""
+      );
 
 }
 
@@ -7146,9 +7337,20 @@ function setupOnlineGameFromRoom(
     "&nbsp;·&nbsp;Online&nbsp;·&nbsp;" +
 
     (
-      playerColor === "w"
-        ? "You are White"
-        : "You are Black"
+      getMyOnlineDisplayName()
+        ? (
+            getMyOnlineDisplayName() +
+            (
+              playerColor === "w"
+                ? " is White"
+                : " is Black"
+            )
+          )
+        : (
+            playerColor === "w"
+              ? "You are White"
+              : "You are Black"
+          )
     );
 
 
@@ -7681,6 +7883,27 @@ function updateOnlineClockDisplay() {
     formatClockMs(
       opponentRemaining
     );
+
+
+  const myClockName =
+    getMyOnlineDisplayName();
+
+  const opponentClockName =
+    getOpponentOnlineDisplayName();
+
+
+  onlineClockBottom.querySelector(
+    ".clock-role"
+  ).textContent =
+    myClockName ||
+    "You";
+
+
+  onlineClockTop.querySelector(
+    ".clock-role"
+  ).textContent =
+    opponentClockName ||
+    "Opponent";
 
 
   onlineClockBottom.classList.toggle(
@@ -8280,6 +8503,12 @@ async function applyOnlineRoomUpdate(
   updateUndoButton();
 
   updateOnlineClockDisplay();
+
+  renderOnlineChat();
+
+  updateInfoPanel();
+
+  updateStatus();
 
 
   onlineRoomCodeInput.value =
@@ -8961,6 +9190,10 @@ async function createOnlineRoom() {
           white_player_id:
             onlinePlayerId,
           black_player_id:null,
+          white_display_name:
+            normalizedPlayerDisplayName() ||
+            null,
+          black_display_name:null,
           white_formation:null,
           black_formation:null,
           fen:null,
@@ -9162,6 +9395,9 @@ async function joinOnlineRoom() {
       .update({
         black_player_id:
           onlinePlayerId,
+        black_display_name:
+          normalizedPlayerDisplayName() ||
+          null,
         status:
           "formation_selection",
         updated_at:
@@ -11496,6 +11732,42 @@ function refreshPreviewAfterSetupChange(
 
 function initializeControls() {
 
+  playerNameInput.value =
+    playerDisplayName;
+
+
+  playerNameInput.addEventListener(
+    "input",
+    function() {
+
+      playerDisplayName =
+        playerNameInput.value
+          .replace(
+            /\s+/g,
+            " "
+          )
+          .slice(
+            0,
+            24
+          );
+
+
+      localStorage.setItem(
+        PLAYER_DISPLAY_NAME_KEY,
+        playerDisplayName.trim()
+      );
+
+
+      updateInfoPanel();
+
+      updateStatus();
+
+      renderOnlineChat();
+
+    }
+  );
+
+
   FORMATIONS.forEach(
     function(formation) {
 
@@ -13055,6 +13327,11 @@ function updateSetupControlAvailability() {
     difficultyRuthless.disabled =
       false;
 
+    playerNameInput.disabled =
+      Boolean(
+        onlineRoom
+      );
+
 
     return;
 
@@ -13107,6 +13384,9 @@ function updateSetupControlAvailability() {
     computerGameActive;
 
   difficultyRuthless.disabled =
+    computerGameActive;
+
+  playerNameInput.disabled =
     computerGameActive;
 
 }
@@ -19835,20 +20115,44 @@ function updateStatus() {
       game.turn() === playerColor
     ) {
 
+      const myName =
+        getMyOnlineDisplayName();
+
+
       setStatus(
         game.inCheck()
-          ? "Your move — you are in check."
-          : "Your move."
+          ? (
+              myName
+                ? possessiveLabel(myName) + " move — in check."
+                : "Your move — you are in check."
+            )
+          : (
+              myName
+                ? possessiveLabel(myName) + " move."
+                : "Your move."
+            )
       );
 
     }
 
     else {
 
+      const opponentName =
+        getOpponentOnlineDisplayName();
+
+
       setStatus(
         game.inCheck()
-          ? "Opponent to move — opponent is in check."
-          : "Opponent to move."
+          ? (
+              opponentName
+                ? possessiveLabel(opponentName) + " move — in check."
+                : "Opponent to move — opponent is in check."
+            )
+          : (
+              opponentName
+                ? possessiveLabel(opponentName) + " move."
+                : "Opponent to move."
+            )
       );
 
     }
@@ -20005,13 +20309,25 @@ function updateStatus() {
     game.turn() === playerColor
   ) {
 
+    const myName =
+      normalizedPlayerDisplayName();
+
+
     setStatus(
 
       game.inCheck()
 
-        ? "Your move — you are in check."
+        ? (
+            myName
+              ? possessiveLabel(myName) + " move — in check."
+              : "Your move — you are in check."
+          )
 
-        : "Your move."
+        : (
+            myName
+              ? possessiveLabel(myName) + " move."
+              : "Your move."
+          )
 
     );
 
@@ -20099,7 +20415,13 @@ function updateInfoPanel() {
         formationText(actualComputerFormation) +
         "</div>" +
 
-        "<div class='match-line'><strong>You:</strong> " +
+        "<div class='match-line'><strong>" +
+        (
+          getMyOnlineDisplayName()
+            ? getMyOnlineDisplayName()
+            : "You"
+        ) +
+        ":</strong> " +
         colorText +
         "</div>" +
 
@@ -20116,7 +20438,13 @@ function updateInfoPanel() {
     else {
 
       infoBox.innerHTML =
-        "<div class='match-line'><strong>You:</strong> " +
+        "<div class='match-line'><strong>" +
+        (
+          getMyOnlineDisplayName()
+            ? getMyOnlineDisplayName()
+            : "You"
+        ) +
+        ":</strong> " +
         (
           playerFormationChoice === "RANDOM"
             ? "Random"
@@ -20126,7 +20454,13 @@ function updateInfoPanel() {
         colorText +
         "</div>" +
 
-        "<div class='match-line'><strong>Opponent:</strong> " +
+        "<div class='match-line'><strong>" +
+        (
+          getOpponentOnlineDisplayName()
+            ? getOpponentOnlineDisplayName()
+            : "Opponent"
+        ) +
+        ":</strong> " +
         "Formation hidden until both players lock in" +
         "</div>";
 
