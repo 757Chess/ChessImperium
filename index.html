@@ -2796,7 +2796,7 @@ th {
                  type="text"
                  maxlength="24"
                  autocomplete="nickname"
-                 placeholder="e.g. Wesley, Hitman, SydeQwest">
+                 placeholder="e.g. Rut, Hitman, Jonathan">
         </div>
 
         <div class="label">Your formation</div>
@@ -5051,21 +5051,6 @@ const ONLINE_ROOM_CODE_KEY =
 
 const PLAYER_DISPLAY_NAME_KEY =
   "chessImperiumPlayerDisplayName";
-
-const ROMAN_NAME_SUGGESTIONS = [
-  "Marcus",
-  "Lucius",
-  "Cassius",
-  "Aurelia",
-  "Octavia",
-  "Titus",
-  "Flavia",
-  "Gaius",
-  "Livia",
-  "Maximus",
-  "Valeria",
-  "Decimus"
-];
 
 let playerDisplayName =
   (
@@ -11825,15 +11810,6 @@ function initializeControls() {
 
   playerNameInput.value =
     playerDisplayName;
-
-
-  playerNameInput.placeholder =
-    ROMAN_NAME_SUGGESTIONS[
-      Math.floor(
-        Math.random() *
-        ROMAN_NAME_SUGGESTIONS.length
-      )
-    ];
 
 
   playerNameInput.addEventListener(
