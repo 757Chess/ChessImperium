@@ -3896,6 +3896,22 @@ const BISHOP_CAPTURE_SOUND_FILES = [
 ];
 
 
+const KING_CAPTURE_SOUND_FILES = [
+  "./king1.wav",
+  "./king2.wav",
+  "./king3.wav",
+  "./king4.wav",
+  "./king5.wav",
+  "./king6.wav",
+  "./king7.wav",
+  "./king8.wav",
+  "./king9.wav",
+  "./king10.wav",
+  "./king11.wav",
+  "./king12.wav"
+];
+
+
 const QUEEN_WHOOSH_FILES = {
   w:"./queenwhoosh1.wav",
   b:"./queenwhoosh2.wav"
@@ -3992,6 +4008,10 @@ const bishopCaptureSequenceIndexBySide = {
 
 
 let lastQueenDeathIndex =
+  -1;
+
+
+let lastKingCaptureIndex =
   -1;
 
 
@@ -4146,6 +4166,18 @@ BISHOP_CAPTURE_SOUND_FILES.forEach(
 
     registerAudioBuffer(
       "bishopcapture" + index,
+      file
+    );
+
+  }
+);
+
+
+KING_CAPTURE_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "kingcapture" + index,
       file
     );
 
@@ -5346,6 +5378,57 @@ function playRandomQueenDeathSound() {
   playBufferedSound(
     "queendeath" + nextIndex,
     0.2
+  );
+
+}
+
+
+function playRandomKingCaptureSound() {
+
+  if (
+    !soundEnabled ||
+    KING_CAPTURE_SOUND_FILES.length === 0
+  ) {
+    return;
+  }
+
+
+  let nextIndex =
+    Math.floor(
+      Math.random() *
+      KING_CAPTURE_SOUND_FILES.length
+    );
+
+
+  if (
+    KING_CAPTURE_SOUND_FILES.length > 1 &&
+    nextIndex === lastKingCaptureIndex
+  ) {
+
+    nextIndex =
+      (
+        nextIndex +
+        1 +
+        Math.floor(
+          Math.random() *
+          (
+            KING_CAPTURE_SOUND_FILES.length -
+            1
+          )
+        )
+      ) %
+      KING_CAPTURE_SOUND_FILES.length;
+
+  }
+
+
+  lastKingCaptureIndex =
+    nextIndex;
+
+
+  playBufferedSound(
+    "kingcapture" + nextIndex,
+    0.30
   );
 
 }
@@ -10689,6 +10772,22 @@ async function animateLegalMove(
   plannedMove,
   duration = MOVE_ANIMATION_DURATION
 ) {
+
+  /*
+   * King capture vocal begins immediately when the legal capture
+   * is released/committed, so the line can play during the king's
+   * one-square travel. Ordinary non-capturing king moves stay silent.
+   */
+  if (
+    plannedMove &&
+    plannedMove.piece === "k" &&
+    plannedMove.captured
+  ) {
+
+    playRandomKingCaptureSound();
+
+  }
+
 
   if (
     plannedMove &&
