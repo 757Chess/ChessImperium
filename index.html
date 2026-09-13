@@ -39,6 +39,33 @@ body {
   color:var(--text);
 }
 
+.launch-notice {
+  display:none;
+  width:min(920px,calc(100% - 28px));
+  margin:14px auto 0;
+  padding:12px 14px;
+  border:1px solid #d7a849;
+  border-radius:8px;
+  background:#fff5d8;
+  color:#3f3219;
+  font-size:14px;
+  line-height:1.4;
+}
+
+.launch-notice strong {
+  display:block;
+  margin-bottom:3px;
+}
+
+.launch-notice a {
+  color:#254f86;
+  font-weight:bold;
+}
+
+body.file-launch .launch-notice {
+  display:block;
+}
+
 .page {
   width:min(1420px,calc(100% - 28px));
   margin:0 auto;
@@ -2725,6 +2752,24 @@ th {
 </head>
 
 <body>
+
+<script>
+if (
+  window.location.protocol === "file:"
+) {
+  document.body.classList.add(
+    "file-launch"
+  );
+}
+</script>
+
+<div class="launch-notice">
+  <strong>Open Chess Imperium through localhost.</strong>
+  The direct file version can block the scripts that build the formation
+  controls. Use
+  <a href="http://localhost:8123/index.html">http://localhost:8123/index.html</a>
+  while developing.
+</div>
 
 <div id="hoverTooltip"></div>
 
