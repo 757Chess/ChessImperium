@@ -16702,6 +16702,23 @@ async function completePlayerMove(
   updateUndoButton();
 
 
+  /*
+   * Kings use direct drag for the local player, so those moves skip
+   * animateLegalMove(). Fire the capture vocal here for that direct-drag
+   * path; animated king captures still fire inside animateLegalMove().
+   */
+  if (
+    skipAnimation &&
+    plannedMove &&
+    plannedMove.piece === "k" &&
+    plannedMove.captured
+  ) {
+
+    playRandomKingCaptureSound();
+
+  }
+
+
   if (
     !skipAnimation
   ) {
