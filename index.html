@@ -5761,15 +5761,26 @@ function playSoundForMove(move) {
       move.captured === "b"
     ) {
 
+      const localKnightCapturedKnight =
+        move.captured === "n" &&
+        move.piece === "n" &&
+        move.color === playerColor;
+
       playSound(
         "capture",
         CAPTURE_SOUND_VOLUME
       );
 
-      playSequentialPieceCaptureSound(
-        move.captured,
-        capturedSide
-      );
+      if (
+        !localKnightCapturedKnight
+      ) {
+
+        playSequentialPieceCaptureSound(
+          move.captured,
+          capturedSide
+        );
+
+      }
 
     }
 
