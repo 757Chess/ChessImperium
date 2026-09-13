@@ -5428,7 +5428,7 @@ function playRandomKingCaptureSound() {
 
   playBufferedSound(
     "kingcapture" + nextIndex,
-    0.30
+    0.15
   );
 
 }
@@ -12702,6 +12702,27 @@ function initializeControls() {
       playMenuClick();
 
       hideTooltip();
+
+      /*
+       * Once a local game has reached the same commitment threshold that
+       * turns End Game into Resign Game, Start New Game must not bypass
+       * that resignation mechanic. The first click routes through the
+       * existing resignation flow; after the resignation is recorded, the
+       * player can press Start New Game again to begin the next game.
+       */
+      if (
+        gameMode !== "online" &&
+        game &&
+        gameStarted &&
+        !game.isGameOver() &&
+        !localGameFinished() &&
+        game.history().length >= 2
+      ) {
+
+        resignComputerGame();
+        return;
+
+      }
 
       startNewGame();
 
