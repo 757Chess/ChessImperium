@@ -5526,6 +5526,16 @@ function playSoundForMove(move) {
       move.captured === "r"
     ) {
 
+      /*
+       * Rook captures use two simultaneous layers:
+       * the normal board-impact capture sound plus the
+       * isolated rook-specific variation.
+       */
+      playSound(
+        "capture",
+        CAPTURE_SOUND_VOLUME
+      );
+
       playSequentialPieceCaptureSound(
         move.captured,
         capturedSide
