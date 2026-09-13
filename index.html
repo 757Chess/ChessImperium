@@ -5442,12 +5442,14 @@ function playSequentialPieceCaptureSound(
 
   playBufferedSound(
     keyPrefix + nextIndex,
-    (
-      pieceType === "n" ||
-      pieceType === "b"
-    )
-      ? 0.2
-      : 1
+    pieceType === "r"
+      ? 0.35
+      : (
+          pieceType === "n" ||
+          pieceType === "b"
+        )
+          ? 0.2
+          : 1
   );
 
 }
