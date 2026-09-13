@@ -3885,7 +3885,7 @@ const MENU_CLICK_VOLUME = 1;
 const MOVE_SOUND_VOLUME = .68;
 const CAPTURE_SOUND_VOLUME = .68;
 const STACKING_SOUND_VOLUME = .05;
-const KNIGHT_COMMAND_CAPTURE_VOLUME = .25;
+const KNIGHT_COMMAND_CAPTURE_VOLUME = .20;
 
 /*
  * Global game-audio boost.
@@ -5654,7 +5654,7 @@ function playSequentialPieceCaptureSound(
   playBufferedSound(
     keyPrefix + nextIndex,
     pieceType === "r"
-      ? 0.115
+      ? 0.16
       : (
           pieceType === "n" ||
           pieceType === "b"
