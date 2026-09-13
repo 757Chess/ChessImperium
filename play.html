@@ -1,0 +1,13728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Chess Imperium</title>
+
+<style>
+
+:root {
+  --bg:#f4f1ea;
+  --panel:#fff;
+  --border:#d8d1c5;
+  --text:#222;
+  --muted:#6b6b6b;
+  --green:#355c4d;
+  --green-hover:#466f5e;
+  --selected:#f2c94c;
+  --check:#d9534f;
+  --dot:rgba(20,20,20,.30);
+  --button:#f7f4ee;
+  --button-border:#d5cdc0;
+  --shadow:0 8px 24px rgba(0,0,0,.07);
+}
+
+* {
+  box-sizing:border-box;
+}
+
+html {
+  -webkit-text-size-adjust:100%;
+}
+
+body {
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.page {
+  width:min(1420px,calc(100% - 28px));
+  margin:0 auto;
+  padding:12px 0 20px;
+}
+
+.header {
+  text-align:center;
+  margin-bottom:11px;
+}
+
+h1 {
+  margin:0;
+  font-size:36px;
+  line-height:1.08;
+}
+
+.subtitle {
+  margin:3px 0 0;
+  font-size:16px;
+  color:var(--muted);
+}
+
+.app {
+  display:grid;
+  grid-template-columns:290px 620px 320px;
+  gap:16px;
+  justify-content:center;
+  align-items:start;
+}
+
+.panel,
+.board-panel {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+}
+
+.panel {
+  padding:14px;
+}
+
+.board-panel {
+  padding:11px;
+  position:relative;
+  overflow:visible;
+}
+
+.section {
+  padding-bottom:11px;
+  margin-bottom:11px;
+  border-bottom:1px solid #ece7df;
+}
+
+.section:last-child {
+  padding-bottom:0;
+  margin-bottom:0;
+  border-bottom:none;
+}
+
+.panel-title {
+  margin:0 0 10px;
+  font-size:19px;
+}
+
+.label {
+  display:block;
+  margin-bottom:6px;
+  font-weight:bold;
+  font-size:14px;
+}
+
+
+/* ===================================================== */
+/* CONTROLS                                              */
+/* ===================================================== */
+
+.formation-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+}
+
+.random-formation-wrap {
+  margin-top:7px;
+}
+
+.random-formation-btn {
+  width:100%;
+  min-height:44px;
+}
+
+button,
+select,
+textarea,
+input {
+  font:inherit;
+}
+
+button,
+select {
+  touch-action:manipulation;
+}
+
+.choice-btn,
+.side-btn,
+.difficulty-btn,
+.action-btn,
+.sound-btn,
+.feedback-btn,
+.summary-btn {
+  border:1px solid var(--button-border);
+  background:var(--button);
+  border-radius:9px;
+  cursor:pointer;
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    color .15s ease,
+    opacity .15s ease;
+}
+
+.choice-btn {
+  min-height:52px;
+  padding:7px 5px;
+  font-size:13px;
+  line-height:1.2;
+}
+
+.choice-btn .formation-code {
+  display:block;
+  font-weight:bold;
+  font-size:13px;
+}
+
+.choice-btn .formation-name {
+  display:block;
+  margin-top:2px;
+  font-size:11px;
+}
+
+.random-formation-btn .formation-code {
+  font-size:13px;
+}
+
+.random-formation-btn .formation-name {
+  font-size:11px;
+}
+
+button:hover:not(:disabled) {
+  background:#eee9df;
+}
+
+button:disabled {
+  opacity:.48;
+  cursor:not-allowed;
+}
+
+.active {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.active:hover:not(:disabled) {
+  background:var(--green-hover);
+}
+
+.three-buttons {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+}
+
+.difficulty-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:5px;
+}
+
+.side-btn,
+.difficulty-btn,
+.action-btn,
+.sound-btn,
+.feedback-btn,
+.summary-btn {
+  padding:8px 7px;
+}
+
+.difficulty-btn {
+  font-size:12px;
+}
+
+select {
+  width:100%;
+  padding:8px;
+  border:1px solid var(--button-border);
+  border-radius:8px;
+  background:#fff;
+}
+
+.game-actions {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+}
+
+.undo-action,
+.reset-action {
+  grid-column:1 / -1;
+}
+
+.primary {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.primary:hover:not(:disabled) {
+  background:var(--green-hover);
+}
+
+@keyframes startGamePulse {
+  0%,100% {
+    box-shadow:0 0 0 0 rgba(53,92,77,0);
+    transform:scale(1);
+  }
+
+  50% {
+    box-shadow:0 0 0 7px rgba(53,92,77,.18);
+    transform:scale(1.018);
+  }
+}
+
+#newGameBtn.start-attention {
+  animation:startGamePulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion:reduce) {
+  #newGameBtn.start-attention {
+    animation:none;
+    box-shadow:0 0 0 3px rgba(53,92,77,.14);
+  }
+}
+
+.feedback-btn {
+  width:100%;
+  background:#fff;
+}
+
+
+/* ===================================================== */
+/* ONLINE MULTIPLAYER                                    */
+/* ===================================================== */
+
+.mode-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  margin-bottom:11px;
+}
+
+.mode-btn {
+  padding:8px 7px;
+  border:1px solid var(--button-border);
+  background:var(--button);
+  border-radius:9px;
+  cursor:pointer;
+}
+
+.mode-btn.active {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.online-panel {
+  display:none;
+}
+
+.online-panel.visible {
+  display:block;
+}
+
+.online-row {
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:6px;
+  margin-top:7px;
+}
+
+.online-row input {
+  width:100%;
+  min-width:0;
+  padding:8px;
+  border:1px solid var(--button-border);
+  border-radius:8px;
+  text-transform:uppercase;
+  background:#fff;
+}
+
+.online-action {
+  padding:8px 9px;
+  border:1px solid var(--button-border);
+  background:var(--button);
+  border-radius:9px;
+  cursor:pointer;
+}
+
+.online-action.primary {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.online-action:disabled {
+  opacity:.48;
+  cursor:not-allowed;
+}
+
+.online-status {
+  margin-top:8px;
+  padding:8px 9px;
+  border:1px solid #e7e0d5;
+  border-radius:9px;
+  background:#faf8f4;
+  font-size:11px;
+  line-height:1.4;
+  white-space:pre-wrap;
+}
+
+.online-room-code {
+  margin-top:6px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-weight:bold;
+  letter-spacing:.7px;
+}
+
+.online-hidden {
+  display:none !important;
+}
+
+
+/* ===================================================== */
+/* TOOLTIP                                               */
+/* ===================================================== */
+
+#hoverTooltip {
+  position:fixed;
+  width:270px;
+  padding:13px 14px;
+  background:#fffdf9;
+  border:1px solid #d6cec0;
+  border-radius:12px;
+  box-shadow:0 10px 28px rgba(0,0,0,.14);
+  z-index:900;
+  display:none;
+  pointer-events:none;
+}
+
+#hoverTooltip.visible {
+  display:block;
+}
+
+.tooltip-title {
+  margin-bottom:6px;
+  font-size:15px;
+  font-weight:bold;
+  color:var(--green);
+}
+
+.tooltip-description {
+  margin-bottom:9px;
+  font-size:12px;
+  line-height:1.4;
+}
+
+.tooltip-line {
+  margin-top:6px;
+  font-size:11px;
+  line-height:1.4;
+}
+
+.tooltip-line strong {
+  color:#333;
+}
+
+.tooltip-note {
+  margin-top:8px;
+  padding-top:7px;
+  border-top:1px solid #e6dfd4;
+  color:var(--muted);
+  font-size:10px;
+  font-style:italic;
+  line-height:1.35;
+}
+
+
+/* ===================================================== */
+/* CAPTURE TOAST                                         */
+/* ===================================================== */
+
+#captureToast {
+  position:absolute;
+  top:calc(100% + 8px);
+  right:12px;
+  min-width:185px;
+  max-width:260px;
+  padding:10px 12px;
+  background:#fffdf9;
+  border:1px solid #d6cec0;
+  border-radius:11px;
+  box-shadow:0 10px 28px rgba(0,0,0,.14);
+  z-index:450;
+  opacity:0;
+  transform:translateY(-5px);
+  visibility:hidden;
+  pointer-events:none;
+  transition:
+    opacity .22s ease,
+    transform .22s ease,
+    visibility .22s;
+}
+
+#captureToast.visible {
+  opacity:1;
+  transform:translateY(0);
+  visibility:visible;
+}
+
+.capture-toast-title {
+  color:var(--green);
+  font-size:12px;
+  font-weight:bold;
+  margin-bottom:5px;
+}
+
+.capture-toast-row {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-height:28px;
+  padding:2px 0;
+  font-size:12px;
+}
+
+.capture-toast-row + .capture-toast-row {
+  border-top:1px solid #eee7dc;
+  margin-top:2px;
+  padding-top:4px;
+}
+
+.capture-toast-piece {
+  width:30px;
+  height:30px;
+  object-fit:contain;
+}
+
+
+/* ===================================================== */
+/* RULE TOAST                                            */
+/* ===================================================== */
+
+#ruleToast {
+  position:absolute;
+  top:18px;
+  left:50%;
+  transform:translate(-50%,-8px);
+  min-width:280px;
+  max-width:calc(100% - 40px);
+  padding:10px 15px;
+  background:#fffdf9;
+  border:1px solid #d6cec0;
+  border-radius:11px;
+  box-shadow:0 10px 28px rgba(0,0,0,.16);
+  z-index:500;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  text-align:center;
+  font-size:13px;
+  font-weight:bold;
+  transition:
+    opacity .25s ease,
+    transform .25s ease,
+    visibility .25s;
+}
+
+#ruleToast.visible {
+  opacity:1;
+  visibility:visible;
+  transform:translate(-50%,0);
+}
+
+#ruleToast.enabled {
+  color:var(--green);
+}
+
+#ruleToast.disabled {
+  color:#655f56;
+}
+
+
+/* ===================================================== */
+/* BOARD                                                 */
+/* ===================================================== */
+
+.board-wrap {
+  width:100%;
+  max-width:604px;
+  margin:0 auto;
+}
+
+.board-coordinate-frame {
+  width:100%;
+  display:grid;
+  grid-template-columns:20px minmax(0,576px);
+  grid-template-rows:minmax(0,576px) 20px;
+  justify-content:center;
+  align-items:stretch;
+}
+
+.rank-coordinates {
+  grid-column:1;
+  grid-row:1;
+  display:grid;
+  grid-template-rows:repeat(8,1fr);
+  align-items:center;
+  justify-items:center;
+  font-size:11px;
+  font-weight:bold;
+  color:#4f4a43;
+}
+
+.file-coordinates {
+  grid-column:2;
+  grid-row:2;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  align-items:center;
+  justify-items:center;
+  font-size:11px;
+  font-weight:bold;
+  color:#4f4a43;
+}
+
+.coordinate-corner {
+  grid-column:1;
+  grid-row:2;
+}
+
+#board {
+  grid-column:2;
+  grid-row:1;
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  grid-template-rows:repeat(8,1fr);
+  width:100%;
+  max-width:576px;
+  aspect-ratio:1 / 1;
+  background-image:url("./Graphics/boardtexture.png");
+  background-size:100% 100%;
+  background-position:center;
+  background-repeat:no-repeat;
+  border:none;
+  border-radius:0;
+  overflow:hidden;
+}
+
+.annotation-layer {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:40;
+  pointer-events:none;
+}
+
+.annotation-arrow {
+  stroke:#c99e3d;
+  stroke-width:18;
+  stroke-linecap:butt;
+  opacity:.82;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.22));
+}
+
+.annotation-marker {
+  fill:rgba(142,32,38,.28);
+  stroke:rgba(142,32,38,.68);
+  stroke-width:3;
+  opacity:.96;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.16));
+}
+
+.square {
+  position:relative;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:none;
+}
+
+.light,
+.dark {
+  background:transparent;
+}
+
+.last-move {
+  background:transparent;
+}
+
+.last-move::before {
+  content:none;
+}
+
+.move-ghost {
+  position:absolute;
+  z-index:3;
+  width:92%;
+  height:92%;
+  object-fit:contain;
+  pointer-events:none;
+  opacity:.36;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.10));
+  animation:moveGhostFade 3s ease-out forwards;
+  transform-origin:center;
+}
+
+@keyframes moveGhostFade {
+  0%,66% {
+    opacity:.36;
+    transform:scale(1);
+  }
+  100% {
+    opacity:0;
+    transform:scale(.985);
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .move-ghost {
+    animation:none;
+    opacity:.28;
+  }
+}
+
+.selected::after {
+  content:none;
+}
+
+.check::after {
+  content:none;
+}
+
+.move-dot {
+  position:absolute;
+  width:25%;
+  aspect-ratio:1 / 1;
+  max-width:18px;
+  border-radius:50%;
+  background:var(--dot);
+  pointer-events:none;
+}
+
+.piece.capture-target-piece {
+  animation:capturePiecePulse 1.35s ease-in-out infinite;
+  transform-origin:center;
+}
+
+@keyframes capturePiecePulse {
+  0%,100% {
+    transform:scale(1);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 5px rgba(142,32,38,.56))
+      drop-shadow(0 0 10px rgba(142,32,38,.34));
+  }
+
+  50% {
+    transform:scale(1.068);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 11px rgba(176,40,46,.90))
+      drop-shadow(0 0 22px rgba(142,32,38,.62));
+  }
+}
+
+.square.selected .piece {
+  animation:selectedPiecePulse 1.35s ease-in-out infinite;
+  transform-origin:center;
+}
+
+@keyframes selectedPiecePulse {
+  0%,100% {
+    transform:scale(1);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 5px rgba(201,158,61,.56))
+      drop-shadow(0 0 10px rgba(201,158,61,.34));
+  }
+
+  50% {
+    transform:scale(1.068);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 11px rgba(224,180,73,.90))
+      drop-shadow(0 0 22px rgba(201,158,61,.62));
+  }
+}
+
+
+.piece.checked-king-piece {
+  animation:checkedKingDangerPulse .95s ease-in-out infinite;
+  transform-origin:center;
+}
+
+@keyframes checkedKingDangerPulse {
+  0%,100% {
+    transform:scale(1);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 8px rgba(142,32,38,.78))
+      drop-shadow(0 0 16px rgba(176,40,46,.58))
+      drop-shadow(0 0 26px rgba(142,32,38,.34));
+  }
+
+  50% {
+    transform:scale(1.105);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 15px rgba(220,48,58,1))
+      drop-shadow(0 0 30px rgba(186,41,48,.82))
+      drop-shadow(0 0 46px rgba(142,32,38,.58));
+  }
+}
+
+
+.piece.checkmate-attacker-piece {
+  animation:checkmateAttackerPulse 1.35s ease-in-out infinite;
+  transform-origin:center;
+}
+
+@keyframes checkmateAttackerPulse {
+  0%,100% {
+    transform:scale(1);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 6px rgba(41,136,71,.58))
+      drop-shadow(0 0 12px rgba(41,136,71,.34));
+  }
+
+  50% {
+    transform:scale(1.085);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 13px rgba(54,176,92,.92))
+      drop-shadow(0 0 24px rgba(41,136,71,.62));
+  }
+}
+
+.piece.checkmated-king-piece {
+  animation:checkmatedKingPulse 1.35s ease-in-out infinite;
+  transform-origin:center;
+}
+
+@keyframes checkmatedKingPulse {
+  0%,100% {
+    transform:scale(1);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 6px rgba(142,32,38,.58))
+      drop-shadow(0 0 12px rgba(142,32,38,.34));
+  }
+
+  50% {
+    transform:scale(1.085);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 13px rgba(186,41,48,.95))
+      drop-shadow(0 0 25px rgba(142,32,38,.65));
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .piece.checked-king-piece {
+    animation:none;
+    transform:scale(1.045);
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 12px rgba(220,48,58,.96))
+      drop-shadow(0 0 24px rgba(186,41,48,.74))
+      drop-shadow(0 0 38px rgba(142,32,38,.50));
+  }
+
+  .piece.capture-target-piece {
+    animation:none;
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 8px rgba(142,32,38,.76))
+      drop-shadow(0 0 16px rgba(142,32,38,.46));
+  }
+
+  .square.selected .piece {
+    animation:none;
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 8px rgba(201,158,61,.76))
+      drop-shadow(0 0 16px rgba(201,158,61,.46));
+  }
+
+  .piece.checkmate-attacker-piece {
+    animation:none;
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 9px rgba(41,136,71,.82))
+      drop-shadow(0 0 18px rgba(41,136,71,.48));
+  }
+
+  .piece.checkmated-king-piece {
+    animation:none;
+    filter:
+      drop-shadow(0 1px 2px rgba(0,0,0,.18))
+      drop-shadow(0 0 9px rgba(142,32,38,.82))
+      drop-shadow(0 0 18px rgba(142,32,38,.48));
+  }
+}
+
+.drag-piece {
+  position:fixed;
+  z-index:2000;
+  width:68px;
+  height:68px;
+  object-fit:contain;
+  pointer-events:none;
+  transform:translate(-50%,-50%) scale(1.06);
+  filter:drop-shadow(0 8px 10px rgba(0,0,0,.28));
+  opacity:.96;
+}
+
+.square.drag-source .piece {
+  opacity:.36;
+  animation:none !important;
+  transform:scale(1) !important;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.10)) !important;
+}
+
+.drag-source-piece {
+  opacity:0 !important;
+  animation:none !important;
+  filter:none !important;
+}
+
+.drag-origin-ghost,
+.glide-origin-ghost {
+  position:absolute;
+  z-index:3;
+  width:92%;
+  height:92%;
+  object-fit:contain;
+  pointer-events:none;
+  opacity:.36;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.10));
+  transform:scale(1);
+  animation:none !important;
+}
+
+.piece {
+  position:relative;
+  z-index:2;
+  width:92%;
+  height:92%;
+  object-fit:contain;
+  pointer-events:none;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.18));
+  will-change:transform;
+}
+
+.piece.move-glide {
+  z-index:30;
+}
+
+.preview-bar {
+  margin-top:6px;
+  min-height:31px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  font-size:13px;
+  color:var(--muted);
+  padding:0 4px;
+}
+
+.preview-bar strong {
+  color:var(--green);
+}
+
+
+/* ===================================================== */
+/* GENERAL BOXES                                         */
+/* ===================================================== */
+
+.box {
+  padding:9px 10px;
+  background:#faf8f4;
+  border:1px solid #e7e0d5;
+  border-radius:10px;
+}
+
+.status-box {
+  min-height:48px;
+  line-height:1.35;
+  font-size:14px;
+}
+
+.status-box.victory {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-family:Georgia, "Times New Roman", serif;
+  font-size:21px;
+  line-height:1.15;
+  font-weight:800;
+  letter-spacing:.7px;
+  color:#1f5f32;
+  background:linear-gradient(180deg,#fffdf7 0%,#f4ead2 100%);
+  border:2px solid #c99e3d;
+  box-shadow:
+    0 0 0 2px rgba(201,158,61,.10),
+    0 5px 14px rgba(90,63,17,.12);
+}
+
+.status-box.defeat {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-family:Georgia, "Times New Roman", serif;
+  font-size:19px;
+  line-height:1.15;
+  font-weight:750;
+  letter-spacing:.45px;
+  color:#7c2026;
+  background:linear-gradient(180deg,#fffafa 0%,#f4e4e4 100%);
+  border:2px solid rgba(142,32,38,.55);
+}
+
+
+.status-box.draw {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-family:Georgia, "Times New Roman", serif;
+  font-size:19px;
+  line-height:1.15;
+  font-weight:750;
+  letter-spacing:.5px;
+  color:#5d4a22;
+  background:linear-gradient(180deg,#fffdf8 0%,#eee4cf 100%);
+  border:2px solid rgba(166,132,66,.62);
+  box-shadow:
+    0 0 0 2px rgba(166,132,66,.08),
+    0 4px 12px rgba(72,57,29,.09);
+}
+
+.engine {
+  margin-top:5px;
+  font-size:11px;
+  color:#1e7a36;
+  font-weight:bold;
+}
+
+.match-line {
+  margin-bottom:4px;
+  font-size:12px;
+  line-height:1.35;
+}
+
+.match-line:last-child {
+  margin-bottom:0;
+}
+
+.material-line {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+}
+
+.material-score {
+  font-size:19px;
+  font-weight:bold;
+  color:var(--green);
+}
+
+.capture-row {
+  margin-top:7px;
+}
+
+.capture-label {
+  font-size:11px;
+  font-weight:bold;
+  color:var(--muted);
+  margin-bottom:2px;
+}
+
+.captured-pieces {
+  min-height:25px;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.captured-piece {
+  width:26px;
+  height:26px;
+  object-fit:contain;
+}
+
+.none {
+  color:#999;
+  font-size:11px;
+}
+
+.move-box {
+  overflow:hidden;
+}
+
+table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+}
+
+th,
+td {
+  padding:5px 6px;
+  border-bottom:1px solid #e6dfd4;
+  text-align:left;
+}
+
+th {
+  background:#f2ede4;
+}
+
+.small-note {
+  margin-top:6px;
+  font-size:10px;
+  color:var(--muted);
+  line-height:1.35;
+}
+
+
+/* ===================================================== */
+/* GAME OVER SUMMARY                                     */
+/* ===================================================== */
+
+#gameOverSection {
+  display:none;
+}
+
+#gameOverSection.visible {
+  display:block;
+}
+
+.game-over-box {
+  padding:12px;
+  background:#fbf8f1;
+  border:1px solid #ded5c7;
+  border-radius:11px;
+}
+
+.game-over-result {
+  margin-bottom:9px;
+  color:var(--green);
+  font-size:17px;
+  font-weight:bold;
+}
+
+.game-over-line {
+  margin-bottom:4px;
+  font-size:12px;
+  line-height:1.35;
+}
+
+.game-over-actions {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:11px;
+}
+
+.summary-btn {
+  font-size:12px;
+}
+
+.summary-btn.primary-summary {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.summary-btn.primary-summary:hover:not(:disabled) {
+  background:var(--green-hover);
+}
+
+.copy-status {
+  min-height:14px;
+  margin-top:7px;
+  text-align:center;
+  font-size:10px;
+  color:var(--green);
+}
+
+
+/* ===================================================== */
+/* PROMOTION                                             */
+/* ===================================================== */
+
+.promotion-overlay {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.38);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
+
+.promotion-overlay.visible {
+  display:flex;
+}
+
+.promotion-card {
+  width:390px;
+  max-width:calc(100% - 30px);
+  padding:20px;
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 18px 50px rgba(0,0,0,.24);
+  text-align:center;
+}
+
+.promotion-card h2 {
+  margin:0 0 5px;
+  font-size:21px;
+}
+
+.promotion-card p {
+  margin:0 0 16px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.promotion-options {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+
+.promotion-option {
+  padding:8px 5px;
+  background:#f8f5ef;
+  border:1px solid var(--button-border);
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.promotion-option:hover {
+  background:#ebe6dd;
+}
+
+.promotion-option img {
+  display:block;
+  width:55px;
+  height:55px;
+  margin:0 auto 3px;
+  object-fit:contain;
+}
+
+.promotion-option span {
+  font-size:12px;
+  font-weight:bold;
+}
+
+.promotion-cancel {
+  margin-top:12px;
+  padding:7px 15px;
+  border:1px solid var(--button-border);
+  border-radius:8px;
+  background:#fff;
+  cursor:pointer;
+}
+
+
+/* ===================================================== */
+/* FEEDBACK                                              */
+/* ===================================================== */
+
+.feedback-overlay {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.42);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1100;
+  padding:18px;
+}
+
+.feedback-overlay.visible {
+  display:flex;
+}
+
+.feedback-card {
+  width:520px;
+  max-width:100%;
+  background:#fffdf9;
+  border:1px solid #d8d1c5;
+  border-radius:16px;
+  box-shadow:0 18px 60px rgba(0,0,0,.26);
+  padding:22px;
+  position:relative;
+}
+
+.feedback-close {
+  position:absolute;
+  right:12px;
+  top:10px;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  font-size:25px;
+  line-height:1;
+  color:#777;
+  padding:4px 7px;
+}
+
+.feedback-close:hover {
+  background:transparent;
+  color:#222;
+}
+
+.feedback-card h2 {
+  margin:0 34px 6px 0;
+  font-size:23px;
+}
+
+.feedback-intro {
+  margin:0 0 17px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+}
+
+.feedback-field {
+  margin-bottom:12px;
+}
+
+.feedback-field label {
+  display:block;
+  margin-bottom:5px;
+  font-size:12px;
+  font-weight:bold;
+}
+
+.feedback-field input,
+.feedback-field textarea {
+  width:100%;
+  border:1px solid #cec5b8;
+  border-radius:9px;
+  padding:10px;
+  background:#fff;
+  color:var(--text);
+  outline:none;
+}
+
+.feedback-field input:focus,
+.feedback-field textarea:focus {
+  border-color:var(--green);
+  box-shadow:0 0 0 2px rgba(53,92,77,.12);
+}
+
+.feedback-field textarea {
+  min-height:170px;
+  resize:vertical;
+  line-height:1.4;
+}
+
+.feedback-actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:15px;
+}
+
+.feedback-cancel,
+.feedback-submit,
+.feedback-done {
+  padding:9px 14px;
+  border-radius:9px;
+  cursor:pointer;
+  border:1px solid var(--button-border);
+}
+
+.feedback-cancel {
+  background:#fff;
+}
+
+.feedback-submit,
+.feedback-done {
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.feedback-submit:hover,
+.feedback-done:hover {
+  background:var(--green-hover);
+}
+
+.feedback-submit:disabled {
+  opacity:.6;
+  cursor:wait;
+}
+
+.feedback-status {
+  min-height:18px;
+  margin-top:9px;
+  font-size:12px;
+  color:#a53d35;
+}
+
+.feedback-success {
+  display:none;
+  text-align:center;
+  padding:18px 4px 4px;
+}
+
+.feedback-success.visible {
+  display:block;
+}
+
+.feedback-success-icon {
+  font-size:34px;
+  margin-bottom:6px;
+}
+
+.feedback-success h3 {
+  margin:0 0 6px;
+  font-size:20px;
+}
+
+.feedback-success p {
+  margin:0 0 17px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.feedback-form.hidden {
+  display:none;
+}
+
+
+/* ===================================================== */
+/* RESPONSIVE                                            */
+/* ===================================================== */
+
+@media (max-width:1240px) {
+
+  .app {
+    grid-template-columns:270px minmax(0,580px) 290px;
+  }
+
+}
+
+@media (max-width:1120px) {
+
+  .app {
+    grid-template-columns:minmax(0,700px);
+  }
+
+  .panel,
+  .board-panel {
+    width:100%;
+    margin:0 auto;
+  }
+
+  #captureToast {
+    position:fixed;
+    top:auto;
+    right:16px;
+    bottom:16px;
+  }
+
+  #ruleToast {
+    position:fixed;
+    top:18px;
+  }
+
+}
+
+@media (max-width:700px) {
+
+  .page {
+    width:calc(100% - 16px);
+    padding-top:8px;
+  }
+
+  .header {
+    margin-bottom:8px;
+  }
+
+  h1 {
+    font-size:28px;
+  }
+
+  .subtitle {
+    font-size:14px;
+  }
+
+  .app {
+    gap:10px;
+  }
+
+  .panel {
+    padding:12px;
+    border-radius:13px;
+  }
+
+  .board-panel {
+    padding:7px;
+    border-radius:12px;
+  }
+
+  .section {
+    padding-bottom:9px;
+    margin-bottom:9px;
+  }
+
+  .panel-title {
+    font-size:18px;
+  }
+
+  .choice-btn {
+    min-height:48px;
+    padding-left:3px;
+    padding-right:3px;
+  }
+
+  .choice-btn .formation-code {
+    font-size:12px;
+  }
+
+  .choice-btn .formation-name {
+    font-size:10px;
+  }
+
+  .random-formation-btn {
+    min-height:42px;
+  }
+
+  .side-btn,
+  .difficulty-btn,
+  .action-btn,
+  .sound-btn,
+  .feedback-btn,
+  .summary-btn {
+    min-height:40px;
+  }
+
+  .difficulty-grid {
+    gap:4px;
+  }
+
+  .difficulty-btn {
+    padding-left:3px;
+    padding-right:3px;
+    font-size:10px;
+  }
+
+  .board-coordinate-frame {
+    grid-template-columns:15px minmax(0,1fr);
+    grid-template-rows:minmax(0,1fr) 15px;
+  }
+
+  .rank-coordinates,
+  .file-coordinates {
+    font-size:8px;
+  }
+
+  .selected::after,
+  .check::after {
+    inset:3px;
+    border-width:3px;
+  }
+
+  .preview-bar {
+    min-height:27px;
+    font-size:11px;
+    line-height:1.3;
+  }
+
+  #hoverTooltip {
+    width:min(330px,calc(100vw - 24px)) !important;
+    left:50% !important;
+    right:auto !important;
+    top:auto !important;
+    bottom:14px !important;
+    transform:translateX(-50%);
+    max-height:45vh;
+    overflow:auto;
+  }
+
+  #ruleToast {
+    min-width:0;
+    width:calc(100% - 40px);
+    font-size:12px;
+  }
+
+  .feedback-card {
+    padding:18px;
+  }
+
+  .feedback-field textarea {
+    min-height:145px;
+  }
+
+}
+
+@media (hover:none) and (pointer:coarse) {
+
+  #hoverTooltip {
+    width:min(330px,calc(100vw - 24px)) !important;
+    left:50% !important;
+    right:auto !important;
+    top:auto !important;
+    bottom:14px !important;
+    transform:translateX(-50%);
+    max-height:45vh;
+    overflow:auto;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="hoverTooltip"></div>
+
+<div class="page">
+
+  <div class="header">
+    <h1>Chess Imperium</h1>
+    <p class="subtitle">A Strategic Chess Variant · Online Beta v5</p>
+  </div>
+
+  <div class="app">
+
+    <!-- LEFT PANEL -->
+
+    <div class="panel">
+
+      <div class="section">
+
+        <h2 class="panel-title">Game Setup</h2>
+
+        <div class="mode-grid">
+          <button id="computerModeBtn" class="mode-btn active" type="button">
+            Vs Computer
+          </button>
+          <button id="onlineModeBtn" class="mode-btn" type="button">
+            Online Multiplayer
+          </button>
+        </div>
+
+        <div class="label">Your formation</div>
+
+        <div id="formationButtons" class="formation-grid"></div>
+
+        <div class="random-formation-wrap">
+          <button
+            id="randomFormationBtn"
+            class="choice-btn random-formation-btn"
+            type="button">
+
+            <span class="formation-code">🎲 Random Formation</span>
+            <span class="formation-name">Surprise me</span>
+
+          </button>
+        </div>
+
+        <div id="computerFormationWrap">
+          <div style="height:9px"></div>
+
+          <label class="label" for="computerFormationSelect">
+            Computer formation
+          </label>
+
+          <select id="computerFormationSelect">
+            <option value="RANDOM">Random formation</option>
+          </select>
+        </div>
+
+      </div>
+
+
+      <div id="playAsSection" class="section">
+
+        <div class="label">Play as</div>
+
+        <div class="three-buttons">
+
+          <button
+            id="playWhiteBtn"
+            class="side-btn active"
+            type="button">
+            White
+          </button>
+
+          <button
+            id="playRandomBtn"
+            class="side-btn"
+            type="button">
+            Random
+          </button>
+
+          <button
+            id="playBlackBtn"
+            class="side-btn"
+            type="button">
+            Black
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div id="difficultySection" class="section">
+
+        <div class="label">Difficulty</div>
+
+        <div class="difficulty-grid">
+
+          <button
+            id="difficultyRelaxed"
+            class="difficulty-btn active"
+            type="button">
+            Relaxed
+          </button>
+
+          <button
+            id="difficultyStandard"
+            class="difficulty-btn"
+            type="button">
+            Standard
+          </button>
+
+          <button
+            id="difficultyFierce"
+            class="difficulty-btn"
+            type="button">
+            Fierce
+          </button>
+
+          <button
+            id="difficultyRuthless"
+            class="difficulty-btn"
+            type="button">
+            Ruthless
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div id="onlinePanel" class="section online-panel">
+
+        <div class="label">Online Room</div>
+
+        <button id="createOnlineRoomBtn"
+                class="online-action primary"
+                type="button"
+                style="width:100%;">
+          Create Room
+        </button>
+
+        <div class="online-row">
+          <input id="onlineRoomCodeInput"
+                 maxlength="6"
+                 placeholder="Room code">
+          <button id="joinOnlineRoomBtn"
+                  class="online-action"
+                  type="button">
+            Join
+          </button>
+        </div>
+
+        <button id="lockOnlineFormationBtn"
+                class="online-action"
+                type="button"
+                style="width:100%;margin-top:7px;"
+                disabled>
+          Lock Formation
+        </button>
+
+        <button id="leaveOnlineRoomBtn"
+                class="online-action"
+                type="button"
+                style="width:100%;margin-top:7px;"
+                disabled>
+          Leave Online Room
+        </button>
+
+        <div id="onlineStatusBox" class="online-status">
+          Create a room or join with a room code.
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <div class="label">Sound</div>
+
+        <button
+          id="soundButton"
+          class="sound-btn active"
+          type="button"
+          style="width:100%;">
+          🔊 Sound On
+        </button>
+
+      </div>
+
+
+      <div id="gameActionsWrap" class="game-actions">
+
+        <button
+          id="newGameBtn"
+          class="action-btn primary"
+          type="button">
+          Start New Game
+        </button>
+
+        <button
+          id="endGameBtn"
+          class="action-btn"
+          type="button">
+          End Game
+        </button>
+
+        <button
+          id="undoBtn"
+          class="action-btn undo-action"
+          type="button"
+          disabled>
+          Undo (3)
+        </button>
+
+        <button
+          id="resetBtn"
+          class="action-btn reset-action"
+          type="button">
+          Reset Current Game
+        </button>
+
+      </div>
+
+
+      <div class="small-note">
+        Hover or tap formations and difficulty settings for guidance.
+      </div>
+
+    </div>
+
+
+
+    <!-- BOARD -->
+
+    <div class="board-panel">
+
+      <div id="ruleToast"></div>
+
+      <div class="board-wrap">
+
+        <div class="board-coordinate-frame">
+
+          <div id="rankCoordinates" class="rank-coordinates"></div>
+
+          <div id="board"></div>
+
+          <div id="fileCoordinates" class="file-coordinates"></div>
+
+          <div class="coordinate-corner"></div>
+
+        </div>
+
+        <div id="previewBar" class="preview-bar">
+          Formation preview
+        </div>
+
+      </div>
+
+      <div id="captureToast"></div>
+
+    </div>
+
+
+
+    <!-- RIGHT PANEL -->
+
+    <div class="panel">
+
+      <div class="section">
+
+        <div class="label">Status</div>
+
+        <div id="statusBox" class="box status-box">
+          Loading Stockfish...
+        </div>
+
+        <div id="engineBox" class="engine">
+          Engine loading...
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <div class="label">Match</div>
+
+        <div id="infoBox" class="box"></div>
+
+      </div>
+
+
+      <div class="section">
+
+        <div class="label">Material & Captures</div>
+
+        <div class="box">
+
+          <div class="material-line">
+
+            <span id="materialText">
+              Material even
+            </span>
+
+            <span id="materialScore" class="material-score">
+              0
+            </span>
+
+          </div>
+
+          <div class="capture-row">
+
+            <div id="topCaptureTitle" class="capture-label">
+              White captured
+            </div>
+
+            <div id="topCapturedPieces" class="captured-pieces">
+              <span class="none">None</span>
+            </div>
+
+          </div>
+
+          <div class="capture-row">
+
+            <div id="bottomCaptureTitle" class="capture-label">
+              Black captured
+            </div>
+
+            <div id="bottomCapturedPieces" class="captured-pieces">
+              <span class="none">None</span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <div class="label">Move History</div>
+
+        <div id="moveBox" class="box move-box">
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>White</th>
+                <th>Black</th>
+              </tr>
+            </thead>
+
+            <tbody id="moveListBody">
+              <tr>
+                <td colspan="3">
+                  Game not started.
+                </td>
+              </tr>
+            </tbody>
+
+          </table>
+
+        </div>
+
+        <div class="small-note">
+          Showing the latest four moves.
+        </div>
+
+      </div>
+
+
+      <div id="gameOverSection" class="section">
+
+        <div class="label">Game Over</div>
+
+        <div class="game-over-box">
+
+          <div id="gameOverResult" class="game-over-result"></div>
+
+          <div id="gameOverDetails"></div>
+
+          <div class="game-over-actions">
+
+            <button
+              id="copyGameBtn"
+              class="summary-btn"
+              type="button">
+              📋 Copy Game Record
+            </button>
+
+            <button
+              id="rematchBtn"
+              class="summary-btn primary-summary"
+              type="button">
+              ↻ Rematch
+            </button>
+
+          </div>
+
+          <div id="copyStatus" class="copy-status"></div>
+
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <div class="label">Feedback</div>
+
+        <button
+          id="feedbackButton"
+          class="feedback-btn"
+          type="button">
+          💬 Send Feedback
+        </button>
+
+        <div class="small-note">
+          Thoughts, suggestions, and unfiltered reactions are welcome.
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- PROMOTION -->
+
+<div id="promotionOverlay" class="promotion-overlay">
+
+  <div class="promotion-card">
+
+    <h2>Promote Your Pawn</h2>
+
+    <p>Choose the piece your pawn becomes.</p>
+
+    <div id="promotionOptions" class="promotion-options"></div>
+
+    <button
+      id="promotionCancel"
+      class="promotion-cancel"
+      type="button">
+      Cancel
+    </button>
+
+  </div>
+
+</div>
+
+
+
+<!-- FEEDBACK -->
+
+<div id="feedbackOverlay" class="feedback-overlay">
+
+  <div class="feedback-card">
+
+    <button
+      id="feedbackClose"
+      class="feedback-close"
+      type="button"
+      aria-label="Close feedback form">
+      ×
+    </button>
+
+    <div id="feedbackFormWrap" class="feedback-form">
+
+      <h2>Send Feedback</h2>
+
+      <p class="feedback-intro">
+        Unfiltered thoughts welcome. What worked? What didn’t?
+        What confused you? What would you change?
+      </p>
+
+      <form id="feedbackForm">
+
+        <div class="feedback-field">
+
+          <label for="feedbackMessage">
+            Your feedback
+          </label>
+
+          <textarea
+            id="feedbackMessage"
+            name="message"
+            required
+            placeholder="Type whatever is on your mind..."></textarea>
+
+        </div>
+
+        <div class="feedback-field">
+
+          <label for="feedbackName">
+            Name — optional
+          </label>
+
+          <input
+            id="feedbackName"
+            name="name"
+            type="text"
+            placeholder="Your name">
+
+        </div>
+
+        <div class="feedback-field">
+
+          <label for="feedbackEmail">
+            Email — optional
+          </label>
+
+          <input
+            id="feedbackEmail"
+            name="email"
+            type="email"
+            placeholder="you@example.com">
+
+        </div>
+
+        <input
+          type="hidden"
+          name="_subject"
+          value="Chess Imperium Feedback">
+
+        <div class="feedback-actions">
+
+          <button
+            id="feedbackCancel"
+            class="feedback-cancel"
+            type="button">
+            Cancel
+          </button>
+
+          <button
+            id="feedbackSubmit"
+            class="feedback-submit"
+            type="submit">
+            Send Feedback
+          </button>
+
+        </div>
+
+        <div id="feedbackStatus" class="feedback-status"></div>
+
+      </form>
+
+    </div>
+
+
+    <div id="feedbackSuccess" class="feedback-success">
+
+      <div class="feedback-success-icon">✓</div>
+
+      <h3>Thanks — feedback received.</h3>
+
+      <p>Your thoughts have been sent.</p>
+
+      <button
+        id="feedbackDone"
+        class="feedback-done"
+        type="button">
+        Back to the Game
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<script type="module">
+
+import { Chess }
+from "https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm";
+
+import { createClient }
+from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+
+/* ===================================================== */
+/* FORMATIONS                                            */
+/* ===================================================== */
+
+const FORMATIONS = [
+
+  { code:"RNB", name:"The Bastion" },
+  { code:"RBN", name:"The Sentinel" },
+  { code:"NRB", name:"The Vanguard" },
+  { code:"NBR", name:"The Cavalry" },
+  { code:"BRN", name:"The Rampart" },
+  { code:"BNR", name:"The Citadel" }
+
+];
+
+
+const FORMATION_GUIDES = {
+
+  RNB: {
+
+    description:
+      "The familiar classical formation and the most natural starting point for traditional chess players.",
+
+    strength:
+      "Balanced development with familiar piece relationships.",
+
+    tip:
+      "Normal opening principles work well here: develop your knights and bishops, fight for the center, and connect your rooks."
+
+  },
+
+  RBN: {
+
+    description:
+      "The knights move inward while the bishops take their places beside the corner rooks.",
+
+    strength:
+      "Knights begin with useful routes toward the center and can become active quickly.",
+
+    tip:
+      "Your bishops need deliberate pawn openings from the b- and g-files, so make sure they do not get buried behind your pawns."
+
+  },
+
+  NRB: {
+
+    description:
+      "The bishops remain in familiar positions while the knights begin on the outside and the rooks move inward.",
+
+    strength:
+      "Familiar bishop development combined with rooks positioned closer to central files.",
+
+    tip:
+      "Pay special attention to your corner knights. Their path into the battle may take more planning than usual."
+
+  },
+
+  NBR: {
+
+    description:
+      "An unconventional formation with knights on the wings and rooks stationed close to the center.",
+
+    strength:
+      "The central rooks can become powerful once the position opens.",
+
+    tip:
+      "Do not rush to activate the rooks too early. Develop your lighter pieces and create safe lanes for them first."
+
+  },
+
+  BRN: {
+
+    description:
+      "The bishops guard the outer edges while the knights occupy strong central starting squares and the rooks sit just inside them.",
+
+    strength:
+      "Convenient knight development and potentially active rooks once files begin to open.",
+
+    tip:
+      "Activate the corner bishops early so they can command important diagonals instead of remaining trapped behind the pawn line."
+
+  },
+
+  BNR: {
+
+    description:
+      "A compact formation with bishops on the wings, knights inside them, and the rooks closest to the king and queen.",
+
+    strength:
+      "Centralized heavy pieces can become formidable once the position opens.",
+
+    tip:
+      "Free your bishops early and resist exposing the central rooks before your king position is secure."
+
+  }
+
+};
+
+
+
+/* ===================================================== */
+/* DIFFICULTY                                            */
+/* ===================================================== */
+
+const DIFFICULTY_GUIDES = {
+
+  casual: {
+
+    title:"Relaxed",
+
+    description:
+      "A forgiving opponent designed for experimenting with formations and enjoying a lower-pressure game.",
+
+    behavior:
+      "Uses low engine strength and will sometimes choose an ordinary legal move instead of the strongest move.",
+
+    bestFor:
+      "Exploring unfamiliar positions, testing ideas, or playing without constant tactical pressure."
+
+  },
+
+  beginner: {
+
+    title:"Standard",
+
+    description:
+      "A steady opponent that generally plays sensible chess while still leaving opportunities to exploit.",
+
+    behavior:
+      "Develops coherently but will make strategic and tactical mistakes that can be punished.",
+
+    bestFor:
+      "A balanced game that offers resistance without demanding near-perfect play."
+
+  },
+
+  intermediate: {
+
+    title:"Fierce",
+
+    description:
+      "A stronger opponent that demands careful play and better tactical awareness.",
+
+    behavior:
+      "Punishes loose pieces, spots common tactics, and follows coherent plans more consistently.",
+
+    bestFor:
+      "Testing formation strategy against meaningful resistance."
+
+  },
+
+  hard: {
+
+    title:"Ruthless",
+
+    description:
+      "The strongest computer setting currently available in this version of the game.",
+
+    behavior:
+      "Plays much more accurately, sees tactics more reliably, and gives away very little material for free.",
+
+    bestFor:
+      "Players who want the toughest available test of their strategy."
+
+  }
+
+};
+
+
+const FORMATION_MAP =
+  Object.fromEntries(
+    FORMATIONS.map(
+      formation => [
+        formation.code,
+        formation.name
+      ]
+    )
+  );
+
+
+const DIFFICULTIES = {
+
+  casual:{
+    label:"Relaxed",
+    skill:0,
+    nodes:120,
+    randomMoveChance:.38
+  },
+
+  beginner:{
+    label:"Standard",
+    skill:3,
+    nodes:800,
+    randomMoveChance:0
+  },
+
+  intermediate:{
+    label:"Fierce",
+    skill:8,
+    nodes:2500,
+    randomMoveChance:0
+  },
+
+  hard:{
+    label:"Ruthless",
+    skill:12,
+    nodes:6000,
+    randomMoveChance:0
+  }
+
+};
+
+
+
+/* ===================================================== */
+/* PIECES                                                */
+/* ===================================================== */
+
+const PIECE_VALUES = {
+  p:1,
+  n:3,
+  b:3,
+  r:5,
+  q:9,
+  k:0
+};
+
+
+const INITIAL_COUNTS = {
+  p:8,
+  n:2,
+  b:2,
+  r:2,
+  q:1,
+  k:1
+};
+
+
+const DISPLAY_ORDER = [
+  "q",
+  "r",
+  "b",
+  "n",
+  "p"
+];
+
+
+const PIECE_NAMES = {
+  p:"Pawn",
+  n:"Knight",
+  b:"Bishop",
+  r:"Rook",
+  q:"Queen",
+  k:"King"
+};
+
+
+const PIECE_IMAGES = {
+
+  wp:"./Graphics/wP.png",
+  wr:"./Graphics/wR.png",
+  wn:"./Graphics/wN.png",
+  wb:"./Graphics/wB.png",
+  wq:"./Graphics/wQ.png",
+  wk:"./Graphics/wK.png",
+
+  bp:"./Graphics/bP.png",
+  br:"./Graphics/bR.png",
+  bn:"./Graphics/bN.png",
+  bb:"./Graphics/bB.png",
+  bq:"./Graphics/bQ.png",
+  bk:"./Graphics/bK.png"
+
+};
+
+
+const PROMOTION_NAMES = {
+  q:"Queen",
+  r:"Rook",
+  b:"Bishop",
+  n:"Knight"
+};
+
+
+
+/* ===================================================== */
+/* SOUND                                                 */
+/* ===================================================== */
+
+const MENU_CLICK_VOLUME = 1;
+const MOVE_SOUND_VOLUME = .68;
+const CAPTURE_SOUND_VOLUME = .68;
+
+
+const SOUND_FILES = {
+
+  capture:"./Audio/Capture.wav",
+  queencapture:"./Audio/queencapture.wav",
+  menuclick:"./Audio/menuclick.wav",
+  checkmate:"./Audio/Checkmate.wav",
+  draw:"./Audio/Stalemate.wav",
+  invalid:"./Audio/Invalidmove.wav"
+
+};
+
+
+const MOVE_SOUND_FILES = [
+  "./Audio/move1.wav",
+  "./Audio/move2.wav",
+  "./Audio/move3.wav",
+  "./Audio/move4.wav",
+  "./Audio/move5.wav"
+];
+
+
+const CHECK_SOUND_FILES = [
+  "./Audio/check1.wav",
+  "./Audio/check2.wav",
+  "./Audio/check3.wav"
+];
+
+
+const KNIGHT_CAPTURE_SOUND_FILES = [
+  "./Audio/knightcapture1.wav",
+  "./Audio/knightcapture2.wav"
+];
+
+
+const ROOK_CAPTURE_SOUND_FILES = [
+  "./Audio/rookcapture1.wav",
+  "./Audio/rookcapture2.wav"
+];
+
+
+const BISHOP_CAPTURE_SOUND_FILES = [
+  "./Audio/bishopcapture1.wav",
+  "./Audio/bishopcapture2.wav"
+];
+
+
+const QUEEN_WHOOSH_FILES = {
+  w:"./Audio/queenwhoosh1.wav",
+  b:"./Audio/queenwhoosh2.wav"
+};
+
+
+const QUEEN_DEATH_SOUND_FILES = [
+  "./Audio/queendeath1.wav",
+  "./Audio/queendeath2.wav",
+  "./Audio/queendeath3.wav",
+  "./Audio/queendeath4.wav",
+  "./Audio/queendeath5.wav",
+  "./Audio/queendeath6.wav",
+  "./Audio/queendeath7.wav",
+  "./Audio/queendeath8.wav",
+  "./Audio/queendeath9.wav"
+];
+
+
+const OPENING_THEME_FILE =
+  "./Audio/openingtheme.mp3";
+
+
+const AudioContextClass =
+  window.AudioContext ||
+  window.webkitAudioContext;
+
+
+const audioContext =
+  AudioContextClass
+    ? new AudioContextClass()
+    : null;
+
+
+const audioBuffers =
+  new Map();
+
+
+const audioLoadPromises =
+  new Map();
+
+
+let lastMoveSoundIndex =
+  -1;
+
+
+const checkSequenceIndexBySide = {
+  w:0,
+  b:0
+};
+
+
+const knightCaptureSequenceIndexBySide = {
+  w:0,
+  b:0
+};
+
+
+const rookCaptureSequenceIndexBySide = {
+  w:0,
+  b:0
+};
+
+
+const bishopCaptureSequenceIndexBySide = {
+  w:0,
+  b:0
+};
+
+
+let lastQueenDeathIndex =
+  -1;
+
+
+let openingThemeSource =
+  null;
+
+
+let openingThemeGain =
+  null;
+
+
+function registerAudioBuffer(
+  key,
+  file
+) {
+
+  if (
+    !audioContext
+  ) {
+
+    return;
+
+  }
+
+
+  const loadPromise =
+    fetch(file)
+      .then(
+        response => {
+
+          if (
+            !response.ok
+          ) {
+
+            throw new Error(
+              "Failed to load audio: " +
+              file
+            );
+
+          }
+
+
+          return response.arrayBuffer();
+
+        }
+      )
+      .then(
+        arrayBuffer =>
+          audioContext.decodeAudioData(
+            arrayBuffer
+          )
+      )
+      .then(
+        buffer => {
+
+          audioBuffers.set(
+            key,
+            buffer
+          );
+
+
+          return buffer;
+
+        }
+      )
+      .catch(
+        error => {
+
+          console.log(
+            "Audio preload failed:",
+            file,
+            error
+          );
+
+
+          return null;
+
+        }
+      );
+
+
+  audioLoadPromises.set(
+    key,
+    loadPromise
+  );
+
+}
+
+
+Object.entries(SOUND_FILES).forEach(
+  ([name,file]) => {
+
+    registerAudioBuffer(
+      name,
+      file
+    );
+
+  }
+);
+
+
+MOVE_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "move" + index,
+      file
+    );
+
+  }
+);
+
+
+CHECK_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "check" + index,
+      file
+    );
+
+  }
+);
+
+
+KNIGHT_CAPTURE_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "knightcapture" + index,
+      file
+    );
+
+  }
+);
+
+
+ROOK_CAPTURE_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "rookcapture" + index,
+      file
+    );
+
+  }
+);
+
+
+BISHOP_CAPTURE_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "bishopcapture" + index,
+      file
+    );
+
+  }
+);
+
+
+registerAudioBuffer(
+  "queenwhoosh-w",
+  QUEEN_WHOOSH_FILES.w
+);
+
+registerAudioBuffer(
+  "queenwhoosh-b",
+  QUEEN_WHOOSH_FILES.b
+);
+
+
+QUEEN_DEATH_SOUND_FILES.forEach(
+  (file,index) => {
+
+    registerAudioBuffer(
+      "queendeath" + index,
+      file
+    );
+
+  }
+);
+
+
+registerAudioBuffer(
+  "openingtheme",
+  OPENING_THEME_FILE
+);
+
+
+async function ensureAudioContextReady() {
+
+  if (
+    !audioContext
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    audioContext.state === "suspended"
+  ) {
+
+    try {
+
+      await audioContext.resume();
+
+    }
+    catch(error) {
+
+      console.log(
+        "Audio context resume failed:",
+        error
+      );
+
+      return false;
+
+    }
+
+  }
+
+
+  return (
+    audioContext.state === "running"
+  );
+
+}
+
+
+async function getAudioBuffer(
+  key
+) {
+
+  if (
+    audioBuffers.has(
+      key
+    )
+  ) {
+
+    return audioBuffers.get(
+      key
+    );
+
+  }
+
+
+  const loadPromise =
+    audioLoadPromises.get(
+      key
+    );
+
+
+  if (
+    !loadPromise
+  ) {
+
+    return null;
+
+  }
+
+
+  return await loadPromise;
+
+}
+
+
+async function playBufferedSound(
+  key,
+  volume = 1
+) {
+
+  if (
+    !soundEnabled
+  ) {
+
+    return null;
+
+  }
+
+
+  const ready =
+    await ensureAudioContextReady();
+
+
+  if (
+    !ready
+  ) {
+
+    return null;
+
+  }
+
+
+  const buffer =
+    await getAudioBuffer(
+      key
+    );
+
+
+  if (
+    !buffer
+  ) {
+
+    return null;
+
+  }
+
+
+  const source =
+    audioContext.createBufferSource();
+
+
+  const gain =
+    audioContext.createGain();
+
+
+  source.buffer =
+    buffer;
+
+
+  gain.gain.value =
+    Math.max(
+      0,
+      Math.min(
+        1,
+        volume
+      )
+    );
+
+
+  source.connect(
+    gain
+  );
+
+
+  gain.connect(
+    audioContext.destination
+  );
+
+
+  source.start(
+    0
+  );
+
+
+  return {
+    source,
+    gain
+  };
+
+}
+
+
+async function playOpeningTheme() {
+
+  if (
+    !soundEnabled
+  ) {
+
+    return;
+
+  }
+
+
+  stopOpeningTheme();
+
+
+  const ready =
+    await ensureAudioContextReady();
+
+
+  if (
+    !ready
+  ) {
+
+    return;
+
+  }
+
+
+  const buffer =
+    await getAudioBuffer(
+      "openingtheme"
+    );
+
+
+  if (
+    !buffer
+  ) {
+
+    return;
+
+  }
+
+
+  openingThemeSource =
+    audioContext.createBufferSource();
+
+
+  openingThemeGain =
+    audioContext.createGain();
+
+
+  openingThemeSource.buffer =
+    buffer;
+
+
+  openingThemeGain.gain.setValueAtTime(
+    1,
+    audioContext.currentTime
+  );
+
+
+  openingThemeSource.connect(
+    openingThemeGain
+  );
+
+
+  openingThemeGain.connect(
+    audioContext.destination
+  );
+
+
+  const sourceAtStart =
+    openingThemeSource;
+
+
+  openingThemeSource.addEventListener(
+    "ended",
+    () => {
+
+      if (
+        openingThemeSource ===
+        sourceAtStart
+      ) {
+
+        openingThemeSource =
+          null;
+
+        openingThemeGain =
+          null;
+
+      }
+
+    },
+    {once:true}
+  );
+
+
+  openingThemeSource.start(
+    0
+  );
+
+}
+
+
+function stopOpeningTheme() {
+
+  if (
+    openingThemeSource
+  ) {
+
+    try {
+
+      openingThemeSource.stop();
+
+    }
+    catch(error) {
+
+      /* Already stopped. */
+
+    }
+
+  }
+
+
+  openingThemeSource =
+    null;
+
+
+  openingThemeGain =
+    null;
+
+}
+
+
+function fadeOutOpeningTheme(
+  duration = 5000
+) {
+
+  if (
+    !audioContext ||
+    !openingThemeSource ||
+    !openingThemeGain
+  ) {
+
+    return;
+
+  }
+
+
+  const now =
+    audioContext.currentTime;
+
+
+  const durationSeconds =
+    Math.max(
+      .05,
+      duration / 1000
+    );
+
+
+  openingThemeGain.gain.cancelScheduledValues(
+    now
+  );
+
+
+  openingThemeGain.gain.setValueAtTime(
+    openingThemeGain.gain.value,
+    now
+  );
+
+
+  openingThemeGain.gain.linearRampToValueAtTime(
+    0,
+    now + durationSeconds
+  );
+
+
+  const sourceToStop =
+    openingThemeSource;
+
+
+  window.setTimeout(
+    () => {
+
+      if (
+        openingThemeSource ===
+        sourceToStop
+      ) {
+
+        try {
+
+          sourceToStop.stop();
+
+        }
+        catch(error) {
+
+          /* Already ended naturally. */
+
+        }
+
+
+        openingThemeSource =
+          null;
+
+        openingThemeGain =
+          null;
+
+      }
+
+    },
+    duration + 80
+  );
+
+}
+
+
+/* ===================================================== */
+/* ELEMENTS                                              */
+/* ===================================================== */
+
+const boardEl =
+  document.getElementById("board");
+
+const rankCoordinatesEl =
+  document.getElementById("rankCoordinates");
+
+const fileCoordinatesEl =
+  document.getElementById("fileCoordinates");
+
+const formationButtonsEl =
+  document.getElementById("formationButtons");
+
+const randomFormationBtn =
+  document.getElementById("randomFormationBtn");
+
+const hoverTooltip =
+  document.getElementById("hoverTooltip");
+
+const captureToast =
+  document.getElementById("captureToast");
+
+const ruleToast =
+  document.getElementById("ruleToast");
+
+const computerFormationSelect =
+  document.getElementById("computerFormationSelect");
+
+const statusBox =
+  document.getElementById("statusBox");
+
+const engineBox =
+  document.getElementById("engineBox");
+
+const infoBox =
+  document.getElementById("infoBox");
+
+const previewBar =
+  document.getElementById("previewBar");
+
+const materialText =
+  document.getElementById("materialText");
+
+const materialScore =
+  document.getElementById("materialScore");
+
+const topCaptureTitle =
+  document.getElementById("topCaptureTitle");
+
+const bottomCaptureTitle =
+  document.getElementById("bottomCaptureTitle");
+
+const topCapturedPieces =
+  document.getElementById("topCapturedPieces");
+
+const bottomCapturedPieces =
+  document.getElementById("bottomCapturedPieces");
+
+const moveListBody =
+  document.getElementById("moveListBody");
+
+const gameOverSection =
+  document.getElementById("gameOverSection");
+
+const gameOverResult =
+  document.getElementById("gameOverResult");
+
+const gameOverDetails =
+  document.getElementById("gameOverDetails");
+
+const copyGameBtn =
+  document.getElementById("copyGameBtn");
+
+const rematchBtn =
+  document.getElementById("rematchBtn");
+
+const copyStatus =
+  document.getElementById("copyStatus");
+
+const playWhiteBtn =
+  document.getElementById("playWhiteBtn");
+
+const playRandomBtn =
+  document.getElementById("playRandomBtn");
+
+const playBlackBtn =
+  document.getElementById("playBlackBtn");
+
+const difficultyRelaxed =
+  document.getElementById("difficultyRelaxed");
+
+const difficultyStandard =
+  document.getElementById("difficultyStandard");
+
+const difficultyFierce =
+  document.getElementById("difficultyFierce");
+
+const difficultyRuthless =
+  document.getElementById("difficultyRuthless");
+
+const newGameBtn =
+  document.getElementById("newGameBtn");
+
+const endGameBtn =
+  document.getElementById("endGameBtn");
+
+const undoBtn =
+  document.getElementById("undoBtn");
+
+const resetBtn =
+  document.getElementById("resetBtn");
+
+const soundButton =
+  document.getElementById("soundButton");
+
+const promotionOverlay =
+  document.getElementById("promotionOverlay");
+
+const promotionOptions =
+  document.getElementById("promotionOptions");
+
+const promotionCancel =
+  document.getElementById("promotionCancel");
+
+const feedbackButton =
+  document.getElementById("feedbackButton");
+
+const feedbackOverlay =
+  document.getElementById("feedbackOverlay");
+
+const feedbackClose =
+  document.getElementById("feedbackClose");
+
+const feedbackCancel =
+  document.getElementById("feedbackCancel");
+
+const feedbackDone =
+  document.getElementById("feedbackDone");
+
+const feedbackForm =
+  document.getElementById("feedbackForm");
+
+const feedbackFormWrap =
+  document.getElementById("feedbackFormWrap");
+
+const feedbackSuccess =
+  document.getElementById("feedbackSuccess");
+
+const feedbackStatus =
+  document.getElementById("feedbackStatus");
+
+const feedbackSubmit =
+  document.getElementById("feedbackSubmit");
+
+const feedbackMessage =
+  document.getElementById("feedbackMessage");
+
+const computerModeBtn =
+  document.getElementById("computerModeBtn");
+
+const onlineModeBtn =
+  document.getElementById("onlineModeBtn");
+
+const computerFormationWrap =
+  document.getElementById("computerFormationWrap");
+
+const playAsSection =
+  document.getElementById("playAsSection");
+
+const difficultySection =
+  document.getElementById("difficultySection");
+
+const onlinePanel =
+  document.getElementById("onlinePanel");
+
+const gameActionsWrap =
+  document.getElementById("gameActionsWrap");
+
+const createOnlineRoomBtn =
+  document.getElementById("createOnlineRoomBtn");
+
+const joinOnlineRoomBtn =
+  document.getElementById("joinOnlineRoomBtn");
+
+const onlineRoomCodeInput =
+  document.getElementById("onlineRoomCodeInput");
+
+const lockOnlineFormationBtn =
+  document.getElementById("lockOnlineFormationBtn");
+
+const leaveOnlineRoomBtn =
+  document.getElementById("leaveOnlineRoomBtn");
+
+const onlineStatusBox =
+  document.getElementById("onlineStatusBox");
+
+
+
+/* ===================================================== */
+/* STATE                                                 */
+/* ===================================================== */
+
+let playerFormationChoice =
+  "RNB";
+
+let computerFormationChoice =
+  "RNB";
+
+let previewPlayerFormation =
+  "RNB";
+
+let previewComputerFormation =
+  "RNB";
+
+let playerColorChoice =
+  "w";
+
+let playerColor =
+  "w";
+
+let actualPlayerColor =
+  null;
+
+let actualPlayerFormation =
+  null;
+
+let actualComputerFormation =
+  null;
+
+let difficultyKey =
+  "casual";
+
+let engineReady =
+  false;
+
+let engineThinking =
+  false;
+
+let engineMoveTimer =
+  null;
+
+let engineSearchActive =
+  false;
+
+let ignoreStoppedBestmove =
+  false;
+
+let game =
+  null;
+
+let gameStarted =
+  false;
+
+let selectedSquare =
+  null;
+
+let legalMoves =
+  [];
+
+let lastMove =
+  null;
+
+let moveGhost =
+  null;
+
+let moveGhostTimer =
+  null;
+
+let promotionPending =
+  null;
+
+let soundEnabled =
+  true;
+
+let moveAnimating =
+  false;
+
+let undosRemaining =
+  3;
+
+let dragState =
+  null;
+
+let annotationDragState =
+  null;
+
+let annotationArrows =
+  [];
+
+let annotationMarkers =
+  new Set();
+
+let ignoreBoardClickUntil =
+  0;
+
+let captureToastItems =
+  [];
+
+let captureToastTimer =
+  null;
+
+let captureToastClearTimer =
+  null;
+
+let ruleToastTimer =
+  null;
+
+let formationAnimationTimers =
+  [];
+
+
+/* ===================================================== */
+/* ONLINE MULTIPLAYER STATE                              */
+/* ===================================================== */
+
+const SUPABASE_URL =
+  "https://ucbsumblhwuoemlqvnzk.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_z2H_tbGNrOeedIdN2-8dIw_WKe1DQqo";
+
+const supabase =
+  createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+const ONLINE_PLAYER_ID_KEY =
+  "chessImperiumOnlinePlayerId";
+
+const ONLINE_ROOM_CODE_KEY =
+  "chessImperiumOnlineRoomCode";
+
+let onlinePlayerId =
+  localStorage.getItem(
+    ONLINE_PLAYER_ID_KEY
+  );
+
+if (
+  !onlinePlayerId
+) {
+
+  onlinePlayerId =
+    crypto.randomUUID();
+
+  localStorage.setItem(
+    ONLINE_PLAYER_ID_KEY,
+    onlinePlayerId
+  );
+
+}
+
+let gameMode =
+  "computer";
+
+let onlineRoom =
+  null;
+
+let onlineChannel =
+  null;
+
+let onlineRole =
+  null;
+
+let onlineFormationLocked =
+  false;
+
+let onlineApplyingRemoteMove =
+  false;
+
+let onlineStartedRoomId =
+  null;
+
+
+const MOVE_ANIMATION_DURATION =
+  230;
+
+
+const engine =
+  new Worker(
+    "./stockfish-18-lite-single.js"
+  );
+
+
+
+/* ===================================================== */
+/* DEVICE HELPERS                                        */
+/* ===================================================== */
+
+function isTouchStyleDevice() {
+
+  return window.matchMedia(
+    "(hover: none), (pointer: coarse)"
+  ).matches;
+
+}
+
+
+
+/* ===================================================== */
+/* SOUND                                                 */
+/* ===================================================== */
+
+function playSound(
+  name,
+  volume = 1
+) {
+
+  playBufferedSound(
+    name,
+    volume
+  );
+
+}
+
+
+function playMenuClick() {
+
+  playSound(
+    "menuclick",
+    MENU_CLICK_VOLUME
+  );
+
+}
+
+
+function playRandomMoveSound() {
+
+  if (
+    !soundEnabled ||
+    MOVE_SOUND_FILES.length === 0
+  ) {
+
+    return;
+
+  }
+
+
+  let nextIndex =
+    0;
+
+
+  if (
+    MOVE_SOUND_FILES.length === 1
+  ) {
+
+    nextIndex =
+      0;
+
+  }
+
+  else {
+
+    do {
+
+      nextIndex =
+        Math.floor(
+          Math.random() *
+          MOVE_SOUND_FILES.length
+        );
+
+    }
+    while (
+      nextIndex ===
+      lastMoveSoundIndex
+    );
+
+  }
+
+
+  lastMoveSoundIndex =
+    nextIndex;
+
+
+  playBufferedSound(
+    "move" + nextIndex,
+    MOVE_SOUND_VOLUME
+  );
+
+}
+
+
+function playSequentialCheckSoundForSide(
+  side
+) {
+
+  if (
+    !soundEnabled ||
+    CHECK_SOUND_FILES.length === 0
+  ) {
+
+    return;
+
+  }
+
+
+  const normalizedSide =
+    side === "b"
+      ? "b"
+      : "w";
+
+
+  const nextIndex =
+    checkSequenceIndexBySide[
+      normalizedSide
+    ] %
+    CHECK_SOUND_FILES.length;
+
+
+  checkSequenceIndexBySide[
+    normalizedSide
+  ] =
+    (
+      nextIndex + 1
+    ) %
+    CHECK_SOUND_FILES.length;
+
+
+  playBufferedSound(
+    "check" + nextIndex,
+    1
+  );
+
+}
+
+
+function playRandomQueenDeathSound() {
+
+  if (
+    QUEEN_DEATH_SOUND_FILES.length === 0
+  ) {
+    return;
+  }
+
+
+  let nextIndex =
+    Math.floor(
+      Math.random() *
+      QUEEN_DEATH_SOUND_FILES.length
+    );
+
+
+  if (
+    QUEEN_DEATH_SOUND_FILES.length > 1 &&
+    nextIndex === lastQueenDeathIndex
+  ) {
+
+    nextIndex =
+      (
+        nextIndex +
+        1 +
+        Math.floor(
+          Math.random() *
+          (
+            QUEEN_DEATH_SOUND_FILES.length -
+            1
+          )
+        )
+      ) %
+      QUEEN_DEATH_SOUND_FILES.length;
+
+  }
+
+
+  lastQueenDeathIndex =
+    nextIndex;
+
+
+  playBufferedSound(
+    "queendeath" + nextIndex,
+    0.2
+  );
+
+}
+
+
+function playSequentialPieceCaptureSound(
+  pieceType,
+  capturedSide
+) {
+
+  const normalizedSide =
+    capturedSide === "b"
+      ? "b"
+      : "w";
+
+
+  let fileList =
+    null;
+
+  let sequenceState =
+    null;
+
+  let keyPrefix =
+    "";
+
+
+  if (
+    pieceType === "n"
+  ) {
+
+    fileList =
+      KNIGHT_CAPTURE_SOUND_FILES;
+
+    sequenceState =
+      knightCaptureSequenceIndexBySide;
+
+    keyPrefix =
+      "knightcapture";
+
+  }
+
+  else if (
+    pieceType === "r"
+  ) {
+
+    fileList =
+      ROOK_CAPTURE_SOUND_FILES;
+
+    sequenceState =
+      rookCaptureSequenceIndexBySide;
+
+    keyPrefix =
+      "rookcapture";
+
+  }
+
+  else if (
+    pieceType === "b"
+  ) {
+
+    fileList =
+      BISHOP_CAPTURE_SOUND_FILES;
+
+    sequenceState =
+      bishopCaptureSequenceIndexBySide;
+
+    keyPrefix =
+      "bishopcapture";
+
+  }
+
+  else {
+
+    return;
+
+  }
+
+
+  const nextIndex =
+    sequenceState[
+      normalizedSide
+    ] %
+    fileList.length;
+
+
+  sequenceState[
+    normalizedSide
+  ] =
+    (
+      nextIndex + 1
+    ) %
+    fileList.length;
+
+
+  playBufferedSound(
+    keyPrefix + nextIndex,
+    (
+      pieceType === "n" ||
+      pieceType === "b"
+    )
+      ? 0.2
+      : 1
+  );
+
+}
+
+
+function playSoundForMove(move) {
+
+  if (
+    !soundEnabled
+  ) {
+    return;
+  }
+
+
+  if (
+    game.isGameOver()
+  ) {
+
+    if (
+      game.isCheckmate()
+    ) {
+
+      /*
+        Final move = normal physical move sound
+        plus the musical checkmate cue at the
+        same moment.
+      */
+
+      playRandomMoveSound();
+
+      playSound(
+        "checkmate"
+      );
+
+    }
+
+    else {
+
+      playSound(
+        "draw"
+      );
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
+    move.captured
+  ) {
+
+    const capturedSide =
+      move.color === "w"
+        ? "b"
+        : "w";
+
+
+    if (
+      move.captured === "r"
+    ) {
+
+      playSequentialPieceCaptureSound(
+        move.captured,
+        capturedSide
+      );
+
+    }
+
+    else if (
+      move.captured === "n" ||
+      move.captured === "b"
+    ) {
+
+      playSound(
+        "capture",
+        CAPTURE_SOUND_VOLUME
+      );
+
+      playSequentialPieceCaptureSound(
+        move.captured,
+        capturedSide
+      );
+
+    }
+
+    else {
+
+      playSound(
+        "capture",
+        CAPTURE_SOUND_VOLUME
+      );
+
+
+      if (
+        move.captured === "q"
+      ) {
+
+        playSound(
+          "queencapture"
+        );
+
+        playRandomQueenDeathSound();
+
+      }
+
+    }
+
+
+    if (
+      move.piece === "q"
+    ) {
+
+      playBufferedSound(
+        move.color === "w"
+          ? "queenwhoosh-w"
+          : "queenwhoosh-b",
+        1
+      );
+
+    }
+
+  }
+
+  else {
+
+    playRandomMoveSound();
+
+  }
+
+
+  if (
+    game.inCheck()
+  ) {
+
+    const checkedSide =
+      game.turn();
+
+
+    setTimeout(
+      () => {
+
+        playSequentialCheckSoundForSide(
+          checkedSide
+        );
+
+      },
+      120
+    );
+
+  }
+
+}
+
+
+/* ===================================================== */
+/* ONLINE MULTIPLAYER                                    */
+/* ===================================================== */
+
+function setOnlineStatus(
+  text
+) {
+
+  onlineStatusBox.textContent =
+    text;
+
+}
+
+
+function makeOnlineRoomCode() {
+
+  const chars =
+    "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+  let code =
+    "";
+
+
+  for (
+    let i=0;
+    i<6;
+    i++
+  ) {
+
+    code +=
+      chars[
+        Math.floor(
+          Math.random() *
+          chars.length
+        )
+      ];
+
+  }
+
+
+  return code;
+
+}
+
+
+function getOnlineRole(
+  room
+) {
+
+  if (
+    !room
+  ) {
+    return null;
+  }
+
+
+  if (
+    room.white_player_id ===
+    onlinePlayerId
+  ) {
+    return "white";
+  }
+
+
+  if (
+    room.black_player_id ===
+    onlinePlayerId
+  ) {
+    return "black";
+  }
+
+
+  return null;
+
+}
+
+
+function updateGameModeUI() {
+
+  const online =
+    gameMode === "online";
+
+
+  computerModeBtn.classList.toggle(
+    "active",
+    !online
+  );
+
+  onlineModeBtn.classList.toggle(
+    "active",
+    online
+  );
+
+
+  computerFormationWrap.classList.toggle(
+    "online-hidden",
+    online
+  );
+
+  playAsSection.classList.toggle(
+    "online-hidden",
+    online
+  );
+
+  difficultySection.classList.toggle(
+    "online-hidden",
+    online
+  );
+
+  gameActionsWrap.classList.toggle(
+    "online-hidden",
+    online
+  );
+
+  onlinePanel.classList.toggle(
+    "visible",
+    online
+  );
+
+  /*
+   * Direct display assignments are intentional here.
+   * They provide a second, browser-independent guarantee
+   * that the online controls appear and the computer-only
+   * controls disappear.
+   */
+  computerFormationWrap.style.display =
+    online ? "none" : "";
+
+  playAsSection.style.display =
+    online ? "none" : "";
+
+  difficultySection.style.display =
+    online ? "none" : "";
+
+  gameActionsWrap.style.display =
+    online ? "none" : "";
+
+  onlinePanel.style.display =
+    online ? "block" : "none";
+
+
+  if (
+    online
+  ) {
+
+    engineBox.textContent =
+      onlineRoom
+        ? "Online multiplayer · connected"
+        : "Online multiplayer";
+
+  }
+
+  else {
+
+    engineBox.textContent =
+      engineReady
+        ? "Stockfish ready."
+        : "Engine loading...";
+
+  }
+
+
+  updateInfoPanel();
+
+  updateUndoButton();
+
+}
+
+
+function setOnlineFormationControlsLocked(
+  locked
+) {
+
+  onlineFormationLocked =
+    locked;
+
+
+  formationButtonsEl
+    .querySelectorAll(
+      ".choice-btn"
+    )
+    .forEach(
+      button => {
+        button.disabled =
+          locked;
+      }
+    );
+
+
+  randomFormationBtn.disabled =
+    locked;
+
+
+  lockOnlineFormationBtn.disabled =
+    (
+      !onlineRoom ||
+      locked ||
+      onlineRoom.status === "waiting" ||
+      onlineRoom.status === "active"
+    );
+
+}
+
+
+async function stopOnlineRealtime() {
+
+  if (
+    onlineChannel
+  ) {
+
+    await supabase.removeChannel(
+      onlineChannel
+    );
+
+    onlineChannel =
+      null;
+
+  }
+
+}
+
+
+function onlineHistoryFromGame() {
+
+  if (
+    !game
+  ) {
+    return [];
+  }
+
+
+  return game
+    .history({
+      verbose:true
+    })
+    .map(
+      move => ({
+        from:move.from,
+        to:move.to,
+        promotion:
+          move.promotion ||
+          null,
+        san:move.san,
+        color:move.color,
+        piece:move.piece,
+        captured:
+          move.captured ||
+          null
+      })
+    );
+
+}
+
+
+function setupOnlineGameFromRoom(
+  room,
+  playTheme = false
+) {
+
+  if (
+    !room ||
+    !room.white_formation ||
+    !room.black_formation
+  ) {
+    return;
+  }
+
+
+  onlineRoom =
+    room;
+
+  onlineRole =
+    getOnlineRole(
+      room
+    );
+
+
+  if (
+    !onlineRole
+  ) {
+    return;
+  }
+
+
+  actualPlayerColor =
+    onlineRole === "white"
+      ? "w"
+      : "b";
+
+  playerColor =
+    actualPlayerColor;
+
+
+  actualPlayerFormation =
+    onlineRole === "white"
+      ? room.white_formation
+      : room.black_formation;
+
+  actualComputerFormation =
+    onlineRole === "white"
+      ? room.black_formation
+      : room.white_formation;
+
+
+  const allowCastling =
+    room.white_formation === "RNB" &&
+    room.black_formation === "RNB";
+
+
+  const initialFen =
+    buildFen(
+      room.white_formation,
+      room.black_formation,
+      allowCastling
+    );
+
+
+  const rebuiltGame =
+    new Chess(
+      initialFen
+    );
+
+
+  const storedHistory =
+    Array.isArray(
+      room.move_history
+    )
+      ? room.move_history
+      : [];
+
+
+  let replayWorked =
+    true;
+
+
+  for (
+    const record of storedHistory
+  ) {
+
+    try {
+
+      const replayed =
+        rebuiltGame.move({
+          from:record.from,
+          to:record.to,
+          promotion:
+            record.promotion ||
+            undefined
+        });
+
+
+      if (
+        !replayed
+      ) {
+
+        replayWorked =
+          false;
+
+        break;
+
+      }
+
+    }
+
+    catch(error) {
+
+      replayWorked =
+        false;
+
+      break;
+
+    }
+
+  }
+
+
+  if (
+    replayWorked
+  ) {
+
+    game =
+      rebuiltGame;
+
+  }
+
+  else if (
+    room.fen
+  ) {
+
+    game =
+      new Chess(
+        room.fen
+      );
+
+  }
+
+  else {
+
+    game =
+      rebuiltGame;
+
+  }
+
+
+  gameStarted =
+    true;
+
+  engineThinking =
+    false;
+
+  engineSearchActive =
+    false;
+
+  moveAnimating =
+    false;
+
+  selectedSquare =
+    null;
+
+  legalMoves =
+    [];
+
+  promotionPending =
+    null;
+
+  undosRemaining =
+    0;
+
+
+  const lastRecord =
+    storedHistory.length > 0
+      ? storedHistory[
+          storedHistory.length - 1
+        ]
+      : null;
+
+
+  lastMove =
+    lastRecord
+      ? {
+          from:lastRecord.from,
+          to:lastRecord.to
+        }
+      : null;
+
+
+  if (
+    playTheme
+  ) {
+
+    playOpeningTheme();
+
+  }
+
+
+  updateStartGameAttention();
+
+  refreshFormationButtons();
+
+  refreshSideButtons();
+
+  drawBoard();
+
+  renderMoveList();
+
+  updateCapturedPieces();
+
+  updateInfoPanel();
+
+  updateStatus();
+
+  updateGameOverSummary();
+
+  updateUndoButton();
+
+
+  previewBar.innerHTML =
+
+    "<strong>" +
+    FORMATION_MAP[
+      actualPlayerFormation
+    ] +
+    " (" +
+    actualPlayerFormation +
+    ")</strong>" +
+
+    "&nbsp;vs&nbsp;" +
+
+    FORMATION_MAP[
+      actualComputerFormation
+    ] +
+    " (" +
+    actualComputerFormation +
+    ")" +
+
+    "&nbsp;·&nbsp;Online&nbsp;·&nbsp;" +
+
+    (
+      playerColor === "w"
+        ? "You are White"
+        : "You are Black"
+    );
+
+
+  engineBox.textContent =
+    "Online multiplayer · connected";
+
+
+  showRuleToast();
+
+}
+
+
+async function initializeOnlineFenIfNeeded(
+  room
+) {
+
+  if (
+    !room ||
+    room.status !== "active" ||
+    room.fen ||
+    getOnlineRole(room) !== "white"
+  ) {
+    return;
+  }
+
+
+  const allowCastling =
+    room.white_formation === "RNB" &&
+    room.black_formation === "RNB";
+
+
+  const initialFen =
+    buildFen(
+      room.white_formation,
+      room.black_formation,
+      allowCastling
+    );
+
+
+  await supabase
+    .from("rooms")
+    .update({
+      fen:initialFen,
+      move_history:[],
+      updated_at:
+        new Date().toISOString()
+    })
+    .eq(
+      "id",
+      room.id
+    )
+    .is(
+      "fen",
+      null
+    );
+
+}
+
+
+async function applyOnlineRoomUpdate(
+  room
+) {
+
+  if (
+    !room
+  ) {
+    return;
+  }
+
+
+  const previousRoom =
+    onlineRoom;
+
+
+  onlineRoom =
+    room;
+
+  onlineRole =
+    getOnlineRole(
+      room
+    );
+
+
+  leaveOnlineRoomBtn.disabled =
+    false;
+
+
+  onlineRoomCodeInput.value =
+    room.room_code;
+
+
+  localStorage.setItem(
+    ONLINE_ROOM_CODE_KEY,
+    room.room_code
+  );
+
+
+  if (
+    room.status === "waiting"
+  ) {
+
+    setOnlineStatus(
+      "Room " +
+      room.room_code +
+      "\nWaiting for Player 2..."
+    );
+
+    lockOnlineFormationBtn.disabled =
+      true;
+
+    return;
+
+  }
+
+
+  if (
+    room.status === "formation_selection"
+  ) {
+
+    const myFormation =
+      onlineRole === "white"
+        ? room.white_formation
+        : room.black_formation;
+
+
+    setOnlineFormationControlsLocked(
+      Boolean(
+        myFormation
+      )
+    );
+
+
+    if (
+      myFormation
+    ) {
+
+      setOnlineStatus(
+        "Room " +
+        room.room_code +
+        "\nYour formation is locked. Waiting for your opponent..."
+      );
+
+    }
+
+    else {
+
+      lockOnlineFormationBtn.disabled =
+        false;
+
+      setOnlineStatus(
+        "Room " +
+        room.room_code +
+        "\nBoth players connected. Choose your formation, then lock it."
+      );
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
+    room.status !== "active"
+  ) {
+
+    return;
+
+  }
+
+
+  setOnlineFormationControlsLocked(
+    true
+  );
+
+
+  setOnlineStatus(
+    "Room " +
+    room.room_code +
+    "\nOnline game active."
+  );
+
+
+  await initializeOnlineFenIfNeeded(
+    room
+  );
+
+
+  if (
+    !room.fen
+  ) {
+
+    return;
+
+  }
+
+
+  const remoteHistory =
+    Array.isArray(
+      room.move_history
+    )
+      ? room.move_history
+      : [];
+
+
+  const localHistoryLength =
+    gameStarted &&
+    game
+      ? game.history().length
+      : 0;
+
+
+  const isFirstStart =
+    onlineStartedRoomId !==
+    room.id;
+
+
+  if (
+    !gameStarted ||
+    !game ||
+    isFirstStart
+  ) {
+
+    onlineStartedRoomId =
+      room.id;
+
+    setupOnlineGameFromRoom(
+      room,
+      isFirstStart
+    );
+
+    return;
+
+  }
+
+
+  if (
+    remoteHistory.length ===
+    localHistoryLength
+  ) {
+
+    updateInfoPanel();
+
+    updateStatus();
+
+    return;
+
+  }
+
+
+  if (
+    remoteHistory.length ===
+    localHistoryLength + 1 &&
+    !onlineApplyingRemoteMove
+  ) {
+
+    const record =
+      remoteHistory[
+        remoteHistory.length - 1
+      ];
+
+
+    if (
+      record &&
+      record.color === game.turn()
+    ) {
+
+      const plannedMove =
+        game.moves({
+          square:record.from,
+          verbose:true
+        }).find(
+          move =>
+            move.to === record.to &&
+            (
+              !record.promotion ||
+              move.promotion ===
+              record.promotion
+            )
+        );
+
+
+      onlineApplyingRemoteMove =
+        true;
+
+      moveAnimating =
+        true;
+
+      updateUndoButton();
+
+
+      if (
+        plannedMove
+      ) {
+
+        await animateLegalMove(
+          record.from,
+          record.to,
+          plannedMove
+        );
+
+      }
+
+
+      try {
+
+        const move =
+          game.move({
+            from:record.from,
+            to:record.to,
+            promotion:
+              record.promotion ||
+              undefined
+          });
+
+
+        moveAnimating =
+          false;
+
+
+        if (
+          move
+        ) {
+
+          lastMove = {
+            from:move.from,
+            to:move.to
+          };
+
+
+          selectedSquare =
+            null;
+
+          legalMoves =
+            [];
+
+
+          afterMove(
+            move
+          );
+
+        }
+
+      }
+
+      catch(error) {
+
+        moveAnimating =
+          false;
+
+        setupOnlineGameFromRoom(
+          room,
+          false
+        );
+
+      }
+
+
+      onlineApplyingRemoteMove =
+        false;
+
+      onlineRoom =
+        room;
+
+      return;
+
+    }
+
+  }
+
+
+  setupOnlineGameFromRoom(
+    room,
+    false
+  );
+
+}
+
+
+async function watchOnlineRoom(
+  roomId
+) {
+
+  await stopOnlineRealtime();
+
+
+  onlineChannel =
+    supabase
+      .channel(
+        "chess-imperium-room-" +
+        roomId
+      )
+      .on(
+        "postgres_changes",
+        {
+          event:"UPDATE",
+          schema:"public",
+          table:"rooms",
+          filter:
+            "id=eq." +
+            roomId
+        },
+        async payload => {
+
+          if (
+            payload.new &&
+            payload.new.id
+          ) {
+
+            await applyOnlineRoomUpdate(
+              payload.new
+            );
+
+          }
+
+        }
+      )
+      .subscribe();
+
+}
+
+
+async function createOnlineRoom() {
+
+  if (
+    gameMode !== "online"
+  ) {
+    return;
+  }
+
+
+  setOnlineStatus(
+    "Creating room..."
+  );
+
+
+  for (
+    let attempt=0;
+    attempt<5;
+    attempt++
+  ) {
+
+    const roomCode =
+      makeOnlineRoomCode();
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from("rooms")
+        .insert({
+          room_code:roomCode,
+          status:"waiting",
+          white_player_id:
+            onlinePlayerId,
+          black_player_id:null,
+          white_formation:null,
+          black_formation:null,
+          fen:null,
+          move_history:[]
+        })
+        .select()
+        .single();
+
+
+    if (
+      !error &&
+      data
+    ) {
+
+      onlineRoom =
+        data;
+
+      onlineRole =
+        "white";
+
+      onlineFormationLocked =
+        false;
+
+      onlineRoomCodeInput.value =
+        data.room_code;
+
+      localStorage.setItem(
+        ONLINE_ROOM_CODE_KEY,
+        data.room_code
+      );
+
+      leaveOnlineRoomBtn.disabled =
+        false;
+
+      await watchOnlineRoom(
+        data.id
+      );
+
+      await applyOnlineRoomUpdate(
+        data
+      );
+
+      return;
+
+    }
+
+
+    if (
+      !error ||
+      error.code !== "23505"
+    ) {
+
+      setOnlineStatus(
+        "Unable to create room." +
+        (
+          error
+            ? "\n" + error.message
+            : ""
+        )
+      );
+
+      return;
+
+    }
+
+  }
+
+
+  setOnlineStatus(
+    "Unable to generate a unique room code."
+  );
+
+}
+
+
+async function joinOnlineRoom() {
+
+  if (
+    gameMode !== "online"
+  ) {
+    return;
+  }
+
+
+  const code =
+    onlineRoomCodeInput.value
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    !code
+  ) {
+
+    setOnlineStatus(
+      "Enter a room code first."
+    );
+
+    return;
+
+  }
+
+
+  setOnlineStatus(
+    "Looking for room " +
+    code +
+    "..."
+  );
+
+
+  const {
+    data:room,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .select("*")
+      .eq(
+        "room_code",
+        code
+      )
+      .single();
+
+
+  if (
+    error ||
+    !room
+  ) {
+
+    setOnlineStatus(
+      "Room not found."
+    );
+
+    return;
+
+  }
+
+
+  const existingRole =
+    getOnlineRole(
+      room
+    );
+
+
+  if (
+    existingRole
+  ) {
+
+    onlineRoom =
+      room;
+
+    onlineRole =
+      existingRole;
+
+    await watchOnlineRoom(
+      room.id
+    );
+
+    await applyOnlineRoomUpdate(
+      room
+    );
+
+    return;
+
+  }
+
+
+  if (
+    room.black_player_id
+  ) {
+
+    setOnlineStatus(
+      "That room already has two players."
+    );
+
+    return;
+
+  }
+
+
+  const {
+    data:joined,
+    error:joinError
+  } =
+    await supabase
+      .from("rooms")
+      .update({
+        black_player_id:
+          onlinePlayerId,
+        status:
+          "formation_selection",
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        room.id
+      )
+      .is(
+        "black_player_id",
+        null
+      )
+      .select()
+      .single();
+
+
+  if (
+    joinError ||
+    !joined
+  ) {
+
+    setOnlineStatus(
+      "Unable to join room."
+    );
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    joined;
+
+  onlineRole =
+    "black";
+
+  await watchOnlineRoom(
+    joined.id
+  );
+
+  await applyOnlineRoomUpdate(
+    joined
+  );
+
+}
+
+
+async function lockOnlineFormation() {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    !onlineRole ||
+    onlineFormationLocked
+  ) {
+    return;
+  }
+
+
+  const chosenFormation =
+
+    playerFormationChoice ===
+    "RANDOM"
+
+      ? randomFormation()
+
+      : playerFormationChoice;
+
+
+  actualPlayerFormation =
+    chosenFormation;
+
+
+  setOnlineFormationControlsLocked(
+    true
+  );
+
+
+  setOnlineStatus(
+    "Locking formation..."
+  );
+
+
+  const updateValues =
+
+    onlineRole === "white"
+
+      ? {
+          white_formation:
+            chosenFormation,
+          updated_at:
+            new Date().toISOString()
+        }
+
+      : {
+          black_formation:
+            chosenFormation,
+          updated_at:
+            new Date().toISOString()
+        };
+
+
+  const {
+    data:updated,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .update(
+        updateValues
+      )
+      .eq(
+        "id",
+        onlineRoom.id
+      )
+      .select()
+      .single();
+
+
+  if (
+    error ||
+    !updated
+  ) {
+
+    setOnlineFormationControlsLocked(
+      false
+    );
+
+    setOnlineStatus(
+      "Unable to lock formation."
+    );
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    updated;
+
+
+  const {
+    data:fresh
+  } =
+    await supabase
+      .from("rooms")
+      .select("*")
+      .eq(
+        "id",
+        updated.id
+      )
+      .single();
+
+
+  if (
+    fresh &&
+    fresh.white_formation &&
+    fresh.black_formation &&
+    fresh.status !== "active"
+  ) {
+
+    await supabase
+      .from("rooms")
+      .update({
+        status:"active",
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        fresh.id
+      );
+
+  }
+
+  else {
+
+    await applyOnlineRoomUpdate(
+      updated
+    );
+
+  }
+
+}
+
+
+async function syncOnlineMove(
+  previousFen
+) {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    !game
+  ) {
+    return;
+  }
+
+
+  const nextHistory =
+    onlineHistoryFromGame();
+
+
+  const updateQuery =
+    supabase
+      .from("rooms")
+      .update({
+        fen:game.fen(),
+        move_history:
+          nextHistory,
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        onlineRoom.id
+      );
+
+
+  const {
+    data,
+    error
+  } =
+    previousFen
+
+      ? await updateQuery
+          .eq(
+            "fen",
+            previousFen
+          )
+          .select()
+          .single()
+
+      : await updateQuery
+          .select()
+          .single();
+
+
+  if (
+    error ||
+    !data
+  ) {
+
+    setOnlineStatus(
+      "Move sync conflict. Reloading room..."
+    );
+
+
+    const {
+      data:fresh
+    } =
+      await supabase
+        .from("rooms")
+        .select("*")
+        .eq(
+          "id",
+          onlineRoom.id
+        )
+        .single();
+
+
+    if (
+      fresh
+    ) {
+
+      setupOnlineGameFromRoom(
+        fresh,
+        false
+      );
+
+      onlineRoom =
+        fresh;
+
+    }
+
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    data;
+
+  setOnlineStatus(
+    "Room " +
+    data.room_code +
+    "\nMove synchronized."
+  );
+
+}
+
+
+async function leaveOnlineRoom() {
+
+  await stopOnlineRealtime();
+
+
+  onlineRoom =
+    null;
+
+  onlineRole =
+    null;
+
+  onlineFormationLocked =
+    false;
+
+  onlineStartedRoomId =
+    null;
+
+
+  localStorage.removeItem(
+    ONLINE_ROOM_CODE_KEY
+  );
+
+
+  onlineRoomCodeInput.value =
+    "";
+
+
+  leaveOnlineRoomBtn.disabled =
+    true;
+
+  lockOnlineFormationBtn.disabled =
+    true;
+
+
+  setOnlineFormationControlsLocked(
+    false
+  );
+
+
+  clearMoveGhost();
+
+  gameStarted =
+    false;
+
+  game =
+    null;
+
+  selectedSquare =
+    null;
+
+  legalMoves =
+    [];
+
+  lastMove =
+    null;
+
+
+  setOnlineStatus(
+    "Create a room or join with a room code."
+  );
+
+
+  renderPreview();
+
+  updateGameModeUI();
+
+}
+
+
+async function reconnectOnlineRoomIfAvailable() {
+
+  const savedCode =
+    localStorage.getItem(
+      ONLINE_ROOM_CODE_KEY
+    );
+
+
+  if (
+    !savedCode
+  ) {
+    return;
+  }
+
+
+  gameMode =
+    "online";
+
+  updateGameModeUI();
+
+
+  onlineRoomCodeInput.value =
+    savedCode;
+
+
+  setOnlineStatus(
+    "Reconnecting to room " +
+    savedCode +
+    "..."
+  );
+
+
+  const {
+    data:room,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .select("*")
+      .eq(
+        "room_code",
+        savedCode
+      )
+      .single();
+
+
+  if (
+    error ||
+    !room ||
+    !getOnlineRole(room)
+  ) {
+
+    localStorage.removeItem(
+      ONLINE_ROOM_CODE_KEY
+    );
+
+    setOnlineStatus(
+      "Saved room is no longer available."
+    );
+
+    return;
+
+  }
+
+
+  onlineRoom =
+    room;
+
+  onlineRole =
+    getOnlineRole(
+      room
+    );
+
+
+  /*
+   * If this browser is restoring an already-active game,
+   * this is a reconnect — not a brand-new game start.
+   * Mark the room as already started so the opening theme
+   * does not replay when the first post-refresh interaction
+   * unlocks Safari audio.
+   */
+  if (
+    room.status === "active"
+  ) {
+
+    onlineStartedRoomId =
+      room.id;
+
+  }
+
+
+  await watchOnlineRoom(
+    room.id
+  );
+
+
+  await applyOnlineRoomUpdate(
+    room
+  );
+
+}
+
+
+/* ===================================================== */
+/* RULE TOAST                                            */
+/* ===================================================== */
+
+function castlingEnabledForCurrentGame() {
+
+  return (
+    actualPlayerFormation === "RNB" &&
+    actualComputerFormation === "RNB"
+  );
+
+}
+
+
+function showRuleToast() {
+
+  if (
+    ruleToastTimer
+  ) {
+
+    clearTimeout(
+      ruleToastTimer
+    );
+
+  }
+
+
+  const castlingEnabled =
+    castlingEnabledForCurrentGame();
+
+
+  ruleToast.classList.remove(
+    "enabled",
+    "disabled",
+    "visible"
+  );
+
+
+  ruleToast.textContent =
+
+    castlingEnabled
+
+      ? "♜ Castling enabled — Bastion vs Bastion"
+
+      : "Castling disabled — Chess Imperium formation rules";
+
+
+  ruleToast.classList.add(
+
+    castlingEnabled
+
+      ? "enabled"
+
+      : "disabled"
+
+  );
+
+
+  requestAnimationFrame(
+    () => {
+
+      ruleToast.classList.add(
+        "visible"
+      );
+
+    }
+  );
+
+
+  ruleToastTimer =
+    setTimeout(
+      () => {
+
+        ruleToast.classList.remove(
+          "visible"
+        );
+
+      },
+      3200
+    );
+
+}
+
+
+function hideRuleToast() {
+
+  if (
+    ruleToastTimer
+  ) {
+
+    clearTimeout(
+      ruleToastTimer
+    );
+
+  }
+
+
+  ruleToastTimer =
+    null;
+
+
+  ruleToast.classList.remove(
+    "visible"
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* LEGAL MOVE GLIDE                                      */
+/* ===================================================== */
+
+function findPlannedMove(
+  from,
+  to,
+  promotion
+) {
+
+  if (
+    !game
+  ) {
+    return null;
+  }
+
+
+  const moves =
+    game.moves({
+      square:from,
+      verbose:true
+    });
+
+
+  let matches =
+    moves.filter(
+      move =>
+        move.to === to
+    );
+
+
+  if (
+    promotion
+  ) {
+
+    matches =
+      matches.filter(
+        move =>
+          move.promotion === promotion
+      );
+
+  }
+
+
+  return (
+    matches[0] ||
+    null
+  );
+
+}
+
+
+function getCastlingRookSquares(
+  plannedMove
+) {
+
+  if (
+    !plannedMove ||
+    !plannedMove.flags
+  ) {
+
+    return null;
+
+  }
+
+
+  const rank =
+
+    plannedMove.color === "w"
+
+      ? "1"
+
+      : "8";
+
+
+  if (
+    plannedMove.flags.includes("k")
+  ) {
+
+    return {
+      from:"h" + rank,
+      to:"f" + rank
+    };
+
+  }
+
+
+  if (
+    plannedMove.flags.includes("q")
+  ) {
+
+    return {
+      from:"a" + rank,
+      to:"d" + rank
+    };
+
+  }
+
+
+  return null;
+
+}
+
+
+function animateSinglePiece(
+  fromSquare,
+  toSquare
+) {
+
+  return new Promise(
+    resolve => {
+
+      const fromEl =
+        boardEl.querySelector(
+          `[data-square="${fromSquare}"]`
+        );
+
+
+      const toEl =
+        boardEl.querySelector(
+          `[data-square="${toSquare}"]`
+        );
+
+
+      if (
+        !fromEl ||
+        !toEl
+      ) {
+
+        resolve();
+
+        return;
+
+      }
+
+
+      const pieceImage =
+        fromEl.querySelector(
+          ".piece"
+        );
+
+
+      if (
+        !pieceImage
+      ) {
+
+        resolve();
+
+        return;
+
+      }
+
+
+      const fromRect =
+        fromEl.getBoundingClientRect();
+
+
+      const toRect =
+        toEl.getBoundingClientRect();
+
+
+      const deltaX =
+
+        (
+          toRect.left +
+          toRect.width / 2
+        ) -
+
+        (
+          fromRect.left +
+          fromRect.width / 2
+        );
+
+
+      const deltaY =
+
+        (
+          toRect.top +
+          toRect.height / 2
+        ) -
+
+        (
+          fromRect.top +
+          fromRect.height / 2
+        );
+
+
+      const glideOriginGhost =
+        document.createElement(
+          "img"
+        );
+
+      glideOriginGhost.className =
+        "glide-origin-ghost";
+
+      glideOriginGhost.src =
+        pieceImage.src;
+
+      fromEl.appendChild(
+        glideOriginGhost
+      );
+
+
+      pieceImage.classList.add(
+        "move-glide"
+      );
+
+
+      let finished =
+        false;
+
+
+      function finish() {
+
+        if (
+          finished
+        ) {
+          return;
+        }
+
+
+        finished =
+          true;
+
+
+        pieceImage.classList.remove(
+          "move-glide"
+        );
+
+        if (
+          glideOriginGhost &&
+          glideOriginGhost.isConnected
+        ) {
+          glideOriginGhost.remove();
+        }
+
+
+        resolve();
+
+      }
+
+
+      const animation =
+        pieceImage.animate(
+
+          [
+            {
+              transform:
+                "translate(0px, 0px)"
+            },
+
+            {
+              transform:
+                `translate(${deltaX}px, ${deltaY}px)`
+            }
+          ],
+
+          {
+            duration:
+              MOVE_ANIMATION_DURATION,
+
+            easing:
+              "cubic-bezier(.22,.61,.36,1)",
+
+            fill:
+              "forwards"
+          }
+
+        );
+
+
+      animation.onfinish =
+        finish;
+
+
+      animation.oncancel =
+        finish;
+
+
+      setTimeout(
+        finish,
+        MOVE_ANIMATION_DURATION + 80
+      );
+
+    }
+  );
+
+}
+
+
+async function animateLegalMove(
+  from,
+  to,
+  plannedMove
+) {
+
+  const animations = [
+
+    animateSinglePiece(
+      from,
+      to
+    )
+
+  ];
+
+
+  const rookMove =
+    getCastlingRookSquares(
+      plannedMove
+    );
+
+
+  if (
+    rookMove
+  ) {
+
+    animations.push(
+
+      animateSinglePiece(
+        rookMove.from,
+        rookMove.to
+      )
+
+    );
+
+  }
+
+
+  await Promise.all(
+    animations
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* FORMATION ASSEMBLY                                    */
+/* ===================================================== */
+
+function clearFormationAnimationTimers() {
+
+  formationAnimationTimers.forEach(
+    timer => {
+
+      clearTimeout(
+        timer
+      );
+
+    }
+  );
+
+
+  formationAnimationTimers =
+    [];
+
+}
+
+
+function animateFormationAssembly(side) {
+
+  if (
+    gameStarted
+  ) {
+    return;
+  }
+
+
+  clearFormationAnimationTimers();
+
+
+  const targetColor =
+
+    side === "computer"
+
+      ? (
+          playerColor === "w"
+            ? "b"
+            : "w"
+        )
+
+      : playerColor;
+
+
+  const rank =
+
+    targetColor === "w"
+
+      ? "1"
+
+      : "8";
+
+
+  const squares = [
+
+    "a" + rank,
+    "b" + rank,
+    "c" + rank,
+    "f" + rank,
+    "g" + rank,
+    "h" + rank
+
+  ];
+
+
+  const pieceImages =
+    [];
+
+
+  squares.forEach(
+    squareName => {
+
+      const square =
+        boardEl.querySelector(
+          `[data-square="${squareName}"]`
+        );
+
+
+      if (
+        !square
+      ) {
+        return;
+      }
+
+
+      const pieceImage =
+        square.querySelector(
+          ".piece"
+        );
+
+
+      if (
+        pieceImage
+      ) {
+
+        pieceImage.style.opacity =
+          "0";
+
+
+        pieceImage.style.transform =
+          "translateY(-18px) scale(.9)";
+
+
+        pieceImages.push(
+          pieceImage
+        );
+
+      }
+
+    }
+  );
+
+
+  pieceImages.forEach(
+    (
+      pieceImage,
+      index
+    ) => {
+
+      const timer =
+        setTimeout(
+          () => {
+
+            pieceImage.style.opacity =
+              "1";
+
+
+            pieceImage.animate(
+
+              [
+                {
+                  opacity:0,
+                  transform:
+                    "translateY(-18px) scale(.9)"
+                },
+
+                {
+                  opacity:1,
+                  transform:
+                    "translateY(3px) scale(1.03)",
+                  offset:.78
+                },
+
+                {
+                  opacity:1,
+                  transform:
+                    "translateY(0px) scale(1)"
+                }
+              ],
+
+              {
+                duration:145,
+                easing:"ease-out",
+                fill:"forwards"
+              }
+
+            );
+
+          },
+          index * 75
+        );
+
+
+      formationAnimationTimers.push(
+        timer
+      );
+
+    }
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* ENGINE DELAY                                          */
+/* ===================================================== */
+
+function randomEngineDelay() {
+
+  return (
+    1500 +
+    Math.random() * 3000
+  );
+
+}
+
+
+function clearEngineMoveTimer() {
+
+  if (
+    engineMoveTimer
+  ) {
+
+    clearTimeout(
+      engineMoveTimer
+    );
+
+
+    engineMoveTimer =
+      null;
+
+  }
+
+}
+
+
+function scheduleEngineMove() {
+
+  if (
+    !game ||
+    game.isGameOver()
+  ) {
+
+    return;
+
+  }
+
+
+  clearEngineMoveTimer();
+
+
+  engineThinking =
+    true;
+
+
+  updateStatus();
+  updateUndoButton();
+
+
+  const delay =
+    randomEngineDelay();
+
+
+  engineMoveTimer =
+    setTimeout(
+      function() {
+
+        engineMoveTimer =
+          null;
+
+
+        requestEngineMove();
+
+      },
+      delay
+    );
+
+}
+
+
+
+/* ===================================================== */
+/* CAPTURE TOAST                                         */
+/* ===================================================== */
+
+function showComputerCaptureToast(
+  pieceType
+) {
+
+  if (
+    !pieceType
+  ) {
+    return;
+  }
+
+
+  if (
+    captureToastTimer
+  ) {
+
+    clearTimeout(
+      captureToastTimer
+    );
+
+  }
+
+
+  if (
+    captureToastClearTimer
+  ) {
+
+    clearTimeout(
+      captureToastClearTimer
+    );
+
+  }
+
+
+  captureToastItems.push({
+
+    type:pieceType,
+
+    color:playerColor
+
+  });
+
+
+  if (
+    captureToastItems.length > 4
+  ) {
+
+    captureToastItems =
+      captureToastItems.slice(-4);
+
+  }
+
+
+  renderCaptureToast();
+
+
+  captureToast.classList.add(
+    "visible"
+  );
+
+
+  captureToastTimer =
+    setTimeout(
+      () => {
+
+        captureToast.classList.remove(
+          "visible"
+        );
+
+
+        captureToastClearTimer =
+          setTimeout(
+            () => {
+
+              captureToastItems =
+                [];
+
+
+              captureToast.innerHTML =
+                "";
+
+            },
+            250
+          );
+
+      },
+      2900
+    );
+
+}
+
+
+function renderCaptureToast() {
+
+  let html =
+
+    "<div class='capture-toast-title'>" +
+    "Stockfish captured" +
+    "</div>";
+
+
+  captureToastItems.forEach(
+    item => {
+
+      html +=
+
+        "<div class='capture-toast-row'>" +
+
+        "<img class='capture-toast-piece' " +
+        "src='" +
+        PIECE_IMAGES[
+          item.color +
+          item.type
+        ] +
+        "' alt=''>" +
+
+        "<span>" +
+        PIECE_NAMES[
+          item.type
+        ] +
+        "</span>" +
+
+        "</div>";
+
+    }
+  );
+
+
+  captureToast.innerHTML =
+    html;
+
+}
+
+
+function clearCaptureToast() {
+
+  if (
+    captureToastTimer
+  ) {
+
+    clearTimeout(
+      captureToastTimer
+    );
+
+  }
+
+
+  if (
+    captureToastClearTimer
+  ) {
+
+    clearTimeout(
+      captureToastClearTimer
+    );
+
+  }
+
+
+  captureToastTimer =
+    null;
+
+
+  captureToastClearTimer =
+    null;
+
+
+  captureToastItems =
+    [];
+
+
+  captureToast.classList.remove(
+    "visible"
+  );
+
+
+  captureToast.innerHTML =
+    "";
+
+}
+
+
+
+/* ===================================================== */
+/* FORMATION HELP                                        */
+/* ===================================================== */
+
+function getFormationTooltipHTML(code) {
+
+  if (
+    code === "RANDOM"
+  ) {
+
+    return (
+
+      "<div class='tooltip-title'>" +
+      "Random Formation" +
+      "</div>" +
+
+      "<div class='tooltip-description'>" +
+      "Let the game choose one of the six formations for you." +
+      "</div>" +
+
+      "<div class='tooltip-line'>" +
+      "<strong>Strength:</strong> " +
+      "Forces you to adapt and explore formations you might not normally select." +
+      "</div>" +
+
+      "<div class='tooltip-line'>" +
+      "<strong>Tip:</strong> " +
+      "Use Random when you want to practice reacting to unfamiliar starting positions." +
+      "</div>" +
+
+      "<div class='tooltip-note'>" +
+      "The preview may change when the game begins." +
+      "</div>"
+
+    );
+
+  }
+
+
+  const guide =
+    FORMATION_GUIDES[code];
+
+
+  return (
+
+    "<div class='tooltip-title'>" +
+    FORMATION_MAP[code] +
+    "</div>" +
+
+    "<div class='tooltip-description'>" +
+    guide.description +
+    "</div>" +
+
+    "<div class='tooltip-line'>" +
+    "<strong>Strength:</strong> " +
+    guide.strength +
+    "</div>" +
+
+    "<div class='tooltip-line'>" +
+    "<strong>Tip:</strong> " +
+    guide.tip +
+    "</div>" +
+
+    (
+      code === "RNB"
+
+        ? "<div class='tooltip-note'>Castling is available when both players choose The Bastion.</div>"
+
+        : ""
+    )
+
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* DIFFICULTY HELP                                       */
+/* ===================================================== */
+
+function getDifficultyTooltipHTML(key) {
+
+  const guide =
+    DIFFICULTY_GUIDES[key];
+
+
+  return (
+
+    "<div class='tooltip-title'>" +
+    guide.title +
+    "</div>" +
+
+    "<div class='tooltip-description'>" +
+    guide.description +
+    "</div>" +
+
+    "<div class='tooltip-line'>" +
+    "<strong>How it plays:</strong> " +
+    guide.behavior +
+    "</div>" +
+
+    "<div class='tooltip-line'>" +
+    "<strong>Best for:</strong> " +
+    guide.bestFor +
+    "</div>"
+
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* TOOLTIP POSITIONING                                   */
+/* ===================================================== */
+
+function positionTooltip(button) {
+
+  if (
+    isTouchStyleDevice() ||
+    window.innerWidth <= 700
+  ) {
+
+    return;
+
+  }
+
+
+  const rect =
+    button.getBoundingClientRect();
+
+
+  const tooltipWidth =
+    270;
+
+
+  const gap =
+    12;
+
+
+  let left =
+    rect.left -
+    tooltipWidth -
+    gap;
+
+
+  let top =
+    rect.top;
+
+
+  if (
+    left >= 10
+  ) {
+
+    hoverTooltip.style.left =
+      left + "px";
+
+
+    const tooltipHeight =
+      hoverTooltip.offsetHeight;
+
+
+    if (
+      top +
+      tooltipHeight >
+      window.innerHeight - 10
+    ) {
+
+      top =
+        window.innerHeight -
+        tooltipHeight -
+        10;
+
+    }
+
+
+    if (
+      top < 10
+    ) {
+
+      top =
+        10;
+
+    }
+
+
+    hoverTooltip.style.top =
+      top + "px";
+
+
+    return;
+
+  }
+
+
+  left =
+    Math.max(
+      10,
+      Math.min(
+        rect.left,
+        window.innerWidth -
+        tooltipWidth -
+        10
+      )
+    );
+
+
+  top =
+    rect.bottom +
+    8;
+
+
+  const tooltipHeight =
+    hoverTooltip.offsetHeight;
+
+
+  if (
+    top +
+    tooltipHeight >
+    window.innerHeight - 10
+  ) {
+
+    top =
+      rect.top -
+      tooltipHeight -
+      8;
+
+  }
+
+
+  if (
+    top < 10
+  ) {
+
+    top =
+      10;
+
+  }
+
+
+  hoverTooltip.style.left =
+    left + "px";
+
+
+  hoverTooltip.style.top =
+    top + "px";
+
+}
+
+
+function showTooltip(
+  button,
+  html
+) {
+
+  hoverTooltip.innerHTML =
+    html;
+
+
+  hoverTooltip.classList.add(
+    "visible"
+  );
+
+
+  positionTooltip(
+    button
+  );
+
+}
+
+
+function hideTooltip() {
+
+  hoverTooltip.classList.remove(
+    "visible"
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* TOOLTIP ATTACHMENTS                                   */
+/* ===================================================== */
+
+function attachFormationTooltip(
+  button,
+  code
+) {
+
+  button.addEventListener(
+    "mouseenter",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        showTooltip(
+          button,
+          getFormationTooltipHTML(code)
+        );
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "mouseleave",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        hideTooltip();
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "focus",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        showTooltip(
+          button,
+          getFormationTooltipHTML(code)
+        );
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "blur",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        hideTooltip();
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "click",
+    function(event) {
+
+      if (
+        isTouchStyleDevice()
+      ) {
+
+        event.stopPropagation();
+
+
+        showTooltip(
+          button,
+          getFormationTooltipHTML(code)
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+function attachDifficultyTooltip(
+  button,
+  key
+) {
+
+  button.addEventListener(
+    "mouseenter",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        showTooltip(
+          button,
+          getDifficultyTooltipHTML(key)
+        );
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "mouseleave",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        hideTooltip();
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "focus",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        showTooltip(
+          button,
+          getDifficultyTooltipHTML(key)
+        );
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "blur",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        hideTooltip();
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "click",
+    function(event) {
+
+      if (
+        isTouchStyleDevice()
+      ) {
+
+        event.stopPropagation();
+
+
+        showTooltip(
+          button,
+          getDifficultyTooltipHTML(key)
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* FORMATION / FEN                                       */
+/* ===================================================== */
+
+function randomFormation() {
+
+  return FORMATIONS[
+    Math.floor(
+      Math.random() *
+      FORMATIONS.length
+    )
+  ].code;
+
+}
+
+
+function buildBackRow(setup) {
+
+  return (
+    setup +
+    "QK" +
+    setup
+      .split("")
+      .reverse()
+      .join("")
+  );
+
+}
+
+
+function buildFen(
+  whiteSetup,
+  blackSetup,
+  allowCastling = false
+) {
+
+  const whiteBack =
+    buildBackRow(
+      whiteSetup
+    );
+
+
+  const blackBack =
+    buildBackRow(
+      blackSetup
+    ).toLowerCase();
+
+
+  const castlingRights =
+
+    allowCastling
+
+      ? "KQkq"
+
+      : "-";
+
+
+  return (
+    blackBack +
+    "/pppppppp" +
+    "/8/8/8/8" +
+    "/PPPPPPPP/" +
+    whiteBack +
+    " w " +
+    castlingRights +
+    " - 0 1"
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* PREVIEW CHANGE                                        */
+/* ===================================================== */
+
+function shouldReturnToPreview() {
+
+  return (
+    !gameStarted ||
+    (
+      game &&
+      game.isGameOver()
+    )
+  );
+
+}
+
+
+function refreshPreviewAfterSetupChange(
+  animateSide = null
+) {
+
+  if (
+    shouldReturnToPreview()
+  ) {
+
+    renderPreview();
+
+
+    if (
+      animateSide
+    ) {
+
+      requestAnimationFrame(
+        () => {
+
+          requestAnimationFrame(
+            () => {
+
+              animateFormationAssembly(
+                animateSide
+              );
+
+            }
+          );
+
+        }
+      );
+
+    }
+
+  }
+
+}
+
+
+
+/* ===================================================== */
+/* CONTROL SETUP                                         */
+/* ===================================================== */
+
+function initializeControls() {
+
+  FORMATIONS.forEach(
+    function(formation) {
+
+      const button =
+        document.createElement(
+          "button"
+        );
+
+
+      button.type =
+        "button";
+
+
+      button.className =
+        "choice-btn";
+
+
+      button.dataset.code =
+        formation.code;
+
+
+      button.innerHTML =
+
+        "<span class='formation-code'>" +
+        formation.code +
+        "</span>" +
+
+        "<span class='formation-name'>" +
+        formation.name +
+        "</span>";
+
+
+      attachFormationTooltip(
+        button,
+        formation.code
+      );
+
+
+      button.addEventListener(
+        "click",
+        function() {
+
+          playMenuClick();
+
+          if (
+            gameMode === "online" &&
+            onlineFormationLocked
+          ) {
+            return;
+          }
+
+          playerFormationChoice =
+            formation.code;
+
+
+          previewPlayerFormation =
+            formation.code;
+
+
+          refreshFormationButtons();
+
+
+          refreshPreviewAfterSetupChange(
+            "player"
+          );
+
+
+          updateInfoPanel();
+
+        }
+      );
+
+
+      formationButtonsEl.appendChild(
+        button
+      );
+
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+
+      option.value =
+        formation.code;
+
+
+      option.textContent =
+
+        formation.name +
+        " (" +
+        formation.code +
+        ")";
+
+
+      computerFormationSelect.appendChild(
+        option
+      );
+
+    }
+  );
+
+
+  computerFormationSelect.value =
+    computerFormationChoice;
+
+
+  randomFormationBtn.dataset.code =
+    "RANDOM";
+
+
+  attachFormationTooltip(
+    randomFormationBtn,
+    "RANDOM"
+  );
+
+
+  randomFormationBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      if (
+        gameMode === "online" &&
+        onlineFormationLocked
+      ) {
+        return;
+      }
+
+      playerFormationChoice =
+        "RANDOM";
+
+
+      previewPlayerFormation =
+        randomFormation();
+
+
+      refreshFormationButtons();
+
+
+      refreshPreviewAfterSetupChange(
+        "player"
+      );
+
+
+      updateInfoPanel();
+
+    }
+  );
+
+
+  computerFormationSelect.addEventListener(
+    "change",
+    function() {
+
+      playMenuClick();
+
+      computerFormationChoice =
+        computerFormationSelect.value;
+
+
+      previewComputerFormation =
+
+        computerFormationChoice === "RANDOM"
+
+          ? randomFormation()
+
+          : computerFormationChoice;
+
+
+      refreshPreviewAfterSetupChange(
+        "computer"
+      );
+
+
+      updateInfoPanel();
+
+    }
+  );
+
+
+  playWhiteBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+
+      playerColorChoice =
+        "w";
+
+
+      playerColor =
+        "w";
+
+
+      refreshSideButtons();
+
+      refreshPreviewAfterSetupChange();
+
+      updateInfoPanel();
+
+    }
+  );
+
+
+  playRandomBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+
+      playerColorChoice =
+        "RANDOM";
+
+
+      playerColor =
+        "w";
+
+
+      refreshSideButtons();
+
+      refreshPreviewAfterSetupChange();
+
+      updateInfoPanel();
+
+    }
+  );
+
+
+  playBlackBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+
+      playerColorChoice =
+        "b";
+
+
+      playerColor =
+        "b";
+
+
+      refreshSideButtons();
+
+      refreshPreviewAfterSetupChange();
+
+      updateInfoPanel();
+
+    }
+  );
+
+
+  attachDifficultyTooltip(
+    difficultyRelaxed,
+    "casual"
+  );
+
+
+  attachDifficultyTooltip(
+    difficultyStandard,
+    "beginner"
+  );
+
+
+  attachDifficultyTooltip(
+    difficultyFierce,
+    "intermediate"
+  );
+
+
+  attachDifficultyTooltip(
+    difficultyRuthless,
+    "hard"
+  );
+
+
+  difficultyRelaxed.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      difficultyKey =
+        "casual";
+
+      refreshDifficultyButtons();
+
+      applyDifficulty();
+
+      updateInfoPanel();
+
+    }
+  );
+
+
+  difficultyStandard.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      difficultyKey =
+        "beginner";
+
+      refreshDifficultyButtons();
+
+      applyDifficulty();
+
+      updateInfoPanel();
+
+    }
+  );
+
+
+  difficultyFierce.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      difficultyKey =
+        "intermediate";
+
+      refreshDifficultyButtons();
+
+      applyDifficulty();
+
+      updateInfoPanel();
+
+    }
+  );
+
+
+  difficultyRuthless.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      difficultyKey =
+        "hard";
+
+      refreshDifficultyButtons();
+
+      applyDifficulty();
+
+      updateInfoPanel();
+
+    }
+  );
+
+
+  computerModeBtn.addEventListener(
+    "click",
+    async function() {
+
+      playMenuClick();
+
+      if (
+        gameMode === "computer"
+      ) {
+        return;
+      }
+
+      await stopOnlineRealtime();
+
+      gameMode =
+        "computer";
+
+      onlineRoom =
+        null;
+
+      onlineRole =
+        null;
+
+      onlineStartedRoomId =
+        null;
+
+      localStorage.removeItem(
+        ONLINE_ROOM_CODE_KEY
+      );
+
+      setOnlineFormationControlsLocked(
+        false
+      );
+
+      renderPreview();
+
+      updateGameModeUI();
+
+    }
+  );
+
+
+  onlineModeBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      if (
+        gameMode === "online"
+      ) {
+        return;
+      }
+
+      gameMode =
+        "online";
+
+      /*
+       * Switch the interface FIRST.
+       * Do not run the single-player preview reset here.
+       * That reset is computer-mode logic and can prevent the
+       * online room controls from becoming visible.
+       */
+      updateGameModeUI();
+
+      updateInfoPanel();
+
+      setStatus(
+        "Online Multiplayer — create a room or join one."
+      );
+
+      setOnlineStatus(
+        "Create a room or join with a room code."
+      );
+
+    }
+  );
+
+
+  createOnlineRoomBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      createOnlineRoom();
+
+    }
+  );
+
+
+  joinOnlineRoomBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      joinOnlineRoom();
+
+    }
+  );
+
+
+  lockOnlineFormationBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      lockOnlineFormation();
+
+    }
+  );
+
+
+  leaveOnlineRoomBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      leaveOnlineRoom();
+
+    }
+  );
+
+
+  onlineRoomCodeInput.addEventListener(
+    "input",
+    function() {
+
+      onlineRoomCodeInput.value =
+        onlineRoomCodeInput.value
+          .toUpperCase();
+
+    }
+  );
+
+
+  soundButton.addEventListener(
+    "click",
+    function() {
+
+      soundEnabled =
+        !soundEnabled;
+
+
+      soundButton.classList.toggle(
+        "active",
+        soundEnabled
+      );
+
+
+      soundButton.textContent =
+
+        soundEnabled
+
+          ? "🔊 Sound On"
+
+          : "🔇 Sound Off";
+
+
+      if (
+        soundEnabled
+      ) {
+
+        playMenuClick();
+
+      }
+
+      else {
+
+        stopOpeningTheme();
+
+      }
+
+    }
+  );
+
+
+  newGameBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      hideTooltip();
+
+      startNewGame();
+
+    }
+  );
+
+
+  endGameBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      hideTooltip();
+
+      endCurrentGame();
+
+    }
+  );
+
+
+  undoBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      hideTooltip();
+
+      undoPlayerTurn();
+
+    }
+  );
+
+
+  resetBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      hideTooltip();
+
+      resetCurrentGame();
+
+    }
+  );
+
+
+  promotionCancel.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      cancelPromotion();
+
+    }
+  );
+
+
+  [
+    "q",
+    "r",
+    "b",
+    "n"
+  ].forEach(
+    function(pieceType) {
+
+      const button =
+        document.createElement(
+          "button"
+        );
+
+
+      button.type =
+        "button";
+
+
+      button.className =
+        "promotion-option";
+
+
+      const image =
+        document.createElement(
+          "img"
+        );
+
+
+      image.src =
+        PIECE_IMAGES[
+          playerColor +
+          pieceType
+        ];
+
+
+      image.dataset.pieceImage =
+        pieceType;
+
+
+      const label =
+        document.createElement(
+          "span"
+        );
+
+
+      label.textContent =
+        PROMOTION_NAMES[
+          pieceType
+        ];
+
+
+      button.appendChild(
+        image
+      );
+
+
+      button.appendChild(
+        label
+      );
+
+
+      button.addEventListener(
+        "click",
+        function() {
+
+          playMenuClick();
+
+
+          choosePromotion(
+            pieceType
+          );
+
+        }
+      );
+
+
+      promotionOptions.appendChild(
+        button
+      );
+
+    }
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* GAME OVER CONTROLS                                    */
+/* ===================================================== */
+
+copyGameBtn.addEventListener(
+  "click",
+  async function() {
+
+    playMenuClick();
+
+    await copyGameRecord();
+
+  }
+);
+
+
+rematchBtn.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    rematchCurrentGame();
+
+  }
+);
+
+
+
+/* ===================================================== */
+/* UNDO                                                  */
+/* ===================================================== */
+
+function getLatestPlayerMoveIndex() {
+
+  if (
+    !game
+  ) {
+    return -1;
+  }
+
+
+  const history =
+    game.history({
+      verbose:true
+    });
+
+
+  for (
+    let i =
+      history.length - 1;
+
+    i >= 0;
+
+    i--
+  ) {
+
+    if (
+      history[i].color ===
+      playerColor
+    ) {
+
+      return i;
+
+    }
+
+  }
+
+
+  return -1;
+
+}
+
+
+function clearMoveGhost() {
+
+  if (
+    moveGhostTimer
+  ) {
+    clearTimeout(
+      moveGhostTimer
+    );
+    moveGhostTimer =
+      null;
+  }
+
+  moveGhost =
+    null;
+
+}
+
+
+function showMoveGhost(
+  move
+) {
+
+  clearMoveGhost();
+
+  if (
+    !move ||
+    !move.from ||
+    !move.color ||
+    !move.piece
+  ) {
+    return;
+  }
+
+  const castlingRookMove =
+    getCastlingRookSquares(
+      move
+    );
+
+
+  moveGhost = {
+    from:move.from,
+    color:move.color,
+    piece:move.piece,
+    secondary:
+      castlingRookMove
+        ? {
+            from:castlingRookMove.from,
+            color:move.color,
+            piece:"r"
+          }
+        : null
+  };
+
+  moveGhostTimer =
+    setTimeout(
+      () => {
+        moveGhost =
+          null;
+        moveGhostTimer =
+          null;
+        if (
+          boardEl
+        ) {
+          drawBoard();
+        }
+      },
+      3000
+    );
+
+}
+
+
+function updateUndoButton() {
+
+  if (
+    gameMode === "online"
+  ) {
+
+    undoBtn.disabled =
+      true;
+
+    undoBtn.textContent =
+      "Undo unavailable online";
+
+    return;
+
+  }
+
+
+  const hasPlayerMove =
+    getLatestPlayerMoveIndex() >= 0;
+
+
+  const canUndo =
+
+    gameStarted &&
+    game &&
+    !game.isGameOver() &&
+    hasPlayerMove &&
+    undosRemaining > 0 &&
+    !moveAnimating &&
+    !promotionPending;
+
+
+  undoBtn.disabled =
+    !canUndo;
+
+
+  undoBtn.textContent =
+    "Undo (" +
+    undosRemaining +
+    ")";
+
+}
+
+
+function restoreLastMoveHighlight() {
+
+  if (
+    !game
+  ) {
+
+    lastMove =
+      null;
+
+    return;
+
+  }
+
+
+  const history =
+    game.history({
+      verbose:true
+    });
+
+
+  if (
+    history.length === 0
+  ) {
+
+    lastMove =
+      null;
+
+    return;
+
+  }
+
+
+  const previousMove =
+    history[
+      history.length - 1
+    ];
+
+
+  lastMove = {
+
+    from:
+      previousMove.from,
+
+    to:
+      previousMove.to
+
+  };
+
+}
+
+
+function undoPlayerTurn() {
+
+  if (
+    !gameStarted ||
+    !game ||
+    game.isGameOver() ||
+    undosRemaining <= 0 ||
+    moveAnimating ||
+    promotionPending
+  ) {
+
+    return;
+
+  }
+
+
+  const history =
+    game.history({
+      verbose:true
+    });
+
+
+  let latestPlayerMoveIndex =
+    -1;
+
+
+  for (
+    let i =
+      history.length - 1;
+
+    i >= 0;
+
+    i--
+  ) {
+
+    if (
+      history[i].color ===
+      playerColor
+    ) {
+
+      latestPlayerMoveIndex =
+        i;
+
+      break;
+
+    }
+
+  }
+
+
+  if (
+    latestPlayerMoveIndex < 0
+  ) {
+
+    updateUndoButton();
+
+    return;
+
+  }
+
+
+  clearEngineMoveTimer();
+
+
+  if (
+    engineSearchActive
+  ) {
+
+    ignoreStoppedBestmove =
+      true;
+
+
+    engine.postMessage(
+      "stop"
+    );
+
+
+    engineSearchActive =
+      false;
+
+  }
+
+  else {
+
+    engine.postMessage(
+      "stop"
+    );
+
+  }
+
+
+  engineThinking =
+    false;
+
+
+  clearCaptureToast();
+
+  hideGameOverSummary();
+
+  hidePromotion();
+
+
+  selectedSquare =
+    null;
+
+
+  legalMoves =
+    [];
+
+
+  promotionPending =
+    null;
+
+
+  const pliesToUndo =
+
+    history.length -
+    latestPlayerMoveIndex;
+
+
+  for (
+    let i=0;
+
+    i<pliesToUndo;
+
+    i++
+  ) {
+
+    game.undo();
+
+  }
+
+
+  undosRemaining--;
+
+
+  restoreLastMoveHighlight();
+
+
+  clearMoveGhost();
+
+
+  drawBoard();
+
+  renderMoveList();
+
+  updateCapturedPieces();
+
+  updateStatus();
+
+  updateInfoPanel();
+
+  updateUndoButton();
+
+}
+
+
+
+/* ===================================================== */
+/* BUTTON STATES                                         */
+/* ===================================================== */
+
+function refreshFormationButtons() {
+
+  document
+    .querySelectorAll(
+      "#formationButtons .choice-btn"
+    )
+    .forEach(
+      button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.code ===
+          playerFormationChoice
+        );
+
+      }
+    );
+
+
+  randomFormationBtn.classList.toggle(
+    "active",
+    playerFormationChoice ===
+    "RANDOM"
+  );
+
+}
+
+
+function refreshSideButtons() {
+
+  let activeChoice;
+
+
+  if (
+    gameStarted &&
+    actualPlayerColor
+  ) {
+
+    activeChoice =
+      actualPlayerColor;
+
+  }
+
+  else {
+
+    activeChoice =
+      playerColorChoice;
+
+  }
+
+
+  playWhiteBtn.classList.toggle(
+    "active",
+    activeChoice === "w"
+  );
+
+
+  playRandomBtn.classList.toggle(
+    "active",
+    activeChoice === "RANDOM"
+  );
+
+
+  playBlackBtn.classList.toggle(
+    "active",
+    activeChoice === "b"
+  );
+
+}
+
+
+function refreshDifficultyButtons() {
+
+  difficultyRelaxed.classList.toggle(
+    "active",
+    difficultyKey === "casual"
+  );
+
+
+  difficultyStandard.classList.toggle(
+    "active",
+    difficultyKey === "beginner"
+  );
+
+
+  difficultyFierce.classList.toggle(
+    "active",
+    difficultyKey === "intermediate"
+  );
+
+
+  difficultyRuthless.classList.toggle(
+    "active",
+    difficultyKey === "hard"
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* COORDINATES                                           */
+/* ===================================================== */
+
+function renderCoordinates(
+  files,
+  ranks
+) {
+
+  rankCoordinatesEl.innerHTML =
+    "";
+
+
+  fileCoordinatesEl.innerHTML =
+    "";
+
+
+  ranks.forEach(
+    rank => {
+
+      const label =
+        document.createElement(
+          "span"
+        );
+
+
+      label.textContent =
+        rank;
+
+
+      rankCoordinatesEl.appendChild(
+        label
+      );
+
+    }
+  );
+
+
+  files.forEach(
+    file => {
+
+      const label =
+        document.createElement(
+          "span"
+        );
+
+
+      label.textContent =
+        file;
+
+
+      fileCoordinatesEl.appendChild(
+        label
+      );
+
+    }
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* START BUTTON ATTENTION                                */
+/* ===================================================== */
+
+function updateStartGameAttention() {
+
+  newGameBtn.classList.toggle(
+    "start-attention",
+    !gameStarted
+  );
+
+}
+
+
+/* ===================================================== */
+/* PREVIEW                                               */
+/* ===================================================== */
+
+function renderPreview() {
+
+  clearMoveGhost();
+
+
+  cancelPieceDrag();
+
+  clearFormationAnimationTimers();
+
+  clearEngineMoveTimer();
+
+  hideRuleToast();
+
+
+  engine.postMessage(
+    "stop"
+  );
+
+
+  engineSearchActive =
+    false;
+
+
+  engineThinking =
+    false;
+
+
+  moveAnimating =
+    false;
+
+
+  gameStarted =
+    false;
+
+
+  updateStartGameAttention();
+
+
+  actualPlayerColor =
+    null;
+
+
+  actualPlayerFormation =
+    null;
+
+
+  actualComputerFormation =
+    null;
+
+
+  selectedSquare =
+    null;
+
+
+  legalMoves =
+    [];
+
+
+  lastMove =
+    null;
+
+
+  promotionPending =
+    null;
+
+
+  hidePromotion();
+
+  clearCaptureToast();
+
+  hideGameOverSummary();
+
+
+  const previewColor =
+
+    playerColorChoice === "b"
+
+      ? "b"
+
+      : "w";
+
+
+  playerColor =
+    previewColor;
+
+
+  const whiteSetup =
+
+    playerColor === "w"
+
+      ? previewPlayerFormation
+
+      : previewComputerFormation;
+
+
+  const blackSetup =
+
+    playerColor === "b"
+
+      ? previewPlayerFormation
+
+      : previewComputerFormation;
+
+
+  game =
+    new Chess(
+      buildFen(
+        whiteSetup,
+        blackSetup,
+        false
+      )
+    );
+
+
+  refreshFormationButtons();
+
+  refreshSideButtons();
+
+  drawBoard();
+
+  renderMoveList();
+
+  updateCapturedPieces();
+
+  updateInfoPanel();
+
+  updateUndoButton();
+
+
+  const previewText =
+
+    FORMATION_MAP[
+      previewPlayerFormation
+    ] +
+
+    " (" +
+
+    previewPlayerFormation +
+
+    ")";
+
+
+  previewBar.innerHTML =
+
+    "<strong>Preview:</strong>&nbsp;" +
+
+    previewText +
+
+    (
+      playerFormationChoice === "RANDOM"
+
+        ? "&nbsp;— Random rerolls when the game starts."
+
+        : ""
+    ) +
+
+    (
+      playerColorChoice === "RANDOM"
+
+        ? "&nbsp;— Color will be chosen when the game starts."
+
+        : ""
+    );
+
+
+  setStatus(
+    "Choose your settings, then click Start New Game."
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* GAME START / END                                      */
+/* ===================================================== */
+
+function resolvePlayerFormation() {
+
+  return (
+
+    playerFormationChoice === "RANDOM"
+
+      ? randomFormation()
+
+      : playerFormationChoice
+
+  );
+
+}
+
+
+function resolveComputerFormation() {
+
+  return (
+
+    computerFormationChoice === "RANDOM"
+
+      ? randomFormation()
+
+      : computerFormationChoice
+
+  );
+
+}
+
+
+function resolvePlayerColor() {
+
+  if (
+    playerColorChoice === "RANDOM"
+  ) {
+
+    return (
+
+      Math.random() < .5
+
+        ? "w"
+
+        : "b"
+
+    );
+
+  }
+
+
+  return playerColorChoice;
+
+}
+
+
+function startNewGame() {
+
+  if (
+    !engineReady
+  ) {
+
+    setStatus(
+      "Stockfish is still loading."
+    );
+
+
+    return;
+
+  }
+
+
+  actualPlayerFormation =
+    resolvePlayerFormation();
+
+
+  actualComputerFormation =
+    resolveComputerFormation();
+
+
+  actualPlayerColor =
+    resolvePlayerColor();
+
+
+  beginGame(
+    true
+  );
+
+}
+
+
+function resetCurrentGame() {
+
+  if (
+    !actualPlayerFormation ||
+    !actualComputerFormation ||
+    !actualPlayerColor
+  ) {
+
+    startNewGame();
+
+
+    return;
+
+  }
+
+
+  beginGame();
+
+}
+
+
+function rematchCurrentGame() {
+
+  if (
+    !actualPlayerFormation ||
+    !actualComputerFormation ||
+    !actualPlayerColor
+  ) {
+
+    return;
+
+  }
+
+
+  beginGame();
+
+}
+
+
+function endCurrentGame() {
+
+  fadeOutOpeningTheme(
+    5000
+  );
+
+
+  cancelPieceDrag();
+
+  clearFormationAnimationTimers();
+
+  clearEngineMoveTimer();
+
+  hideRuleToast();
+
+
+  engine.postMessage(
+    "stop"
+  );
+
+
+  engineSearchActive =
+    false;
+
+
+  engineThinking =
+    false;
+
+
+  moveAnimating =
+    false;
+
+
+  selectedSquare =
+    null;
+
+
+  legalMoves =
+    [];
+
+
+  promotionPending =
+    null;
+
+
+  hidePromotion();
+
+  clearCaptureToast();
+
+  hideGameOverSummary();
+
+
+  if (
+    playerFormationChoice === "RANDOM"
+  ) {
+
+    previewPlayerFormation =
+      randomFormation();
+
+  }
+
+
+  if (
+    computerFormationChoice === "RANDOM"
+  ) {
+
+    previewComputerFormation =
+      randomFormation();
+
+  }
+
+
+  renderPreview();
+
+}
+
+
+function beginGame(
+  playTheme = false
+) {
+
+  if (
+    playTheme
+  ) {
+
+    playOpeningTheme();
+
+  }
+
+
+  clearMoveGhost();
+
+
+  cancelPieceDrag();
+
+  clearFormationAnimationTimers();
+
+  clearEngineMoveTimer();
+
+  hideRuleToast();
+
+  hideGameOverSummary();
+
+
+  engine.postMessage(
+    "stop"
+  );
+
+
+  engineSearchActive =
+    false;
+
+
+  clearCaptureToast();
+
+
+  gameStarted =
+    true;
+
+
+  updateStartGameAttention();
+
+
+  playerColor =
+    actualPlayerColor;
+
+
+  engineThinking =
+    false;
+
+
+  moveAnimating =
+    false;
+
+
+  selectedSquare =
+    null;
+
+
+  legalMoves =
+    [];
+
+
+  lastMove =
+    null;
+
+
+  promotionPending =
+    null;
+
+
+  undosRemaining =
+    3;
+
+  checkSequenceIndexBySide.w =
+    0;
+
+  checkSequenceIndexBySide.b =
+    0;
+
+  knightCaptureSequenceIndexBySide.w =
+    0;
+
+  knightCaptureSequenceIndexBySide.b =
+    0;
+
+  rookCaptureSequenceIndexBySide.w =
+    0;
+
+  rookCaptureSequenceIndexBySide.b =
+    0;
+
+  bishopCaptureSequenceIndexBySide.w =
+    0;
+
+  bishopCaptureSequenceIndexBySide.b =
+    0;
+
+  lastQueenDeathIndex =
+    -1;
+
+
+  hidePromotion();
+
+
+  const whiteSetup =
+
+    playerColor === "w"
+
+      ? actualPlayerFormation
+
+      : actualComputerFormation;
+
+
+  const blackSetup =
+
+    playerColor === "b"
+
+      ? actualPlayerFormation
+
+      : actualComputerFormation;
+
+
+  const allowCastling =
+    castlingEnabledForCurrentGame();
+
+
+  game =
+    new Chess(
+      buildFen(
+        whiteSetup,
+        blackSetup,
+        allowCastling
+      )
+    );
+
+
+  engine.postMessage(
+    "ucinewgame"
+  );
+
+
+  applyDifficulty();
+
+  refreshFormationButtons();
+
+  refreshSideButtons();
+
+  drawBoard();
+
+  renderMoveList();
+
+  updateCapturedPieces();
+
+  updateInfoPanel();
+
+  updateStatus();
+
+  updateUndoButton();
+
+
+  previewBar.innerHTML =
+
+    "<strong>" +
+
+    FORMATION_MAP[
+      actualPlayerFormation
+    ] +
+
+    " (" +
+
+    actualPlayerFormation +
+
+    ")</strong>" +
+
+    "&nbsp;vs&nbsp;" +
+
+    FORMATION_MAP[
+      actualComputerFormation
+    ] +
+
+    " (" +
+
+    actualComputerFormation +
+
+    ")" +
+
+    "&nbsp;·&nbsp;" +
+
+    (
+      playerColor === "w"
+
+        ? "You are White"
+
+        : "You are Black"
+    );
+
+
+  setTimeout(
+    () => {
+
+      showRuleToast();
+
+    },
+    70
+  );
+
+
+  if (
+    game.turn() !== playerColor
+  ) {
+
+    scheduleEngineMove();
+
+  }
+
+}
+
+
+function applyDifficulty() {
+
+  if (
+    !engineReady
+  ) {
+
+    return;
+
+  }
+
+
+  const difficulty =
+    DIFFICULTIES[difficultyKey];
+
+
+  engine.postMessage(
+
+    "setoption name Skill Level value " +
+    difficulty.skill
+
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* BOARD                                                 */
+/* ===================================================== */
+
+function isPlayerTurn() {
+
+  return (
+
+    gameStarted &&
+
+    game &&
+
+    (
+      gameMode !== "online" ||
+      Boolean(onlineRoom)
+    ) &&
+
+    game.turn() === playerColor &&
+
+    !engineThinking &&
+
+    !moveAnimating &&
+
+    !promotionPending &&
+
+    !game.isGameOver()
+
+  );
+
+}
+
+
+function drawBoard() {
+
+  boardEl.innerHTML =
+    "";
+
+
+  const orientationWhite =
+    playerColor === "w";
+
+
+  const files =
+
+    orientationWhite
+
+      ? [
+          "a","b","c","d",
+          "e","f","g","h"
+        ]
+
+      : [
+          "h","g","f","e",
+          "d","c","b","a"
+        ];
+
+
+  const ranks =
+
+    orientationWhite
+
+      ? [
+          8,7,6,5,4,3,2,1
+        ]
+
+      : [
+          1,2,3,4,5,6,7,8
+        ];
+
+
+  renderCoordinates(
+    files,
+    ranks
+  );
+
+
+  const checkedSquare =
+    findCheckedKingSquare();
+
+  const checkmateAttackerSquare =
+    findCheckmateAttackerSquare();
+
+  const checkmatedKingSquare =
+    findCheckmatedKingSquare();
+
+
+  for (
+    let row=0;
+    row<8;
+    row++
+  ) {
+
+    for (
+      let column=0;
+      column<8;
+      column++
+    ) {
+
+      const file =
+        files[column];
+
+
+      const rank =
+        ranks[row];
+
+
+      const squareName =
+        file + rank;
+
+
+      const square =
+        document.createElement(
+          "div"
+        );
+
+
+      square.className =
+        "square";
+
+
+      square.dataset.square =
+        squareName;
+
+
+      square.classList.add(
+
+        (
+          row +
+          column
+        ) % 2 === 0
+
+          ? "light"
+
+          : "dark"
+
+      );
+
+
+      if (
+        lastMove &&
+        (
+          squareName === lastMove.from ||
+          squareName === lastMove.to
+        )
+      ) {
+
+        square.classList.add(
+          "last-move"
+        );
+
+      }
+
+
+      if (
+        selectedSquare === squareName
+      ) {
+
+        square.classList.add(
+          "selected"
+        );
+
+      }
+
+
+      if (
+        checkedSquare === squareName
+      ) {
+
+        square.classList.add(
+          "check"
+        );
+
+      }
+
+
+      const piece =
+        game.get(
+          squareName
+        );
+
+
+      const isLegalTarget =
+        legalMoves.some(
+          move =>
+            move.to === squareName
+        );
+
+
+      const isCaptureTarget =
+        isLegalTarget &&
+        piece &&
+        piece.color !== playerColor;
+
+
+      if (
+        isLegalTarget &&
+        !isCaptureTarget
+      ) {
+
+        const marker =
+          document.createElement(
+            "div"
+          );
+
+
+        marker.className =
+          "move-dot";
+
+
+        square.appendChild(
+          marker
+        );
+
+      }
+
+
+      if (
+        moveGhost
+      ) {
+
+        let ghostData =
+          null;
+
+
+        if (
+          squareName === moveGhost.from
+        ) {
+
+          ghostData =
+            moveGhost;
+
+        }
+
+        else if (
+          moveGhost.secondary &&
+          squareName === moveGhost.secondary.from
+        ) {
+
+          ghostData =
+            moveGhost.secondary;
+
+        }
+
+
+        if (
+          ghostData
+        ) {
+
+          const ghostImage =
+            document.createElement(
+              "img"
+            );
+
+          ghostImage.className =
+            "move-ghost";
+
+          ghostImage.src =
+            PIECE_IMAGES[
+              ghostData.color +
+              ghostData.piece
+            ];
+
+          square.appendChild(
+            ghostImage
+          );
+
+        }
+
+      }
+
+
+      const isActiveDragSource =
+        Boolean(
+          dragState &&
+          dragState.active &&
+          squareName === dragState.from
+        );
+
+
+      if (
+        isActiveDragSource &&
+        piece
+      ) {
+
+        const dragOriginGhost =
+          document.createElement(
+            "img"
+          );
+
+        dragOriginGhost.className =
+          "drag-origin-ghost";
+
+        dragOriginGhost.src =
+          PIECE_IMAGES[
+            piece.color +
+            piece.type
+          ];
+
+        square.appendChild(
+          dragOriginGhost
+        );
+
+      }
+
+
+      if (
+        piece
+      ) {
+
+        const image =
+          document.createElement(
+            "img"
+          );
+
+        let pieceClassName =
+          "piece";
+
+        if (
+          isActiveDragSource
+        ) {
+
+          pieceClassName +=
+            " drag-source-piece";
+
+        }
+
+        else {
+
+          if (
+            isCaptureTarget
+          ) {
+            pieceClassName +=
+              " capture-target-piece";
+          }
+
+          if (
+            squareName === checkedSquare
+          ) {
+            pieceClassName +=
+              " checked-king-piece";
+          }
+
+          if (
+            squareName === checkmateAttackerSquare
+          ) {
+            pieceClassName +=
+              " checkmate-attacker-piece";
+          }
+
+          if (
+            squareName === checkmatedKingSquare
+          ) {
+            pieceClassName +=
+              " checkmated-king-piece";
+          }
+
+        }
+
+        image.className =
+          pieceClassName;
+
+
+        image.src =
+          PIECE_IMAGES[
+            piece.color +
+            piece.type
+          ];
+
+
+        square.appendChild(
+          image
+        );
+
+      }
+
+
+      square.addEventListener(
+        "pointerdown",
+        function(event) {
+
+          beginPieceDrag(
+            event,
+            squareName
+          );
+
+        }
+      );
+
+
+      square.addEventListener(
+        "click",
+        function() {
+
+          if (
+            performance.now() <
+            ignoreBoardClickUntil
+          ) {
+            return;
+          }
+
+
+          clearAnnotations();
+
+          handleSquareClick(
+            squareName
+          );
+
+        }
+      );
+
+
+      boardEl.appendChild(
+        square
+      );
+
+    }
+
+  }
+
+  renderAnnotations();
+
+}
+
+
+
+/* ===================================================== */
+/* BOARD ANNOTATIONS                                     */
+/* ===================================================== */
+
+function annotationSquareCenter(
+  squareName
+) {
+
+  const fileIndex =
+    squareName.charCodeAt(0) - 97;
+
+  const rank =
+    Number(
+      squareName[1]
+    );
+
+  const orientationWhite =
+    playerColor === "w";
+
+  const column =
+    orientationWhite
+      ? fileIndex
+      : 7 - fileIndex;
+
+  const row =
+    orientationWhite
+      ? 8 - rank
+      : rank - 1;
+
+  return {
+    x:column * 100 + 50,
+    y:row * 100 + 50
+  };
+
+}
+
+
+function renderAnnotations(
+  previewFrom = null,
+  previewTo = null
+) {
+
+  const existing =
+    boardEl.querySelector(
+      ".annotation-layer"
+    );
+
+  if (
+    existing
+  ) {
+    existing.remove();
+  }
+
+  if (
+    annotationMarkers.size === 0 &&
+    annotationArrows.length === 0 &&
+    !(previewFrom && previewTo && previewFrom !== previewTo)
+  ) {
+    return;
+  }
+
+  const svgNS =
+    "http://www.w3.org/2000/svg";
+
+  const svg =
+    document.createElementNS(
+      svgNS,
+      "svg"
+    );
+
+  svg.classList.add(
+    "annotation-layer"
+  );
+
+  svg.setAttribute(
+    "viewBox",
+    "0 0 800 800"
+  );
+
+  svg.setAttribute(
+    "preserveAspectRatio",
+    "none"
+  );
+
+  const defs =
+    document.createElementNS(
+      svgNS,
+      "defs"
+    );
+
+  const marker =
+    document.createElementNS(
+      svgNS,
+      "marker"
+    );
+
+  marker.setAttribute(
+    "id",
+    "aurelianArrowHead"
+  );
+
+  marker.setAttribute(
+    "markerWidth",
+    "58"
+  );
+
+  marker.setAttribute(
+    "markerHeight",
+    "52"
+  );
+
+  marker.setAttribute(
+    "refX",
+    "58"
+  );
+
+  marker.setAttribute(
+    "refY",
+    "26"
+  );
+
+  marker.setAttribute(
+    "orient",
+    "auto"
+  );
+
+  marker.setAttribute(
+    "markerUnits",
+    "userSpaceOnUse"
+  );
+
+  const arrowHead =
+    document.createElementNS(
+      svgNS,
+      "path"
+    );
+
+  arrowHead.setAttribute(
+    "d",
+    "M 0 0 L 58 26 L 0 52 z"
+  );
+
+  arrowHead.setAttribute(
+    "fill",
+    "#c99e3d"
+  );
+
+  marker.appendChild(
+    arrowHead
+  );
+
+  defs.appendChild(
+    marker
+  );
+
+  svg.appendChild(
+    defs
+  );
+
+  annotationMarkers.forEach(
+    squareName => {
+
+      const center =
+        annotationSquareCenter(
+          squareName
+        );
+
+      const squareHighlight =
+        document.createElementNS(
+          svgNS,
+          "rect"
+        );
+
+      squareHighlight.classList.add(
+        "annotation-marker"
+      );
+
+      squareHighlight.setAttribute(
+        "x",
+        center.x - 46
+      );
+
+      squareHighlight.setAttribute(
+        "y",
+        center.y - 46
+      );
+
+      squareHighlight.setAttribute(
+        "width",
+        "92"
+      );
+
+      squareHighlight.setAttribute(
+        "height",
+        "92"
+      );
+
+      squareHighlight.setAttribute(
+        "rx",
+        "8"
+      );
+
+      squareHighlight.setAttribute(
+        "ry",
+        "8"
+      );
+
+      svg.appendChild(
+        squareHighlight
+      );
+
+    }
+  );
+
+  function appendArrow(
+    from,
+    to,
+    opacity = null
+  ) {
+
+    const start =
+      annotationSquareCenter(
+        from
+      );
+
+    const end =
+      annotationSquareCenter(
+        to
+      );
+
+    const dx =
+      end.x - start.x;
+
+    const dy =
+      end.y - start.y;
+
+    const length =
+      Math.hypot(
+        dx,
+        dy
+      );
+
+    if (
+      length === 0
+    ) {
+      return;
+    }
+
+    const ux =
+      dx / length;
+
+    const uy =
+      dy / length;
+
+    // Keep the shaft off the piece at the origin, similar to
+    // familiar online-chess annotations.
+    const originInset =
+      34;
+
+    const x1 =
+      start.x + ux * originInset;
+
+    const y1 =
+      start.y + uy * originInset;
+
+    // Draw the head as its own triangle so the thick shaft can
+    // never visually swallow it.
+    const headLength =
+      42;
+
+    const headHalfWidth =
+      28;
+
+    const baseX =
+      end.x - ux * headLength;
+
+    const baseY =
+      end.y - uy * headLength;
+
+    const line =
+      document.createElementNS(
+        svgNS,
+        "line"
+      );
+
+    line.classList.add(
+      "annotation-arrow"
+    );
+
+    line.setAttribute(
+      "x1",
+      x1
+    );
+
+    line.setAttribute(
+      "y1",
+      y1
+    );
+
+    line.setAttribute(
+      "x2",
+      baseX
+    );
+
+    line.setAttribute(
+      "y2",
+      baseY
+    );
+
+    const perpX =
+      -uy;
+
+    const perpY =
+      ux;
+
+    const leftX =
+      baseX + perpX * headHalfWidth;
+
+    const leftY =
+      baseY + perpY * headHalfWidth;
+
+    const rightX =
+      baseX - perpX * headHalfWidth;
+
+    const rightY =
+      baseY - perpY * headHalfWidth;
+
+    const arrowHead =
+      document.createElementNS(
+        svgNS,
+        "polygon"
+      );
+
+    arrowHead.setAttribute(
+      "points",
+      `${end.x},${end.y} ${leftX},${leftY} ${rightX},${rightY}`
+    );
+
+    arrowHead.setAttribute(
+      "fill",
+      "#c99e3d"
+    );
+
+    arrowHead.style.opacity =
+      opacity !== null
+        ? opacity
+        : ".82";
+
+    arrowHead.style.filter =
+      "drop-shadow(0 2px 2px rgba(0,0,0,.22))";
+
+    if (
+      opacity !== null
+    ) {
+      line.style.opacity =
+        opacity;
+    }
+
+    svg.appendChild(
+      line
+    );
+
+    svg.appendChild(
+      arrowHead
+    );
+
+  }
+
+  annotationArrows.forEach(
+    arrow => {
+      appendArrow(
+        arrow.from,
+        arrow.to
+      );
+    }
+  );
+
+  if (
+    previewFrom &&
+    previewTo &&
+    previewFrom !== previewTo
+  ) {
+    appendArrow(
+      previewFrom,
+      previewTo,
+      .52
+    );
+  }
+
+  boardEl.appendChild(
+    svg
+  );
+
+}
+
+
+function clearAnnotations() {
+
+  if (
+    annotationMarkers.size === 0 &&
+    annotationArrows.length === 0
+  ) {
+    return;
+  }
+
+  annotationMarkers.clear();
+
+  annotationArrows =
+    [];
+
+  renderAnnotations();
+
+}
+
+
+function toggleAnnotationMarker(
+  squareName
+) {
+
+  if (
+    annotationMarkers.has(
+      squareName
+    )
+  ) {
+    annotationMarkers.delete(
+      squareName
+    );
+  }
+  else {
+    annotationMarkers.add(
+      squareName
+    );
+  }
+
+  renderAnnotations();
+
+}
+
+
+function toggleAnnotationArrow(
+  from,
+  to
+) {
+
+  const index =
+    annotationArrows.findIndex(
+      arrow =>
+        arrow.from === from &&
+        arrow.to === to
+    );
+
+  if (
+    index >= 0
+  ) {
+    annotationArrows.splice(
+      index,
+      1
+    );
+  }
+  else {
+    annotationArrows.push({
+      from,
+      to
+    });
+  }
+
+  renderAnnotations();
+
+}
+
+
+function beginAnnotationDrag(
+  event
+) {
+
+  if (
+    isTouchStyleDevice() ||
+    event.button !== 2
+  ) {
+    return;
+  }
+
+  const squareName =
+    squareFromPoint(
+      event.clientX,
+      event.clientY
+    );
+
+  if (
+    !squareName
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+
+  annotationDragState = {
+    pointerId:event.pointerId,
+    from:squareName,
+    current:squareName,
+    startX:event.clientX,
+    startY:event.clientY,
+    active:false
+  };
+
+}
+
+
+function moveAnnotationDrag(
+  event
+) {
+
+  if (
+    !annotationDragState ||
+    event.pointerId !== annotationDragState.pointerId
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const destination =
+    squareFromPoint(
+      event.clientX,
+      event.clientY
+    );
+
+  if (
+    destination
+  ) {
+    annotationDragState.current =
+      destination;
+  }
+
+  if (
+    !annotationDragState.active
+  ) {
+
+    const distance =
+      Math.hypot(
+        event.clientX - annotationDragState.startX,
+        event.clientY - annotationDragState.startY
+      );
+
+    if (
+      distance >= 6
+    ) {
+      annotationDragState.active =
+        true;
+    }
+  }
+
+  if (
+    annotationDragState.active &&
+    annotationDragState.current
+  ) {
+    renderAnnotations(
+      annotationDragState.from,
+      annotationDragState.current
+    );
+  }
+
+}
+
+
+function finishAnnotationDrag(
+  event
+) {
+
+  if (
+    !annotationDragState ||
+    event.pointerId !== annotationDragState.pointerId
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const state =
+    annotationDragState;
+
+  annotationDragState =
+    null;
+
+  const destination =
+    squareFromPoint(
+      event.clientX,
+      event.clientY
+    ) || state.current;
+
+  if (
+    state.active &&
+    destination &&
+    destination !== state.from
+  ) {
+    toggleAnnotationArrow(
+      state.from,
+      destination
+    );
+  }
+  else {
+    toggleAnnotationMarker(
+      state.from
+    );
+  }
+
+}
+
+
+function cancelAnnotationDrag(
+  event
+) {
+
+  if (
+    !annotationDragState ||
+    (
+      event &&
+      event.pointerId !== undefined &&
+      event.pointerId !== annotationDragState.pointerId
+    )
+  ) {
+    return;
+  }
+
+  annotationDragState =
+    null;
+
+  renderAnnotations();
+
+}
+
+
+boardEl.addEventListener(
+  "contextmenu",
+  event => {
+
+    if (
+      !isTouchStyleDevice()
+    ) {
+      event.preventDefault();
+    }
+
+  }
+);
+
+
+boardEl.addEventListener(
+  "pointerdown",
+  beginAnnotationDrag
+);
+
+
+window.addEventListener(
+  "pointermove",
+  moveAnnotationDrag,
+  { passive:false }
+);
+
+
+window.addEventListener(
+  "pointerup",
+  finishAnnotationDrag,
+  { passive:false }
+);
+
+
+window.addEventListener(
+  "pointercancel",
+  cancelAnnotationDrag
+);
+
+
+
+/* ===================================================== */
+/* DRAG AND DROP                                         */
+/* ===================================================== */
+
+function beginPieceDrag(
+  event,
+  squareName
+) {
+
+  if (
+    event.button !== undefined &&
+    event.button !== 0
+  ) {
+    return;
+  }
+
+  if (
+    !isPlayerTurn()
+  ) {
+    return;
+  }
+
+  clearAnnotations();
+
+  const piece =
+    game.get(
+      squareName
+    );
+
+  if (
+    !piece ||
+    piece.color !== playerColor
+  ) {
+    return;
+  }
+
+  const square =
+    event.currentTarget;
+
+  const pieceImage =
+    square.querySelector(
+      ".piece"
+    );
+
+  if (
+    !pieceImage
+  ) {
+    return;
+  }
+
+  dragState = {
+    pointerId:event.pointerId,
+    from:squareName,
+    startX:event.clientX,
+    startY:event.clientY,
+    active:false,
+    imageSrc:pieceImage.src,
+    ghost:null
+  };
+
+}
+
+
+function startActiveDrag(
+  event
+) {
+
+  if (
+    !dragState ||
+    dragState.active
+  ) {
+    return;
+  }
+
+  dragState.active =
+    true;
+
+  selectedSquare =
+    dragState.from;
+
+  legalMoves =
+    game.moves({
+      square:dragState.from,
+      verbose:true
+    });
+
+  drawBoard();
+
+  const ghost =
+    document.createElement(
+      "img"
+    );
+
+  ghost.className =
+    "drag-piece";
+
+  ghost.src =
+    dragState.imageSrc;
+
+  document.body.appendChild(
+    ghost
+  );
+
+  dragState.ghost =
+    ghost;
+
+  moveDragGhost(
+    event.clientX,
+    event.clientY
+  );
+
+}
+
+
+function moveDragGhost(
+  x,
+  y
+) {
+
+  if (
+    !dragState ||
+    !dragState.ghost
+  ) {
+    return;
+  }
+
+  dragState.ghost.style.left =
+    x + "px";
+
+  dragState.ghost.style.top =
+    y + "px";
+
+}
+
+
+function clearDragGhost() {
+
+  if (
+    dragState &&
+    dragState.ghost
+  ) {
+    dragState.ghost.remove();
+  }
+
+}
+
+
+function squareFromPoint(
+  x,
+  y
+) {
+
+  const element =
+    document.elementFromPoint(
+      x,
+      y
+    );
+
+  const square =
+    element
+      ? element.closest(
+          ".square"
+        )
+      : null;
+
+  return square
+    ? square.dataset.square
+    : null;
+
+}
+
+
+function handleDragMove(
+  event
+) {
+
+  if (
+    !dragState ||
+    event.pointerId !== dragState.pointerId
+  ) {
+    return;
+  }
+
+  if (
+    !dragState.active
+  ) {
+
+    const distance =
+      Math.hypot(
+        event.clientX - dragState.startX,
+        event.clientY - dragState.startY
+      );
+
+    if (
+      distance < 6
+    ) {
+      return;
+    }
+
+    startActiveDrag(
+      event
+    );
+
+  }
+
+  if (
+    dragState &&
+    dragState.active
+  ) {
+    event.preventDefault();
+
+    moveDragGhost(
+      event.clientX,
+      event.clientY
+    );
+  }
+
+}
+
+
+function finishPieceDrag(
+  event
+) {
+
+  if (
+    !dragState ||
+    event.pointerId !== dragState.pointerId
+  ) {
+    return;
+  }
+
+  const state =
+    dragState;
+
+  if (
+    !state.active
+  ) {
+    dragState =
+      null;
+    return;
+  }
+
+  event.preventDefault();
+
+  const destination =
+    squareFromPoint(
+      event.clientX,
+      event.clientY
+    );
+
+  clearDragGhost();
+
+  dragState =
+    null;
+
+  ignoreBoardClickUntil =
+    performance.now() + 250;
+
+  const destinationMoves =
+    destination
+      ? legalMoves.filter(
+          move =>
+            move.to === destination
+        )
+      : [];
+
+  if (
+    destinationMoves.length > 0
+  ) {
+
+    const promotionMoves =
+      destinationMoves.filter(
+        move =>
+          move.promotion
+      );
+
+    if (
+      promotionMoves.length > 0
+    ) {
+      openPromotion(
+        state.from,
+        destination,
+        true
+      );
+      return;
+    }
+
+    completePlayerMove(
+      state.from,
+      destination,
+      undefined,
+      true
+    );
+
+    return;
+  }
+
+  if (
+    destination === state.from
+  ) {
+
+    selectedSquare =
+      null;
+
+    legalMoves =
+      [];
+
+    drawBoard();
+
+    return;
+  }
+
+
+  selectedSquare =
+    state.from;
+
+  legalMoves =
+    game.moves({
+      square:state.from,
+      verbose:true
+    });
+
+  drawBoard();
+
+  if (
+    destination
+  ) {
+    animateInvalidMove(
+      state.from,
+      destination
+    );
+  }
+  else {
+    playSound(
+      "invalid"
+    );
+  }
+
+}
+
+
+function cancelPieceDrag(
+  event
+) {
+
+  if (
+    !dragState ||
+    (
+      event &&
+      event.pointerId !== undefined &&
+      event.pointerId !== dragState.pointerId
+    )
+  ) {
+    return;
+  }
+
+  const wasActive =
+    dragState.active;
+
+  clearDragGhost();
+
+  dragState =
+    null;
+
+  if (
+    wasActive
+  ) {
+    drawBoard();
+  }
+
+}
+
+
+window.addEventListener(
+  "pointermove",
+  handleDragMove,
+  { passive:false }
+);
+
+window.addEventListener(
+  "pointerup",
+  finishPieceDrag,
+  { passive:false }
+);
+
+window.addEventListener(
+  "pointercancel",
+  cancelPieceDrag
+);
+
+
+/* ===================================================== */
+/* INVALID MOVE                                          */
+/* ===================================================== */
+
+function animateInvalidMove(
+  fromSquare,
+  toSquare
+) {
+
+  const fromEl =
+    boardEl.querySelector(
+      `[data-square="${fromSquare}"]`
+    );
+
+
+  const toEl =
+    boardEl.querySelector(
+      `[data-square="${toSquare}"]`
+    );
+
+
+  if (
+    !fromEl ||
+    !toEl
+  ) {
+
+    playSound(
+      "invalid"
+    );
+
+
+    return;
+
+  }
+
+
+  const pieceImage =
+    fromEl.querySelector(
+      ".piece"
+    );
+
+
+  if (
+    !pieceImage
+  ) {
+
+    playSound(
+      "invalid"
+    );
+
+
+    return;
+
+  }
+
+
+  const fromRect =
+    fromEl.getBoundingClientRect();
+
+
+  const toRect =
+    toEl.getBoundingClientRect();
+
+
+  const deltaX =
+
+    (
+      toRect.left +
+      toRect.width / 2
+    ) -
+
+    (
+      fromRect.left +
+      fromRect.width / 2
+    );
+
+
+  const deltaY =
+
+    (
+      toRect.top +
+      toRect.height / 2
+    ) -
+
+    (
+      fromRect.top +
+      fromRect.height / 2
+    );
+
+
+  playSound(
+    "invalid"
+  );
+
+
+  pieceImage.animate(
+
+    [
+      {
+        transform:
+          "translate(0px, 0px)"
+      },
+
+      {
+        transform:
+          `translate(${deltaX}px, ${deltaY}px)`,
+        offset:.48
+      },
+
+      {
+        transform:
+          `translate(${deltaX}px, ${deltaY}px)`,
+        offset:.58
+      },
+
+      {
+        transform:
+          "translate(0px, 0px)"
+      }
+    ],
+
+    {
+      duration:360,
+      easing:"ease-in-out"
+    }
+
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* PLAYER MOVES                                          */
+/* ===================================================== */
+
+function handleSquareClick(
+  squareName
+) {
+
+  hideTooltip();
+
+
+  if (
+    !isPlayerTurn()
+  ) {
+
+    return;
+
+  }
+
+
+  const piece =
+    game.get(
+      squareName
+    );
+
+
+  if (
+    selectedSquare
+  ) {
+
+    const destinationMoves =
+      legalMoves.filter(
+        move =>
+          move.to === squareName
+      );
+
+
+    if (
+      destinationMoves.length > 0
+    ) {
+
+      const promotionMoves =
+        destinationMoves.filter(
+          move =>
+            move.promotion
+        );
+
+
+      if (
+        promotionMoves.length > 0
+      ) {
+
+        openPromotion(
+          selectedSquare,
+          squareName
+        );
+
+
+        return;
+
+      }
+
+
+      completePlayerMove(
+        selectedSquare,
+        squareName,
+        undefined
+      );
+
+
+      return;
+
+    }
+
+
+    if (
+      piece &&
+      piece.color === playerColor
+    ) {
+
+      selectSquare(
+        squareName
+      );
+
+
+      return;
+
+    }
+
+
+    animateInvalidMove(
+      selectedSquare,
+      squareName
+    );
+
+
+    return;
+
+  }
+
+
+  if (
+    piece &&
+    piece.color === playerColor
+  ) {
+
+    selectSquare(
+      squareName
+    );
+
+  }
+
+}
+
+
+function selectSquare(
+  squareName
+) {
+
+  selectedSquare =
+    squareName;
+
+
+  legalMoves =
+    game.moves({
+      square:squareName,
+      verbose:true
+    });
+
+
+  drawBoard();
+
+}
+
+
+
+/* ===================================================== */
+/* PROMOTION                                             */
+/* ===================================================== */
+
+function openPromotion(
+  from,
+  to,
+  skipAnimation = false
+) {
+
+  promotionPending = {
+    from,
+    to,
+    skipAnimation
+  };
+
+
+  updateUndoButton();
+
+
+  promotionOptions
+    .querySelectorAll("img")
+    .forEach(
+      image => {
+
+        const type =
+          image.dataset.pieceImage;
+
+
+        image.src =
+          PIECE_IMAGES[
+            playerColor +
+            type
+          ];
+
+      }
+    );
+
+
+  promotionOverlay.classList.add(
+    "visible"
+  );
+
+}
+
+
+function hidePromotion() {
+
+  promotionOverlay.classList.remove(
+    "visible"
+  );
+
+}
+
+
+function cancelPromotion() {
+
+  promotionPending =
+    null;
+
+
+  hidePromotion();
+
+  updateUndoButton();
+
+}
+
+
+function choosePromotion(
+  pieceType
+) {
+
+  if (
+    !promotionPending
+  ) {
+
+    return;
+
+  }
+
+
+  const from =
+    promotionPending.from;
+
+
+  const to =
+    promotionPending.to;
+
+
+  const skipAnimation =
+    Boolean(
+      promotionPending.skipAnimation
+    );
+
+
+  promotionPending =
+    null;
+
+
+  hidePromotion();
+
+
+  completePlayerMove(
+    from,
+    to,
+    pieceType,
+    skipAnimation
+  );
+
+}
+
+
+async function completePlayerMove(
+  from,
+  to,
+  promotion,
+  skipAnimation = false
+) {
+
+  if (
+    moveAnimating
+  ) {
+
+    return;
+
+  }
+
+
+  const plannedMove =
+    findPlannedMove(
+      from,
+      to,
+      promotion
+    );
+
+
+  if (
+    !plannedMove
+  ) {
+
+    playSound(
+      "invalid"
+    );
+
+
+    return;
+
+  }
+
+
+  const gameAtStart =
+    game;
+
+  const previousFenForOnline =
+    gameMode === "online" &&
+    game
+      ? game.fen()
+      : null;
+
+
+  moveAnimating =
+    true;
+
+
+  updateUndoButton();
+
+
+  if (
+    !skipAnimation
+  ) {
+
+    await animateLegalMove(
+      from,
+      to,
+      plannedMove
+    );
+
+  }
+
+
+  if (
+    game !== gameAtStart ||
+    !gameStarted
+  ) {
+
+    moveAnimating =
+      false;
+
+
+    updateUndoButton();
+
+
+    return;
+
+  }
+
+
+  try {
+
+    const move =
+      game.move({
+        from,
+        to,
+        promotion
+      });
+
+
+    if (
+      !move
+    ) {
+
+      moveAnimating =
+        false;
+
+
+      playSound(
+        "invalid"
+      );
+
+
+      drawBoard();
+
+      updateUndoButton();
+
+
+      return;
+
+    }
+
+
+    lastMove = {
+      from:move.from,
+      to:move.to
+    };
+
+
+    selectedSquare =
+      null;
+
+
+    legalMoves =
+      [];
+
+
+    moveAnimating =
+      false;
+
+
+    afterMove(
+      move
+    );
+
+
+    if (
+      gameMode === "online"
+    ) {
+
+      await syncOnlineMove(
+        previousFenForOnline
+      );
+
+    }
+
+    else if (
+      !game.isGameOver()
+    ) {
+
+      scheduleEngineMove();
+
+    }
+
+  }
+
+  catch(
+    error
+  ) {
+
+    moveAnimating =
+      false;
+
+
+    playSound(
+      "invalid"
+    );
+
+
+    drawBoard();
+
+    updateUndoButton();
+
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+
+/* ===================================================== */
+/* ENGINE                                                */
+/* ===================================================== */
+
+function requestEngineMove() {
+
+  if (
+    !game ||
+    game.isGameOver()
+  ) {
+
+    engineThinking =
+      false;
+
+
+    engineSearchActive =
+      false;
+
+
+    updateStatus();
+
+    updateUndoButton();
+
+
+    return;
+
+  }
+
+
+  const difficulty =
+    DIFFICULTIES[difficultyKey];
+
+
+  if (
+    difficulty.randomMoveChance > 0 &&
+    Math.random() <
+    difficulty.randomMoveChance
+  ) {
+
+    const moves =
+      game.moves({
+        verbose:true
+      });
+
+
+    if (
+      moves.length > 0
+    ) {
+
+      const randomMove =
+        moves[
+          Math.floor(
+            Math.random() *
+            moves.length
+          )
+        ];
+
+
+      playCasualRandomMove(
+        randomMove
+      );
+
+
+      return;
+
+    }
+
+  }
+
+
+  engine.postMessage(
+    "position fen " +
+    game.fen()
+  );
+
+
+  engineSearchActive =
+    true;
+
+
+  engine.postMessage(
+    "go nodes " +
+    difficulty.nodes
+  );
+
+}
+
+
+async function playCasualRandomMove(
+  moveObject
+) {
+
+  if (
+    moveAnimating
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    !game ||
+    game.isGameOver()
+  ) {
+
+    engineThinking =
+      false;
+
+
+    updateStatus();
+
+    updateUndoButton();
+
+
+    return;
+
+  }
+
+
+  const gameAtStart =
+    game;
+
+
+  const plannedMove =
+    findPlannedMove(
+      moveObject.from,
+      moveObject.to,
+      moveObject.promotion
+    );
+
+
+  moveAnimating =
+    true;
+
+
+  updateUndoButton();
+
+
+  await animateLegalMove(
+    moveObject.from,
+    moveObject.to,
+    plannedMove
+  );
+
+
+  if (
+    game !== gameAtStart ||
+    !gameStarted
+  ) {
+
+    moveAnimating =
+      false;
+
+
+    engineThinking =
+      false;
+
+
+    updateUndoButton();
+
+
+    return;
+
+  }
+
+
+  try {
+
+    const move =
+      game.move({
+        from:moveObject.from,
+        to:moveObject.to,
+        promotion:moveObject.promotion
+      });
+
+
+    moveAnimating =
+      false;
+
+
+    engineThinking =
+      false;
+
+
+    if (
+      !move
+    ) {
+
+      drawBoard();
+
+      updateStatus();
+
+      updateUndoButton();
+
+
+      return;
+
+    }
+
+
+    lastMove = {
+      from:move.from,
+      to:move.to
+    };
+
+
+    afterMove(
+      move
+    );
+
+  }
+
+  catch(
+    error
+  ) {
+
+    moveAnimating =
+      false;
+
+
+    engineThinking =
+      false;
+
+
+    drawBoard();
+
+    updateUndoButton();
+
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+async function playEngineMove(
+  moveText
+) {
+
+  if (
+    moveAnimating
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    !game ||
+    !moveText ||
+    moveText === "(none)"
+  ) {
+
+    engineThinking =
+      false;
+
+
+    updateStatus();
+
+    updateUndoButton();
+
+
+    return;
+
+  }
+
+
+  const from =
+    moveText.substring(
+      0,
+      2
+    );
+
+
+  const to =
+    moveText.substring(
+      2,
+      4
+    );
+
+
+  const promotion =
+
+    moveText.length >= 5
+
+      ? moveText.substring(
+          4,
+          5
+        )
+
+      : undefined;
+
+
+  const gameAtStart =
+    game;
+
+
+  const plannedMove =
+    findPlannedMove(
+      from,
+      to,
+      promotion
+    );
+
+
+  moveAnimating =
+    true;
+
+
+  updateUndoButton();
+
+
+  await animateLegalMove(
+    from,
+    to,
+    plannedMove
+  );
+
+
+  if (
+    game !== gameAtStart ||
+    !gameStarted
+  ) {
+
+    moveAnimating =
+      false;
+
+
+    engineThinking =
+      false;
+
+
+    updateUndoButton();
+
+
+    return;
+
+  }
+
+
+  try {
+
+    const move =
+      game.move({
+        from,
+        to,
+        promotion
+      });
+
+
+    moveAnimating =
+      false;
+
+
+    engineThinking =
+      false;
+
+
+    if (
+      !move
+    ) {
+
+      drawBoard();
+
+      updateStatus();
+
+      updateUndoButton();
+
+
+      return;
+
+    }
+
+
+    lastMove = {
+      from:move.from,
+      to:move.to
+    };
+
+
+    afterMove(
+      move
+    );
+
+  }
+
+  catch(
+    error
+  ) {
+
+    moveAnimating =
+      false;
+
+
+    engineThinking =
+      false;
+
+
+    drawBoard();
+
+    updateUndoButton();
+
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+
+/* ===================================================== */
+/* AFTER MOVE                                            */
+/* ===================================================== */
+
+function afterMove(
+  move
+) {
+
+  showMoveGhost(
+    move
+  );
+
+  if (
+    move.captured &&
+    move.color !== playerColor
+  ) {
+
+    showComputerCaptureToast(
+      move.captured
+    );
+
+  }
+
+
+  drawBoard();
+
+  renderMoveList();
+
+  updateCapturedPieces();
+
+  updateStatus();
+
+  updateGameOverSummary();
+
+  updateUndoButton();
+
+  playSoundForMove(
+    move
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* MATERIAL                                              */
+/* ===================================================== */
+
+function countPieces() {
+
+  const counts = {
+
+    w:{
+      p:0,
+      n:0,
+      b:0,
+      r:0,
+      q:0,
+      k:0
+    },
+
+    b:{
+      p:0,
+      n:0,
+      b:0,
+      r:0,
+      q:0,
+      k:0
+    }
+
+  };
+
+
+  game.board().forEach(
+    row =>
+      row.forEach(
+        piece => {
+
+          if (
+            piece
+          ) {
+
+            counts[
+              piece.color
+            ][
+              piece.type
+            ]++;
+
+          }
+
+        }
+      )
+  );
+
+
+  return counts;
+
+}
+
+
+function getCaptured() {
+
+  const counts =
+    countPieces();
+
+
+  const whiteCaptured =
+    [];
+
+
+  const blackCaptured =
+    [];
+
+
+  DISPLAY_ORDER.forEach(
+    type => {
+
+      const missingBlack =
+
+        INITIAL_COUNTS[type] -
+        counts.b[type];
+
+
+      const missingWhite =
+
+        INITIAL_COUNTS[type] -
+        counts.w[type];
+
+
+      for (
+        let i=0;
+        i<missingBlack;
+        i++
+      ) {
+
+        whiteCaptured.push({
+          color:"b",
+          type
+        });
+
+      }
+
+
+      for (
+        let i=0;
+        i<missingWhite;
+        i++
+      ) {
+
+        blackCaptured.push({
+          color:"w",
+          type
+        });
+
+      }
+
+    }
+  );
+
+
+  return {
+    whiteCaptured,
+    blackCaptured
+  };
+
+}
+
+
+function captureValue(
+  pieces
+) {
+
+  return pieces.reduce(
+    (
+      total,
+      piece
+    ) =>
+
+      total +
+      PIECE_VALUES[
+        piece.type
+      ],
+
+    0
+  );
+
+}
+
+
+function renderCaptured(
+  element,
+  pieces
+) {
+
+  element.innerHTML =
+    "";
+
+
+  if (
+    pieces.length === 0
+  ) {
+
+    element.innerHTML =
+      "<span class='none'>None</span>";
+
+
+    return;
+
+  }
+
+
+  pieces.forEach(
+    piece => {
+
+      const image =
+        document.createElement(
+          "img"
+        );
+
+
+      image.className =
+        "captured-piece";
+
+
+      image.src =
+        PIECE_IMAGES[
+          piece.color +
+          piece.type
+        ];
+
+
+      element.appendChild(
+        image
+      );
+
+    }
+  );
+
+}
+
+
+function updateCapturedPieces() {
+
+  const captured =
+    getCaptured();
+
+
+  const whiteValue =
+    captureValue(
+      captured.whiteCaptured
+    );
+
+
+  const blackValue =
+    captureValue(
+      captured.blackCaptured
+    );
+
+
+  const difference =
+    whiteValue -
+    blackValue;
+
+
+  topCaptureTitle.textContent =
+    "White captured";
+
+
+  bottomCaptureTitle.textContent =
+    "Black captured";
+
+
+  renderCaptured(
+    topCapturedPieces,
+    captured.whiteCaptured
+  );
+
+
+  renderCaptured(
+    bottomCapturedPieces,
+    captured.blackCaptured
+  );
+
+
+  if (
+    difference > 0
+  ) {
+
+    materialText.textContent =
+      "White ahead";
+
+
+    materialScore.textContent =
+      "+" +
+      difference;
+
+  }
+
+  else if (
+    difference < 0
+  ) {
+
+    materialText.textContent =
+      "Black ahead";
+
+
+    materialScore.textContent =
+      "+" +
+      Math.abs(
+        difference
+      );
+
+  }
+
+  else {
+
+    materialText.textContent =
+      "Material even";
+
+
+    materialScore.textContent =
+      "0";
+
+  }
+
+}
+
+
+
+/* ===================================================== */
+/* CHECK                                                 */
+/* ===================================================== */
+
+function findCheckedKingSquare() {
+
+  if (
+    !game ||
+    game.isGameOver() ||
+    !game.inCheck()
+  ) {
+
+    return null;
+
+  }
+
+
+  const checkedColor =
+    game.turn();
+
+
+  const board =
+    game.board();
+
+
+  for (
+    let row=0;
+    row<8;
+    row++
+  ) {
+
+    for (
+      let column=0;
+      column<8;
+      column++
+    ) {
+
+      const piece =
+        board[row][column];
+
+
+      if (
+        piece &&
+        piece.type === "k" &&
+        piece.color === checkedColor
+      ) {
+
+        return (
+
+          "abcdefgh"[column] +
+          (
+            8 - row
+          )
+
+        );
+
+      }
+
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+function findKingSquareForColor(
+  color
+) {
+
+  if (
+    !game ||
+    !color
+  ) {
+
+    return null;
+
+  }
+
+
+  const board =
+    game.board();
+
+
+  for (
+    let row=0;
+    row<8;
+    row++
+  ) {
+
+    for (
+      let column=0;
+      column<8;
+      column++
+    ) {
+
+      const piece =
+        board[row][column];
+
+
+      if (
+        piece &&
+        piece.type === "k" &&
+        piece.color === color
+      ) {
+
+        return (
+
+          "abcdefgh"[column] +
+          (
+            8 - row
+          )
+
+        );
+
+      }
+
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+function findCheckmatedKingSquare() {
+
+  if (
+    !game ||
+    !game.isCheckmate()
+  ) {
+
+    return null;
+
+  }
+
+
+  return findKingSquareForColor(
+    game.turn()
+  );
+
+}
+
+
+function findCheckmateAttackerSquare() {
+
+  if (
+    !game ||
+    !game.isCheckmate() ||
+    !lastMove
+  ) {
+
+    return null;
+
+  }
+
+
+  return lastMove.to;
+
+}
+
+
+
+/* ===================================================== */
+/* MOVE HISTORY                                          */
+/* ===================================================== */
+
+function renderMoveList() {
+
+  if (
+    !gameStarted
+  ) {
+
+    moveListBody.innerHTML =
+
+      "<tr>" +
+      "<td colspan='3'>" +
+      "Game not started." +
+      "</td>" +
+      "</tr>";
+
+
+    return;
+
+  }
+
+
+  const history =
+    game.history();
+
+
+  if (
+    history.length === 0
+  ) {
+
+    moveListBody.innerHTML =
+
+      "<tr>" +
+      "<td colspan='3'>" +
+      "No moves yet." +
+      "</td>" +
+      "</tr>";
+
+
+    return;
+
+  }
+
+
+  const totalFullMoves =
+    Math.ceil(
+      history.length / 2
+    );
+
+
+  const firstVisibleMove =
+    Math.max(
+      1,
+      totalFullMoves - 3
+    );
+
+
+  const startIndex =
+    (
+      firstVisibleMove - 1
+    ) * 2;
+
+
+  let html =
+    "";
+
+
+  for (
+    let i=startIndex;
+    i<history.length;
+    i+=2
+  ) {
+
+    html +=
+
+      "<tr>" +
+
+      "<td>" +
+      (
+        Math.floor(
+          i / 2
+        ) +
+        1
+      ) +
+      "</td>" +
+
+      "<td>" +
+      (
+        history[i] ||
+        ""
+      ) +
+      "</td>" +
+
+      "<td>" +
+      (
+        history[i+1] ||
+        ""
+      ) +
+      "</td>" +
+
+      "</tr>";
+
+  }
+
+
+  moveListBody.innerHTML =
+    html;
+
+}
+
+
+
+/* ===================================================== */
+/* GAME OVER SUMMARY                                     */
+/* ===================================================== */
+
+function getGameResultText() {
+
+  if (
+    !game ||
+    !game.isGameOver()
+  ) {
+
+    return "";
+
+  }
+
+
+  if (
+    game.isCheckmate()
+  ) {
+
+    const winner =
+
+      game.turn() === "w"
+
+        ? "b"
+
+        : "w";
+
+
+    return (
+
+      winner === playerColor
+
+        ? "Victory — you won by checkmate."
+
+        : (
+            gameMode === "online"
+              ? "Defeat — your opponent won by checkmate."
+              : "Defeat — Stockfish won by checkmate."
+          )
+
+    );
+
+  }
+
+
+  if (
+    game.isStalemate()
+  ) {
+
+    return "Draw by stalemate.";
+
+  }
+
+
+  if (
+    game.isThreefoldRepetition()
+  ) {
+
+    return "Draw by threefold repetition.";
+
+  }
+
+
+  if (
+    game.isInsufficientMaterial()
+  ) {
+
+    return "Draw by insufficient material.";
+
+  }
+
+
+  return "Draw.";
+
+}
+
+
+function updateGameOverSummary() {
+
+  if (
+    !gameStarted ||
+    !game ||
+    !game.isGameOver()
+  ) {
+
+    hideGameOverSummary();
+
+    return;
+
+  }
+
+
+  const history =
+    game.history();
+
+
+  const moveCount =
+    Math.ceil(
+      history.length / 2
+    );
+
+
+  const colorName =
+
+    playerColor === "w"
+
+      ? "White"
+
+      : "Black";
+
+
+  const castlingText =
+
+    castlingEnabledForCurrentGame()
+
+      ? "Enabled"
+
+      : "Disabled";
+
+
+  gameOverResult.textContent =
+    getGameResultText();
+
+
+  gameOverDetails.innerHTML =
+
+    "<div class='game-over-line'>" +
+    "<strong>Your formation:</strong> " +
+    FORMATION_MAP[
+      actualPlayerFormation
+    ] +
+    " (" +
+    actualPlayerFormation +
+    ")" +
+    "</div>" +
+
+    "<div class='game-over-line'>" +
+    "<strong>Computer formation:</strong> " +
+    FORMATION_MAP[
+      actualComputerFormation
+    ] +
+    " (" +
+    actualComputerFormation +
+    ")" +
+    "</div>" +
+
+    "<div class='game-over-line'>" +
+    "<strong>Your color:</strong> " +
+    colorName +
+    "</div>" +
+
+    "<div class='game-over-line'>" +
+    "<strong>Difficulty:</strong> " +
+    DIFFICULTIES[
+      difficultyKey
+    ].label +
+    "</div>" +
+
+    "<div class='game-over-line'>" +
+    "<strong>Moves:</strong> " +
+    moveCount +
+    "</div>" +
+
+    "<div class='game-over-line'>" +
+    "<strong>Castling:</strong> " +
+    castlingText +
+    "</div>";
+
+
+  copyStatus.textContent =
+    "";
+
+
+  gameOverSection.classList.add(
+    "visible"
+  );
+
+}
+
+
+function hideGameOverSummary() {
+
+  gameOverSection.classList.remove(
+    "visible"
+  );
+
+
+  copyStatus.textContent =
+    "";
+
+}
+
+
+function buildFullMoveText() {
+
+  const history =
+    game.history();
+
+
+  const lines =
+    [];
+
+
+  for (
+    let i=0;
+    i<history.length;
+    i+=2
+  ) {
+
+    const moveNumber =
+      Math.floor(
+        i / 2
+      ) +
+      1;
+
+
+    const whiteMove =
+      history[i] ||
+      "";
+
+
+    const blackMove =
+      history[i+1] ||
+      "";
+
+
+    lines.push(
+
+      moveNumber +
+      ". " +
+      whiteMove +
+      (
+        blackMove
+
+          ? " " +
+            blackMove
+
+          : ""
+      )
+
+    );
+
+  }
+
+
+  return lines.join(
+    "\n"
+  );
+
+}
+
+
+function buildGameRecord() {
+
+  const colorName =
+
+    playerColor === "w"
+
+      ? "White"
+
+      : "Black";
+
+
+  const castlingText =
+
+    castlingEnabledForCurrentGame()
+
+      ? "Enabled"
+
+      : "Disabled";
+
+
+  return (
+
+    "Chess Imperium\n" +
+
+    "A Strategic Chess Variant\n\n" +
+
+    "Result: " +
+    getGameResultText() +
+    "\n" +
+
+    "Player formation: " +
+    FORMATION_MAP[
+      actualPlayerFormation
+    ] +
+    " (" +
+    actualPlayerFormation +
+    ")\n" +
+
+    "Computer formation: " +
+    FORMATION_MAP[
+      actualComputerFormation
+    ] +
+    " (" +
+    actualComputerFormation +
+    ")\n" +
+
+    "Player color: " +
+    colorName +
+    "\n" +
+
+    "Difficulty: " +
+    DIFFICULTIES[
+      difficultyKey
+    ].label +
+    "\n" +
+
+    "Castling: " +
+    castlingText +
+    "\n\n" +
+
+    "Moves\n" +
+    "-----\n" +
+
+    buildFullMoveText()
+
+  );
+
+}
+
+
+async function copyGameRecord() {
+
+  if (
+    !game ||
+    !game.isGameOver()
+  ) {
+
+    return;
+
+  }
+
+
+  const record =
+    buildGameRecord();
+
+
+  try {
+
+    await navigator.clipboard.writeText(
+      record
+    );
+
+
+    copyStatus.textContent =
+      "Game record copied.";
+
+  }
+
+  catch(
+    error
+  ) {
+
+    const textarea =
+      document.createElement(
+        "textarea"
+      );
+
+
+    textarea.value =
+      record;
+
+
+    textarea.style.position =
+      "fixed";
+
+
+    textarea.style.opacity =
+      "0";
+
+
+    document.body.appendChild(
+      textarea
+    );
+
+
+    textarea.select();
+
+
+    try {
+
+      document.execCommand(
+        "copy"
+      );
+
+
+      copyStatus.textContent =
+        "Game record copied.";
+
+    }
+
+    catch(
+      fallbackError
+    ) {
+
+      copyStatus.textContent =
+        "Unable to copy automatically.";
+
+    }
+
+
+    textarea.remove();
+
+  }
+
+
+  setTimeout(
+    () => {
+
+      copyStatus.textContent =
+        "";
+
+    },
+    2500
+  );
+
+}
+
+
+
+/* ===================================================== */
+/* STATUS                                                */
+/* ===================================================== */
+
+function updateStatus() {
+
+  if (
+    gameMode === "online"
+  ) {
+
+    if (
+      !gameStarted ||
+      !game
+    ) {
+
+      if (
+        onlineRoom &&
+        onlineRoom.status === "waiting"
+      ) {
+
+        setStatus(
+          "Online room created — waiting for Player 2."
+        );
+
+      }
+
+      else if (
+        onlineRoom &&
+        onlineRoom.status === "formation_selection"
+      ) {
+
+        setStatus(
+          "Online room ready — lock your formation."
+        );
+
+      }
+
+
+      return;
+
+    }
+
+
+    if (
+      game.isGameOver()
+    ) {
+
+      if (
+        game.isCheckmate()
+      ) {
+
+        const winner =
+          game.turn() === "w"
+            ? "b"
+            : "w";
+
+
+        setStatus(
+          winner === playerColor
+            ? "VICTORY — CHECKMATE"
+            : "DEFEAT — CHECKMATE",
+          winner === playerColor
+            ? "victory"
+            : "defeat"
+        );
+
+        return;
+
+      }
+
+
+      setStatus(
+        game.isStalemate()
+          ? "DRAW — STALEMATE"
+          : game.isThreefoldRepetition()
+            ? "DRAW — THREEFOLD REPETITION"
+            : game.isInsufficientMaterial()
+              ? "DRAW — INSUFFICIENT MATERIAL"
+              : "DRAW",
+        "draw"
+      );
+
+      return;
+
+    }
+
+
+    if (
+      game.turn() === playerColor
+    ) {
+
+      setStatus(
+        game.inCheck()
+          ? "Your move — you are in check."
+          : "Your move."
+      );
+
+    }
+
+    else {
+
+      setStatus(
+        game.inCheck()
+          ? "Opponent to move — opponent is in check."
+          : "Opponent to move."
+      );
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
+    !gameStarted
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    game.isGameOver()
+  ) {
+
+    if (
+      game.isCheckmate()
+    ) {
+
+      const winner =
+
+        game.turn() === "w"
+
+          ? "b"
+
+          : "w";
+
+
+      if (
+        winner === playerColor
+      ) {
+
+        setStatus(
+          "VICTORY — CHECKMATE",
+          "victory"
+        );
+
+      }
+
+      else {
+
+        setStatus(
+          "DEFEAT — CHECKMATE",
+          "defeat"
+        );
+
+      }
+
+
+      return;
+
+    }
+
+
+    if (
+      game.isStalemate()
+    ) {
+
+      setStatus(
+        "DRAW — STALEMATE",
+        "draw"
+      );
+
+
+      return;
+
+    }
+
+
+    if (
+      game.isThreefoldRepetition()
+    ) {
+
+      setStatus(
+        "DRAW — THREEFOLD REPETITION",
+        "draw"
+      );
+
+
+      return;
+
+    }
+
+
+    if (
+      game.isInsufficientMaterial()
+    ) {
+
+      setStatus(
+        "DRAW — INSUFFICIENT MATERIAL",
+        "draw"
+      );
+
+
+      return;
+
+    }
+
+
+    setStatus(
+      "DRAW",
+      "draw"
+    );
+
+
+    return;
+
+  }
+
+
+  if (
+    engineThinking
+  ) {
+
+    setStatus(
+
+      game.inCheck()
+
+        ? "Stockfish is thinking — Stockfish is in check."
+
+        : "Stockfish is thinking..."
+
+    );
+
+
+    return;
+
+  }
+
+
+  if (
+    game.turn() === playerColor
+  ) {
+
+    setStatus(
+
+      game.inCheck()
+
+        ? "Your move — you are in check."
+
+        : "Your move."
+
+    );
+
+  }
+
+  else {
+
+    setStatus(
+
+      game.inCheck()
+
+        ? "Stockfish to move — Stockfish is in check."
+
+        : "Stockfish to move."
+
+    );
+
+  }
+
+}
+
+
+function setStatus(
+  text,
+  state = ""
+) {
+
+  statusBox.textContent =
+    text;
+
+  statusBox.classList.remove(
+    "victory",
+    "defeat",
+    "draw"
+  );
+
+  if (
+    state
+  ) {
+    statusBox.classList.add(
+      state
+    );
+  }
+
+}
+
+
+
+/* ===================================================== */
+/* MATCH INFO                                            */
+/* ===================================================== */
+
+function updateInfoPanel() {
+
+  if (
+    gameMode === "online"
+  ) {
+
+    let yourFormationText =
+      playerFormationChoice === "RANDOM"
+        ? "Random"
+        : (
+            FORMATION_MAP[
+              playerFormationChoice
+            ] +
+            " (" +
+            playerFormationChoice +
+            ")"
+          );
+
+
+    let opponentFormationText =
+      "Hidden until both players lock in";
+
+
+    if (
+      gameStarted &&
+      actualPlayerFormation &&
+      actualComputerFormation
+    ) {
+
+      yourFormationText =
+        FORMATION_MAP[
+          actualPlayerFormation
+        ] +
+        " (" +
+        actualPlayerFormation +
+        ")";
+
+
+      opponentFormationText =
+        FORMATION_MAP[
+          actualComputerFormation
+        ] +
+        " (" +
+        actualComputerFormation +
+        ")";
+
+    }
+
+
+    const colorText =
+      onlineRole === "white"
+        ? "White"
+        : onlineRole === "black"
+          ? "Black"
+          : "Not assigned";
+
+
+    const castlingText =
+      gameStarted &&
+      castlingEnabledForCurrentGame()
+        ? "Castling enabled"
+        : gameStarted
+          ? "Castling disabled"
+          : "Determined after formation reveal";
+
+
+    infoBox.innerHTML =
+
+      "<div class='match-line'>" +
+      "<strong>You:</strong> " +
+      yourFormationText +
+      " · " +
+      colorText +
+      "</div>" +
+
+      "<div class='match-line'>" +
+      "<strong>Opponent:</strong> " +
+      opponentFormationText +
+      "</div>" +
+
+      "<div class='match-line'>" +
+      "<strong>Mode:</strong> Online Multiplayer" +
+      "</div>" +
+
+      "<div class='match-line'>" +
+      "<strong>Castling:</strong> " +
+      castlingText +
+      "</div>";
+
+
+    return;
+
+  }
+
+
+  const difficulty =
+    DIFFICULTIES[difficultyKey];
+
+
+  let playerFormationText;
+
+
+  if (
+    gameStarted
+  ) {
+
+    playerFormationText =
+
+      FORMATION_MAP[
+        actualPlayerFormation
+      ] +
+
+      " (" +
+
+      actualPlayerFormation +
+
+      ")";
+
+  }
+
+  else if (
+    playerFormationChoice === "RANDOM"
+  ) {
+
+    playerFormationText =
+      "Random";
+
+  }
+
+  else {
+
+    playerFormationText =
+
+      FORMATION_MAP[
+        playerFormationChoice
+      ] +
+
+      " (" +
+
+      playerFormationChoice +
+
+      ")";
+
+  }
+
+
+  let computerText;
+
+
+  if (
+    gameStarted
+  ) {
+
+    computerText =
+
+      FORMATION_MAP[
+        actualComputerFormation
+      ] +
+
+      " (" +
+
+      actualComputerFormation +
+
+      ")";
+
+  }
+
+  else if (
+    computerFormationChoice === "RANDOM"
+  ) {
+
+    computerText =
+      "Random";
+
+  }
+
+  else {
+
+    computerText =
+
+      FORMATION_MAP[
+        computerFormationChoice
+      ] +
+
+      " (" +
+
+      computerFormationChoice +
+
+      ")";
+
+  }
+
+
+  let colorText;
+
+
+  if (
+    gameStarted
+  ) {
+
+    colorText =
+
+      playerColor === "w"
+
+        ? "White"
+
+        : "Black";
+
+  }
+
+  else if (
+    playerColorChoice === "RANDOM"
+  ) {
+
+    colorText =
+      "Random";
+
+  }
+
+  else {
+
+    colorText =
+
+      playerColorChoice === "w"
+
+        ? "White"
+
+        : "Black";
+
+  }
+
+
+  let castlingText =
+    "Castling disabled";
+
+
+  if (
+    gameStarted &&
+    castlingEnabledForCurrentGame()
+  ) {
+
+    castlingText =
+      "Castling enabled";
+
+  }
+
+  else if (
+    !gameStarted &&
+    playerFormationChoice === "RNB" &&
+    computerFormationChoice === "RNB"
+  ) {
+
+    castlingText =
+      "Castling enabled if this matchup begins";
+
+  }
+
+
+  infoBox.innerHTML =
+
+    "<div class='match-line'>" +
+
+    "<strong>You:</strong> " +
+    playerFormationText +
+    " · " +
+    colorText +
+
+    "</div>" +
+
+    "<div class='match-line'>" +
+
+    "<strong>Computer:</strong> " +
+    computerText +
+
+    "</div>" +
+
+    "<div class='match-line'>" +
+
+    "<strong>Difficulty:</strong> " +
+    difficulty.label +
+
+    "</div>" +
+
+    "<div class='match-line'>" +
+
+    "<strong>Castling:</strong> " +
+    castlingText +
+
+    "</div>";
+
+}
+
+
+
+/* ===================================================== */
+/* FEEDBACK                                              */
+/* ===================================================== */
+
+const FORMSPREE_ENDPOINT =
+  "https://formspree.io/f/moeqnajk";
+
+
+function openFeedback() {
+
+  playMenuClick();
+
+  hideTooltip();
+
+
+  feedbackStatus.textContent =
+    "";
+
+
+  feedbackSubmit.disabled =
+    false;
+
+
+  feedbackSubmit.textContent =
+    "Send Feedback";
+
+
+  feedbackFormWrap.classList.remove(
+    "hidden"
+  );
+
+
+  feedbackSuccess.classList.remove(
+    "visible"
+  );
+
+
+  feedbackOverlay.classList.add(
+    "visible"
+  );
+
+
+  setTimeout(
+    () => {
+
+      feedbackMessage.focus();
+
+    },
+    80
+  );
+
+}
+
+
+function closeFeedback() {
+
+  feedbackOverlay.classList.remove(
+    "visible"
+  );
+
+}
+
+
+function resetFeedbackForm() {
+
+  feedbackForm.reset();
+
+
+  feedbackStatus.textContent =
+    "";
+
+
+  feedbackSubmit.disabled =
+    false;
+
+
+  feedbackSubmit.textContent =
+    "Send Feedback";
+
+
+  feedbackFormWrap.classList.remove(
+    "hidden"
+  );
+
+
+  feedbackSuccess.classList.remove(
+    "visible"
+  );
+
+}
+
+
+feedbackButton.addEventListener(
+  "click",
+  function() {
+
+    openFeedback();
+
+  }
+);
+
+
+feedbackClose.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    closeFeedback();
+
+    resetFeedbackForm();
+
+  }
+);
+
+
+feedbackCancel.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    closeFeedback();
+
+    resetFeedbackForm();
+
+  }
+);
+
+
+feedbackDone.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    closeFeedback();
+
+    resetFeedbackForm();
+
+  }
+);
+
+
+feedbackOverlay.addEventListener(
+  "click",
+  function(event) {
+
+    if (
+      event.target === feedbackOverlay
+    ) {
+
+      closeFeedback();
+
+      resetFeedbackForm();
+
+    }
+
+  }
+);
+
+
+document.addEventListener(
+  "keydown",
+  function(event) {
+
+    if (
+      event.key === "Escape" &&
+      feedbackOverlay.classList.contains(
+        "visible"
+      )
+    ) {
+
+      closeFeedback();
+
+      resetFeedbackForm();
+
+    }
+
+  }
+);
+
+
+feedbackForm.addEventListener(
+  "submit",
+  async function(event) {
+
+    event.preventDefault();
+
+
+    feedbackStatus.textContent =
+      "";
+
+
+    feedbackSubmit.disabled =
+      true;
+
+
+    feedbackSubmit.textContent =
+      "Sending...";
+
+
+    const formData =
+      new FormData(
+        feedbackForm
+      );
+
+
+    formData.append(
+      "page",
+      window.location.href
+    );
+
+
+    if (
+      gameStarted
+    ) {
+
+      formData.append(
+        "player_formation",
+        actualPlayerFormation ||
+        ""
+      );
+
+
+      formData.append(
+        "computer_formation",
+        actualComputerFormation ||
+        ""
+      );
+
+
+      formData.append(
+        "difficulty",
+        DIFFICULTIES[
+          difficultyKey
+        ].label
+      );
+
+
+      formData.append(
+        "castling",
+        castlingEnabledForCurrentGame()
+
+          ? "Enabled"
+
+          : "Disabled"
+      );
+
+    }
+
+
+    try {
+
+      const response =
+        await fetch(
+          FORMSPREE_ENDPOINT,
+          {
+            method:"POST",
+            body:formData,
+            headers:{
+              "Accept":
+                "application/json"
+            }
+          }
+        );
+
+
+      if (
+        response.ok
+      ) {
+
+        feedbackFormWrap.classList.add(
+          "hidden"
+        );
+
+
+        feedbackSuccess.classList.add(
+          "visible"
+        );
+
+
+        feedbackForm.reset();
+
+      }
+
+      else {
+
+        let message =
+          "Something went wrong. Please try again.";
+
+
+        try {
+
+          const data =
+            await response.json();
+
+
+          if (
+            data.errors &&
+            data.errors.length
+          ) {
+
+            message =
+              data.errors
+                .map(
+                  error =>
+                    error.message
+                )
+                .join(" ");
+
+          }
+
+        }
+
+        catch(
+          error
+        ) {}
+
+
+        feedbackStatus.textContent =
+          message;
+
+
+        feedbackSubmit.disabled =
+          false;
+
+
+        feedbackSubmit.textContent =
+          "Send Feedback";
+
+      }
+
+    }
+
+    catch(
+      error
+    ) {
+
+      feedbackStatus.textContent =
+        "Unable to send right now. Please check your connection and try again.";
+
+
+      feedbackSubmit.disabled =
+        false;
+
+
+      feedbackSubmit.textContent =
+        "Send Feedback";
+
+
+      console.error(
+        error
+      );
+
+    }
+
+  }
+);
+
+
+
+/* ===================================================== */
+/* STOCKFISH                                             */
+/* ===================================================== */
+
+engine.onmessage =
+function(event) {
+
+  const message =
+    event.data;
+
+
+  if (
+    message === "uciok"
+  ) {
+
+    engine.postMessage(
+      "isready"
+    );
+
+  }
+
+
+  if (
+    message === "readyok"
+  ) {
+
+    engineReady =
+      true;
+
+
+    applyDifficulty();
+
+
+    engineBox.textContent =
+      "Engine ready";
+
+
+    if (
+      !gameStarted
+    ) {
+
+      setStatus(
+        "Choose your settings, then click Start New Game."
+      );
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
+    typeof message === "string" &&
+    message.startsWith(
+      "bestmove"
+    )
+  ) {
+
+    const move =
+      message
+        .split(" ")[1];
+
+
+    if (
+      ignoreStoppedBestmove
+    ) {
+
+      ignoreStoppedBestmove =
+        false;
+
+
+      return;
+
+    }
+
+
+    engineSearchActive =
+      false;
+
+
+    if (
+      !gameStarted
+    ) {
+
+      return;
+
+    }
+
+
+    playEngineMove(
+      move
+    );
+
+  }
+
+};
+
+
+engine.onerror =
+function(error) {
+
+  console.error(
+    error
+  );
+
+
+  engineBox.textContent =
+    "Engine failed to load";
+
+
+  setStatus(
+    "Stockfish failed to load. Open the page through localhost."
+  );
+
+};
+
+
+
+/* ===================================================== */
+/* GLOBAL EVENTS                                         */
+/* ===================================================== */
+
+document.addEventListener(
+  "click",
+  function(event) {
+
+    if (
+      isTouchStyleDevice()
+    ) {
+
+      const helpButton =
+        event.target.closest(
+          ".choice-btn, .difficulty-btn"
+        );
+
+
+      if (
+        !helpButton
+      ) {
+
+        hideTooltip();
+
+      }
+
+    }
+
+  }
+);
+
+
+window.addEventListener(
+  "scroll",
+  hideTooltip,
+  true
+);
+
+
+window.addEventListener(
+  "resize",
+  hideTooltip
+);
+
+
+
+/* ===================================================== */
+/* STARTUP                                               */
+/* ===================================================== */
+
+function unlockAudioFromGesture() {
+
+  ensureAudioContextReady();
+
+}
+
+
+window.addEventListener(
+  "pointerdown",
+  unlockAudioFromGesture,
+  {capture:true}
+);
+
+
+window.addEventListener(
+  "touchstart",
+  unlockAudioFromGesture,
+  {
+    capture:true,
+    passive:true
+  }
+);
+
+
+window.addEventListener(
+  "keydown",
+  unlockAudioFromGesture,
+  {capture:true}
+);
+
+
+engine.postMessage(
+  "uci"
+);
+
+
+initializeControls();
+
+refreshFormationButtons();
+
+refreshSideButtons();
+
+refreshDifficultyButtons();
+
+updateGameModeUI();
+
+updateInfoPanel();
+
+renderPreview();
+
+reconnectOnlineRoomIfAvailable();
+
+</script>
+
+</body>
+</html>

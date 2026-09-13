@@ -1,0 +1,5 @@
+.DS_Store
+Thumbs.db
+*.log
+Audio/Jonathan's Audio Files/*_RAW.wav
+Audio/Jonathan's Audio Files/*_BOOTHTREATMENT.wav
