@@ -4193,9 +4193,13 @@ const KNIGHT_COMMAND_CAPTURE_SOUND_FILES = [
 ];
 
 
-const ROOK_CAPTURE_SOUND_FILES = [
-  "./Audio/rookcapture1.wav",
-  "./Audio/rookcapture2.wav"
+const ROOK_CAPTURE_SOUND_FILE =
+  "./Audio/Rookcapture.wav";
+
+
+const ROOK_CAPTURED_SOUND_FILES = [
+  "./Audio/rookcaptured1.wav",
+  "./Audio/rookcaptured2.wav"
 ];
 
 
@@ -4590,11 +4594,18 @@ function reloadAudioBuffersForCurrentContext() {
   );
 
 
-  ROOK_CAPTURE_SOUND_FILES.forEach(
+  registerAudioBuffer(
+    "rookcapture",
+    ROOK_CAPTURE_SOUND_FILE,
+    generation
+  );
+
+
+  ROOK_CAPTURED_SOUND_FILES.forEach(
     (file,index) => {
 
       registerAudioBuffer(
-        "rookcapture" + index,
+        "rookcaptured" + index,
         file,
         generation
       );
@@ -6419,6 +6430,26 @@ function playRandomKingCaptureSound(
 }
 
 
+function playRookCaptureSound() {
+
+  if (
+    !soundEnabled
+  ) {
+
+    return;
+
+  }
+
+
+  playBufferedSound(
+    "rookcapture",
+    0.34,
+    "rookCapture"
+  );
+
+}
+
+
 function playSequentialPieceCaptureSound(
   pieceType,
   capturedSide
@@ -6460,13 +6491,13 @@ function playSequentialPieceCaptureSound(
   ) {
 
     fileList =
-      ROOK_CAPTURE_SOUND_FILES;
+      ROOK_CAPTURED_SOUND_FILES;
 
     sequenceState =
       rookCaptureSequenceIndexBySide;
 
     keyPrefix =
-      "rookcapture";
+      "rookcaptured";
 
   }
 
@@ -6510,17 +6541,14 @@ function playSequentialPieceCaptureSound(
 
   playBufferedSound(
     keyPrefix + nextIndex,
-    pieceType === "r"
-      ? 0.16
-      : (
-          pieceType === "n" ||
-          pieceType === "b"
-        )
-          ? 0.2
-          : 1,
-    pieceType === "r"
-      ? "rookCapture"
-      : "capturedPiece"
+    (
+      pieceType === "n" ||
+      pieceType === "b" ||
+      pieceType === "r"
+    )
+      ? 0.12
+      : 1,
+    "capturedPiece"
   );
 
 }
@@ -6832,19 +6860,34 @@ function playSoundForMove(move) {
         : "w";
 
 
+    const localKnightCapturedKnight =
+      move.captured === "n" &&
+      move.piece === "n" &&
+      move.color === playerColor;
+
+    playSound(
+      "capture",
+      CAPTURE_SOUND_VOLUME
+    );
+
+
     if (
-      move.captured === "r"
+      move.piece === "r"
     ) {
 
-      /*
-       * Rook captures use two simultaneous layers:
-       * the normal board-impact capture sound plus the
-       * isolated rook-specific variation.
-       */
-      playSound(
-        "capture",
-        CAPTURE_SOUND_VOLUME
-      );
+      playRookCaptureSound();
+
+    }
+
+
+    if (
+      (
+        move.captured === "n" ||
+        move.captured === "b" ||
+        move.captured === "r"
+      ) &&
+      !localKnightCapturedKnight
+    ) {
 
       playSequentialPieceCaptureSound(
         move.captured,
@@ -6853,53 +6896,16 @@ function playSoundForMove(move) {
 
     }
 
-    else if (
-      move.captured === "n" ||
-      move.captured === "b"
+
+    if (
+      move.captured === "q"
     ) {
 
-      const localKnightCapturedKnight =
-        move.captured === "n" &&
-        move.piece === "n" &&
-        move.color === playerColor;
-
       playSound(
-        "capture",
-        CAPTURE_SOUND_VOLUME
+        "queencapture"
       );
 
-      if (
-        !localKnightCapturedKnight
-      ) {
-
-        playSequentialPieceCaptureSound(
-          move.captured,
-          capturedSide
-        );
-
-      }
-
-    }
-
-    else {
-
-      playSound(
-        "capture",
-        CAPTURE_SOUND_VOLUME
-      );
-
-
-      if (
-        move.captured === "q"
-      ) {
-
-        playSound(
-          "queencapture"
-        );
-
-        playRandomQueenDeathSound();
-
-      }
+      playRandomQueenDeathSound();
 
     }
 
@@ -18058,7 +18064,7 @@ async function completePlayerMove(
   ) {
 
     playRandomKingCaptureSound(
-      from
+      to
     );
 
   }
@@ -19605,6 +19611,148 @@ function buildGameSummaryText() {
 }
 
 
+async function copyTextToClipboard(
+  text
+) {
+
+  if (
+    navigator.clipboard &&
+    typeof navigator.clipboard.writeText === "function" &&
+    window.isSecureContext
+  ) {
+
+    try {
+
+      await navigator.clipboard.writeText(
+        text
+      );
+
+      return true;
+
+    }
+    catch(error) {
+
+      /* Fall through to gesture-based copy fallbacks. */
+
+    }
+
+  }
+
+
+  let copied =
+    false;
+
+
+  const copyHandler =
+    function(event) {
+
+      event.clipboardData.setData(
+        "text/plain",
+        text
+      );
+
+      event.preventDefault();
+
+      copied =
+        true;
+
+    };
+
+
+  document.addEventListener(
+    "copy",
+    copyHandler
+  );
+
+
+  try {
+
+    copied =
+      document.execCommand(
+        "copy"
+      ) ||
+      copied;
+
+  }
+  catch(error) {
+
+    copied =
+      false;
+
+  }
+
+
+  document.removeEventListener(
+    "copy",
+    copyHandler
+  );
+
+
+  if (
+    copied
+  ) {
+
+    return true;
+
+  }
+
+
+  const textArea =
+    document.createElement(
+      "textarea"
+    );
+
+  textArea.value =
+    text;
+
+  textArea.setAttribute(
+    "readonly",
+    ""
+  );
+
+  textArea.style.position =
+    "fixed";
+
+  textArea.style.left =
+    "-9999px";
+
+  textArea.style.top =
+    "0";
+
+  document.body.appendChild(
+    textArea
+  );
+
+  textArea.focus();
+  textArea.select();
+
+
+  try {
+
+    copied =
+      document.execCommand(
+        "copy"
+      );
+
+  }
+  catch(error) {
+
+    copied =
+      false;
+
+  }
+
+
+  document.body.removeChild(
+    textArea
+  );
+
+
+  return copied;
+
+}
+
+
 async function copyGameSummary() {
 
   if (
@@ -19623,65 +19771,16 @@ async function copyGameSummary() {
     buildGameSummaryText();
 
 
-  try {
-
-    await navigator.clipboard.writeText(
+  const copied =
+    await copyTextToClipboard(
       summaryText
     );
 
-    copyGameSummaryBtn.textContent =
-      "Copied";
 
-  }
-  catch(error) {
-
-    const textArea =
-      document.createElement(
-        "textarea"
-      );
-
-    textArea.value =
-      summaryText;
-
-    textArea.setAttribute(
-      "readonly",
-      ""
-    );
-
-    textArea.style.position =
-      "fixed";
-
-    textArea.style.left =
-      "-9999px";
-
-    document.body.appendChild(
-      textArea
-    );
-
-    textArea.select();
-
-    try {
-
-      document.execCommand(
-        "copy"
-      );
-
-      copyGameSummaryBtn.textContent =
-        "Copied";
-
-    }
-    catch(fallbackError) {
-
-      copyGameSummaryBtn.textContent =
-        "Copy failed";
-
-    }
-
-    document.body.removeChild(
-      textArea
-    );
-
-  }
+  copyGameSummaryBtn.textContent =
+    copied
+      ? "Copied"
+      : "Copy failed";
 
 
   setTimeout(
