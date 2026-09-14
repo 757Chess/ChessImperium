@@ -4232,10 +4232,6 @@ const KNIGHT_COMMAND_CAPTURE_SOUND_FILES = [
 ];
 
 
-const ROOK_CAPTURE_SOUND_FILE =
-  "./Audio/Rookcapture.wav";
-
-
 const KING_CAPTURE_SOUND_FILES = [
   "./Audio/Jonathan's Audio Files/King/king1.wav",
   "./Audio/Jonathan's Audio Files/King/king2.wav",
@@ -4283,7 +4279,6 @@ const AUDIO_MIX_DEFAULTS = {
   board:1,
   move:1,
   capture:1,
-  rookCapture:1,
   formation:1,
   themes:1,
   openingTheme:1,
@@ -4300,7 +4295,6 @@ const AUDIO_MIX_DEFAULTS = {
 const AUDIO_MIX_PARENTS = {
   move:"board",
   capture:"board",
-  rookCapture:"board",
   formation:"board",
   openingTheme:"themes",
   check:"themes",
@@ -4325,7 +4319,6 @@ const AUDIO_MIX_GROUPS = [
       {key:"board", label:"Board FX"},
       {key:"move", label:"Moves"},
       {key:"capture", label:"Capture"},
-      {key:"rookCapture", label:"Rook"},
       {key:"formation", label:"Formation"}
     ]
   },
@@ -4584,13 +4577,6 @@ function reloadAudioBuffersForCurrentContext() {
       );
 
     }
-  );
-
-
-  registerAudioBuffer(
-    "rookcapture",
-    ROOK_CAPTURE_SOUND_FILE,
-    generation
   );
 
 
@@ -6400,26 +6386,6 @@ function playRandomKingCaptureSound(
 }
 
 
-function playRookCaptureSound() {
-
-  if (
-    !soundEnabled
-  ) {
-
-    return;
-
-  }
-
-
-  playBufferedSound(
-    "rookcapture",
-    0.34,
-    "rookCapture"
-  );
-
-}
-
-
 function moveHasCheckPriority(move) {
 
   return Boolean(
@@ -6724,15 +6690,6 @@ function playSoundForMove(move) {
       "capture",
       CAPTURE_SOUND_VOLUME
     );
-
-
-    if (
-      move.piece === "r"
-    ) {
-
-      playRookCaptureSound();
-
-    }
 
 
     if (
