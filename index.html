@@ -2170,6 +2170,27 @@ th {
   font-weight:700;
 }
 
+.analysis-actions {
+  display:flex;
+  justify-content:flex-end;
+  margin:0 0 12px;
+}
+
+.analysis-copy-btn {
+  padding:7px 11px;
+  border:1px solid #cbbd9e;
+  border-radius:8px;
+  background:#fffdf9;
+  color:var(--green);
+  cursor:pointer;
+  font-size:11px;
+  font-weight:800;
+}
+
+.analysis-copy-btn:hover {
+  background:#f7f0e3;
+}
+
 .analysis-list-heading {
   display:flex;
   justify-content:space-between;
@@ -3575,6 +3596,15 @@ if (
 
     </div>
 
+    <div class="analysis-actions">
+      <button
+        id="copyGameSummaryBtn"
+        class="analysis-copy-btn"
+        type="button">
+        Copy Summary
+      </button>
+    </div>
+
     <div id="analysisSummary" class="analysis-summary"></div>
 
     <div class="analysis-list-heading">
@@ -4456,6 +4486,406 @@ registerAudioBuffer(
 );
 
 
+function clampAudioMixValue(
+  value
+) {
+
+  const numericValue =
+    Number.isFinite(
+      value
+    )
+      ? value
+      : 1;
+
+
+  return Math.max(
+    0,
+    Math.min(
+      2,
+      numericValue
+    )
+  );
+
+}
+
+
+function loadAudioMix() {
+
+  const mix = {
+    ...AUDIO_MIX_DEFAULTS
+  };
+
+
+  try {
+
+    const saved =
+      JSON.parse(
+        localStorage.getItem(
+          AUDIO_MIX_STORAGE_KEY
+        ) ||
+        "{}"
+      );
+
+
+    Object.keys(
+      AUDIO_MIX_DEFAULTS
+    ).forEach(
+      key => {
+
+        const savedValue =
+          Number(
+            saved[key]
+          );
+
+
+        if (
+          Number.isFinite(
+            savedValue
+          )
+        ) {
+
+          mix[key] =
+            clampAudioMixValue(
+              savedValue
+            );
+
+        }
+
+      }
+    );
+
+  }
+  catch(error) {
+
+    /* Keep defaults if the saved mix is unavailable or malformed. */
+
+  }
+
+
+  return mix;
+
+}
+
+
+function saveAudioMix() {
+
+  try {
+
+    localStorage.setItem(
+      AUDIO_MIX_STORAGE_KEY,
+      JSON.stringify(
+        audioMix
+      )
+    );
+
+  }
+  catch(error) {
+
+    /* Volume sliders should still work for this session. */
+
+  }
+
+}
+
+
+function getAudioMixValue(
+  key
+) {
+
+  if (
+    !key ||
+    !Object.prototype.hasOwnProperty.call(
+      AUDIO_MIX_DEFAULTS,
+      key
+    )
+  ) {
+
+    return 1;
+
+  }
+
+
+  const parentKey =
+    AUDIO_MIX_PARENTS[
+      key
+    ];
+
+
+  return (
+    clampAudioMixValue(
+      audioMix[key]
+    ) *
+    (
+      parentKey
+        ? getAudioMixValue(
+            parentKey
+          )
+        : 1
+    )
+  );
+
+}
+
+
+function getSoundMixKey(
+  name
+) {
+
+  if (
+    name === "capture"
+  ) {
+    return "capture";
+  }
+
+  if (
+    name === "checkmate"
+  ) {
+    return "checkmate";
+  }
+
+  if (
+    name === "draw"
+  ) {
+    return "stalemate";
+  }
+
+  if (
+    name === "pawncoronation"
+  ) {
+    return "coronation";
+  }
+
+  if (
+    name === "stacking"
+  ) {
+    return "formation";
+  }
+
+  if (
+    name === "queencapture"
+  ) {
+    return "queenVoice";
+  }
+
+  if (
+    name === "invalid" ||
+    name === "menuclick"
+  ) {
+    return "board";
+  }
+
+
+  return null;
+
+}
+
+
+function updateMasterAudioGain() {
+
+  if (
+    !masterAudioGain
+  ) {
+
+    return;
+
+  }
+
+
+  masterAudioGain.gain.value =
+    MASTER_AUDIO_GAIN *
+    getAudioMixValue(
+      "master"
+    );
+
+}
+
+
+function updateOpeningThemeMix() {
+
+  if (
+    !audioContext ||
+    !openingThemeGain
+  ) {
+
+    return;
+
+  }
+
+
+  openingThemeGain.gain.setTargetAtTime(
+    getAudioMixValue(
+      "openingTheme"
+    ),
+    audioContext.currentTime,
+    .03
+  );
+
+}
+
+
+function formatAudioMixValue(
+  value
+) {
+
+  return (
+    Math.round(
+      clampAudioMixValue(
+        value
+      ) * 100
+    ) +
+    "%"
+  );
+
+}
+
+
+function refreshAudioMixerLabels() {
+
+  document
+    .querySelectorAll(
+      "[data-audio-mix-value]"
+    )
+    .forEach(
+      label => {
+
+        const key =
+          label.dataset.audioMixValue;
+
+
+        label.textContent =
+          formatAudioMixValue(
+            audioMix[key]
+          );
+
+      }
+    );
+
+}
+
+
+function setAudioMixValue(
+  key,
+  value
+) {
+
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      AUDIO_MIX_DEFAULTS,
+      key
+    )
+  ) {
+
+    return;
+
+  }
+
+
+  audioMix[key] =
+    clampAudioMixValue(
+      Number(
+        value
+      )
+    );
+
+
+  saveAudioMix();
+  updateMasterAudioGain();
+  updateOpeningThemeMix();
+  refreshAudioMixerLabels();
+
+}
+
+
+function initializeAudioMixer() {
+
+  if (
+    !audioMixer
+  ) {
+
+    return;
+
+  }
+
+
+  AUDIO_MIX_GROUPS.forEach(
+    group => {
+
+      const target =
+        document.getElementById(
+          group.targetId
+        );
+
+
+      if (
+        !target
+      ) {
+
+        return;
+
+      }
+
+
+      target.innerHTML =
+        group.controls
+          .map(
+            control =>
+              "<div class='audio-mixer-row'>" +
+              "<label for='audioMix-" +
+              control.key +
+              "'>" +
+              control.label +
+              "</label>" +
+              "<input id='audioMix-" +
+              control.key +
+              "' type='range' min='0' max='2' step='.01' " +
+              "value='" +
+              audioMix[control.key] +
+              "' data-audio-mix='" +
+              control.key +
+              "'>" +
+              "<span class='audio-mixer-value' data-audio-mix-value='" +
+              control.key +
+              "'>" +
+              formatAudioMixValue(
+                audioMix[control.key]
+              ) +
+              "</span>" +
+              "</div>"
+          )
+          .join("");
+
+
+      target
+        .querySelectorAll(
+          "input[data-audio-mix]"
+        )
+        .forEach(
+          input => {
+
+            input.addEventListener(
+              "input",
+              function() {
+
+                setAudioMixValue(
+                  input.dataset.audioMix,
+                  input.value
+                );
+
+              }
+            );
+
+          }
+        );
+
+    }
+  );
+
+
+  refreshAudioMixerLabels();
+
+}
+
+
 async function ensureAudioContextReady() {
 
   if (
@@ -4542,7 +4972,8 @@ async function getAudioBuffer(
 
 async function playBufferedSound(
   key,
-  volume = 1
+  volume = 1,
+  mixKey = null
 ) {
 
   if (
@@ -4597,7 +5028,10 @@ async function playBufferedSound(
   gain.gain.value =
     Math.max(
       0,
-      volume
+      volume *
+      getAudioMixValue(
+        mixKey
+      )
     );
 
 
@@ -4680,7 +5114,9 @@ async function playOpeningTheme() {
 
 
   openingThemeGain.gain.setValueAtTime(
-    1,
+    getAudioMixValue(
+      "openingTheme"
+    ),
     audioContext.currentTime
   );
 
@@ -4985,6 +5421,9 @@ const analysisReplayNext =
 const analysisReplayEnd =
   document.getElementById("analysisReplayEnd");
 
+const copyGameSummaryBtn =
+  document.getElementById("copyGameSummaryBtn");
+
 const playWhiteBtn =
   document.getElementById("playWhiteBtn");
 
@@ -5017,6 +5456,9 @@ const undoBtn =
 
 const soundButton =
   document.getElementById("soundButton");
+
+const audioMixer =
+  document.getElementById("audioMixer");
 
 const howToPlayBtn =
   document.getElementById("howToPlayBtn");
@@ -5459,7 +5901,10 @@ function playSound(
 
   playBufferedSound(
     name,
-    volume
+    volume,
+    getSoundMixKey(
+      name
+    )
   );
 
 }
@@ -5525,7 +5970,8 @@ function playRandomMoveSound() {
 
   playBufferedSound(
     "move" + nextIndex,
-    MOVE_SOUND_VOLUME
+    MOVE_SOUND_VOLUME,
+    "move"
   );
 
 }
@@ -5569,7 +6015,8 @@ function playSequentialCheckSoundForSide(
 
   playBufferedSound(
     "check" + nextIndex,
-    1
+    1,
+    "check"
   );
 
 }
@@ -5619,7 +6066,8 @@ function playRandomQueenDeathSound() {
 
   playBufferedSound(
     "queendeath" + nextIndex,
-    0.2
+    0.2,
+    "queenVoice"
   );
 
 }
@@ -5669,7 +6117,8 @@ function playRandomKnightCommandCaptureSound() {
 
   playBufferedSound(
     "knightcommandcapture" + nextIndex,
-    KNIGHT_COMMAND_CAPTURE_VOLUME
+    KNIGHT_COMMAND_CAPTURE_VOLUME,
+    "knightVoice"
   );
 
 }
@@ -5720,7 +6169,8 @@ function playRandomKingCaptureSound() {
 
   playBufferedSound(
     "kingcapture" + nextIndex,
-    0.15
+    0.15,
+    "kingVoice"
   );
 
 }
@@ -5824,7 +6274,23 @@ function playSequentialPieceCaptureSound(
           pieceType === "b"
         )
           ? 0.2
-          : 1
+          : 1,
+    pieceType === "r"
+      ? "rookCapture"
+      : "capturedPiece"
+  );
+
+}
+
+
+function moveHasCheckPriority(move) {
+
+  return Boolean(
+    move &&
+    typeof move.san === "string" &&
+    /[+#]$/.test(
+      move.san
+    )
   );
 
 }
@@ -11118,7 +11584,8 @@ async function animateLegalMove(
       plannedMove.color === "w"
         ? "queenwhoosh-w"
         : "queenwhoosh-b",
-      1
+      1,
+      "queenVoice"
     );
 
   }
@@ -12973,6 +13440,9 @@ function initializeControls() {
   );
 
 
+  initializeAudioMixer();
+
+
   soundButton.addEventListener(
     "click",
     function() {
@@ -13277,6 +13747,18 @@ analysisReplayEnd.addEventListener(
       );
 
     }
+
+  }
+);
+
+
+copyGameSummaryBtn.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    copyGameSummary();
 
   }
 );
@@ -18455,6 +18937,244 @@ function getGameResultText() {
 }
 
 
+function formatMoveListForSummary(
+  history
+) {
+
+  if (
+    !history ||
+    history.length === 0
+  ) {
+
+    return "(No moves yet)";
+
+  }
+
+
+  const rows =
+    [];
+
+
+  for (
+    let i=0;
+    i<history.length;
+    i += 2
+  ) {
+
+    rows.push(
+      (
+        Math.floor(
+          i / 2
+        ) +
+        1
+      ) +
+      ". " +
+      history[i] +
+      (
+        history[i+1]
+          ? " " + history[i+1]
+          : ""
+      )
+    );
+
+  }
+
+
+  return rows.join(
+    "\n"
+  );
+
+}
+
+
+function buildGameSummaryText() {
+
+  const history =
+    game
+      ? game.history()
+      : [];
+
+
+  const playerFormationText =
+    actualPlayerFormation
+      ? formationText(
+          actualPlayerFormation
+        )
+      : playerFormationChoice === "RANDOM"
+        ? "Random"
+        : formationText(
+            playerFormationChoice
+          );
+
+
+  const opponentFormationText =
+    actualComputerFormation
+      ? formationText(
+          actualComputerFormation
+        )
+      : computerFormationChoice === "RANDOM"
+        ? "Random"
+        : formationText(
+            computerFormationChoice
+          );
+
+
+  const colorText =
+    playerColor === "b"
+      ? "Black"
+      : "White";
+
+
+  const lines = [
+    "Chess Imperium Game Summary",
+    "Result: " + (
+      getGameResultText() ||
+      "In progress"
+    ),
+    "Mode: " + (
+      gameMode === "online"
+        ? "Online Multiplayer"
+        : "Computer"
+    ),
+    "Your color: " + colorText,
+    "Your formation: " + playerFormationText,
+    (
+      gameMode === "online"
+        ? "Opponent formation: "
+        : "Computer formation: "
+    ) +
+    opponentFormationText,
+    "Castling: " + (
+      castlingEnabledForCurrentGame()
+        ? "Enabled"
+        : "Disabled"
+    ),
+    "Moves: " + Math.ceil(
+      history.length / 2
+    ),
+    "",
+    "Move list:",
+    formatMoveListForSummary(
+      history
+    )
+  ];
+
+
+  if (
+    gameMode !== "online"
+  ) {
+
+    lines.splice(
+      3,
+      0,
+      "Difficulty: " +
+      DIFFICULTY_GUIDES[
+        difficultyKey
+      ].title
+    );
+
+  }
+
+
+  return lines.join(
+    "\n"
+  );
+
+}
+
+
+async function copyGameSummary() {
+
+  if (
+    !copyGameSummaryBtn
+  ) {
+
+    return;
+
+  }
+
+
+  const originalText =
+    copyGameSummaryBtn.textContent;
+
+  const summaryText =
+    buildGameSummaryText();
+
+
+  try {
+
+    await navigator.clipboard.writeText(
+      summaryText
+    );
+
+    copyGameSummaryBtn.textContent =
+      "Copied";
+
+  }
+  catch(error) {
+
+    const textArea =
+      document.createElement(
+        "textarea"
+      );
+
+    textArea.value =
+      summaryText;
+
+    textArea.setAttribute(
+      "readonly",
+      ""
+    );
+
+    textArea.style.position =
+      "fixed";
+
+    textArea.style.left =
+      "-9999px";
+
+    document.body.appendChild(
+      textArea
+    );
+
+    textArea.select();
+
+    try {
+
+      document.execCommand(
+        "copy"
+      );
+
+      copyGameSummaryBtn.textContent =
+        "Copied";
+
+    }
+    catch(fallbackError) {
+
+      copyGameSummaryBtn.textContent =
+        "Copy failed";
+
+    }
+
+    document.body.removeChild(
+      textArea
+    );
+
+  }
+
+
+  setTimeout(
+    () => {
+
+      copyGameSummaryBtn.textContent =
+        originalText;
+
+    },
+    1600
+  );
+
+}
+
+
 function updateGameOverSummary() {
 
   const onlineFinished =
@@ -22041,8 +22761,7 @@ function rebuildAudioContextFromGesture() {
     masterAudioGain =
       audioContext.createGain();
 
-    masterAudioGain.gain.value =
-      MASTER_AUDIO_GAIN;
+    updateMasterAudioGain();
 
     masterAudioGain.connect(
       audioContext.destination
