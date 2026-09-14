@@ -2298,6 +2298,8 @@ th {
 
 .analysis-actions {
   display:flex;
+  align-items:center;
+  gap:10px;
   justify-content:flex-end;
   margin:0 0 12px;
 }
@@ -2315,6 +2317,21 @@ th {
 
 .analysis-copy-btn:hover {
   background:#f7f0e3;
+}
+
+.analysis-copy-status {
+  min-height:14px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+}
+
+.analysis-copy-status.is-success {
+  color:var(--green);
+}
+
+.analysis-copy-status.is-error {
+  color:#8f3e2d;
 }
 
 .analysis-list-heading {
@@ -3733,11 +3750,15 @@ if (
     </div>
 
     <div class="analysis-actions">
+      <span
+        id="copyGameSummaryStatus"
+        class="analysis-copy-status"
+        aria-live="polite"></span>
       <button
         id="copyGameSummaryBtn"
         class="analysis-copy-btn"
         type="button">
-        Copy Summary
+        Copy Moves
       </button>
     </div>
 
@@ -3988,6 +4009,30 @@ const FORMATION_MAP =
       ]
     )
   );
+
+
+function getFormationDisplayText(
+  code
+) {
+
+  if (
+    !code
+  ) {
+
+    return "-";
+
+  }
+
+
+  return (
+    FORMATION_MAP[code] ||
+    "Unknown formation"
+  ) +
+  " (" +
+  code +
+  ")";
+
+}
 
 
 const DIFFICULTIES = {
@@ -5648,6 +5693,9 @@ const analysisReplayEnd =
 
 const copyGameSummaryBtn =
   document.getElementById("copyGameSummaryBtn");
+
+const copyGameSummaryStatus =
+  document.getElementById("copyGameSummaryStatus");
 
 const playWhiteBtn =
   document.getElementById("playWhiteBtn");
@@ -19525,24 +19573,24 @@ function buildGameSummaryText() {
 
   const playerFormationText =
     actualPlayerFormation
-      ? formationText(
+      ? getFormationDisplayText(
           actualPlayerFormation
         )
       : playerFormationChoice === "RANDOM"
         ? "Random"
-        : formationText(
+        : getFormationDisplayText(
             playerFormationChoice
           );
 
 
   const opponentFormationText =
     actualComputerFormation
-      ? formationText(
+      ? getFormationDisplayText(
           actualComputerFormation
         )
       : computerFormationChoice === "RANDOM"
         ? "Random"
-        : formationText(
+        : getFormationDisplayText(
             computerFormationChoice
           );
 
@@ -19611,9 +19659,90 @@ function buildGameSummaryText() {
 }
 
 
+function copyTextWithSelectionFallback(
+  text
+) {
+
+  const textArea =
+    document.createElement(
+      "textarea"
+    );
+
+  let copied =
+    false;
+
+  textArea.value =
+    text;
+
+  textArea.setAttribute(
+    "readonly",
+    ""
+  );
+
+  textArea.style.position =
+    "fixed";
+
+  textArea.style.left =
+    "-9999px";
+
+  textArea.style.top =
+    "0";
+
+  textArea.style.opacity =
+    "0";
+
+  document.body.appendChild(
+    textArea
+  );
+
+  textArea.focus();
+  textArea.select();
+  textArea.setSelectionRange(
+    0,
+    textArea.value.length
+  );
+
+
+  try {
+
+    copied =
+      document.execCommand(
+        "copy"
+      );
+
+  }
+  catch(error) {
+
+    copied =
+      false;
+
+  }
+
+
+  document.body.removeChild(
+    textArea
+  );
+
+
+  return copied;
+
+}
+
+
 async function copyTextToClipboard(
   text
 ) {
+
+  if (
+    copyTextWithSelectionFallback(
+      text
+    )
+  ) {
+
+    return true;
+
+  }
+
 
   if (
     navigator.clipboard &&
@@ -19632,7 +19761,7 @@ async function copyTextToClipboard(
     }
     catch(error) {
 
-      /* Fall through to gesture-based copy fallbacks. */
+      /* Fall through to clipboard-event fallback. */
 
     }
 
@@ -19688,67 +19817,77 @@ async function copyTextToClipboard(
   );
 
 
+  return copied;
+
+}
+
+
+let copyGameSummaryStatusTimer =
+  null;
+
+
+function setCopyGameSummaryStatus(
+  message,
+  state
+) {
+
   if (
-    copied
+    !copyGameSummaryStatus
   ) {
 
-    return true;
+    return;
 
   }
 
 
-  const textArea =
-    document.createElement(
-      "textarea"
+  copyGameSummaryStatus.textContent =
+    message;
+
+  copyGameSummaryStatus.classList.remove(
+    "is-success",
+    "is-error"
+  );
+
+  if (
+    state
+  ) {
+
+    copyGameSummaryStatus.classList.add(
+      "is-" + state
     );
 
-  textArea.value =
-    text;
-
-  textArea.setAttribute(
-    "readonly",
-    ""
-  );
-
-  textArea.style.position =
-    "fixed";
-
-  textArea.style.left =
-    "-9999px";
-
-  textArea.style.top =
-    "0";
-
-  document.body.appendChild(
-    textArea
-  );
-
-  textArea.focus();
-  textArea.select();
-
-
-  try {
-
-    copied =
-      document.execCommand(
-        "copy"
-      );
-
   }
-  catch(error) {
 
-    copied =
-      false;
+
+  if (
+    copyGameSummaryStatusTimer
+  ) {
+
+    clearTimeout(
+      copyGameSummaryStatusTimer
+    );
 
   }
 
 
-  document.body.removeChild(
-    textArea
-  );
+  copyGameSummaryStatusTimer =
+    setTimeout(
+      () => {
 
+        copyGameSummaryStatus.textContent =
+          "";
 
-  return copied;
+        copyGameSummaryStatus.classList.remove(
+          "is-success",
+          "is-error"
+        );
+
+        copyGameSummaryStatusTimer =
+          null;
+
+      },
+      2400
+    );
 
 }
 
@@ -19765,7 +19904,8 @@ async function copyGameSummary() {
 
 
   const originalText =
-    copyGameSummaryBtn.textContent;
+    copyGameSummaryBtn.textContent.trim() ||
+    "Copy Moves";
 
   const summaryText =
     buildGameSummaryText();
@@ -19781,6 +19921,15 @@ async function copyGameSummary() {
     copied
       ? "Copied"
       : "Copy failed";
+
+  setCopyGameSummaryStatus(
+    copied
+      ? "Copied move list to clipboard."
+      : "Copy failed. Browser blocked clipboard access.",
+    copied
+      ? "success"
+      : "error"
+  );
 
 
   setTimeout(
