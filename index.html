@@ -4258,6 +4258,19 @@ const QUEEN_WHOOSH_FILES = {
 };
 
 
+const QUEEN_DEATH_SOUND_FILES = [
+  "./Audio/queendeath1.wav",
+  "./Audio/queendeath2.wav",
+  "./Audio/queendeath3.wav",
+  "./Audio/queendeath4.wav",
+  "./Audio/queendeath5.wav",
+  "./Audio/queendeath6.wav",
+  "./Audio/queendeath7.wav",
+  "./Audio/queendeath8.wav",
+  "./Audio/queendeath9.wav"
+];
+
+
 const OPENING_THEME_FILE =
   "./Audio/openingtheme.mp3";
 
@@ -4404,6 +4417,10 @@ let lastKnightCommandCaptureIndex =
 
 
 let lastKingCaptureIndex =
+  -1;
+
+
+let lastQueenDeathIndex =
   -1;
 
 
@@ -4600,6 +4617,19 @@ function reloadAudioBuffersForCurrentContext() {
     "queenwhoosh-b",
     QUEEN_WHOOSH_FILES.b,
     generation
+  );
+
+
+  QUEEN_DEATH_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "queendeath" + index,
+        file,
+        generation
+      );
+
+    }
   );
 
 
@@ -6187,6 +6217,57 @@ function playSequentialCheckSoundForSide(
 }
 
 
+function playRandomQueenDeathSound() {
+
+  if (
+    QUEEN_DEATH_SOUND_FILES.length === 0
+  ) {
+    return;
+  }
+
+
+  let nextIndex =
+    Math.floor(
+      Math.random() *
+      QUEEN_DEATH_SOUND_FILES.length
+    );
+
+
+  if (
+    QUEEN_DEATH_SOUND_FILES.length > 1 &&
+    nextIndex === lastQueenDeathIndex
+  ) {
+
+    nextIndex =
+      (
+        nextIndex +
+        1 +
+        Math.floor(
+          Math.random() *
+          (
+            QUEEN_DEATH_SOUND_FILES.length -
+            1
+          )
+        )
+      ) %
+      QUEEN_DEATH_SOUND_FILES.length;
+
+  }
+
+
+  lastQueenDeathIndex =
+    nextIndex;
+
+
+  playBufferedSound(
+    "queendeath" + nextIndex,
+    0.2,
+    "queenVoice"
+  );
+
+}
+
+
 function playRandomKnightCommandCaptureSound(
   squareName = null
 ) {
@@ -6661,6 +6742,8 @@ function playSoundForMove(move) {
       playSound(
         "queencapture"
       );
+
+      playRandomQueenDeathSound();
 
     }
 
@@ -15402,6 +15485,9 @@ function beginGame(
 
   checkSequenceIndexBySide.b =
     0;
+
+  lastQueenDeathIndex =
+    -1;
 
   hidePromotion();
 
