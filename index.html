@@ -971,6 +971,14 @@ select {
   font-size:28px;
   font-weight:800;
   box-shadow:inset 0 0 0 3px rgba(255,255,255,.18);
+  overflow:hidden;
+}
+
+.campaign-portrait-img {
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
 .campaign-rank {
@@ -1162,28 +1170,37 @@ select {
   position:absolute;
   top:calc(100% + 8px);
   right:12px;
-  min-width:185px;
-  max-width:260px;
-  padding:10px 12px;
-  background:#fffdf9;
-  border:1px solid #d6cec0;
-  border-radius:11px;
-  box-shadow:0 10px 28px rgba(0,0,0,.14);
+  display:flex;
+  flex-direction:row-reverse;
+  align-items:flex-start;
+  gap:8px;
+  max-width:calc(100vw - 24px);
   z-index:450;
-  opacity:0;
-  transform:translateY(-5px);
   visibility:hidden;
   pointer-events:none;
-  transition:
-    opacity .22s ease,
-    transform .22s ease,
-    visibility .22s;
 }
 
 #captureToast.visible {
-  opacity:1;
-  transform:translateY(0);
   visibility:visible;
+}
+
+.capture-toast-card {
+  min-width:150px;
+  max-width:190px;
+  padding:9px 11px;
+  background:#fffdf9;
+  border:1px solid #d6cec0;
+  border-radius:10px;
+  box-shadow:0 10px 28px rgba(0,0,0,.14);
+  animation:captureToastIn .22s ease both;
+  transition:
+    opacity .2s ease,
+    transform .2s ease;
+}
+
+.capture-toast-card.removing {
+  opacity:0;
+  transform:translateY(-5px);
 }
 
 .capture-toast-title {
@@ -1198,20 +1215,46 @@ select {
   align-items:center;
   gap:7px;
   min-height:28px;
-  padding:2px 0;
+  padding:0;
   font-size:12px;
-}
-
-.capture-toast-row + .capture-toast-row {
-  border-top:1px solid #eee7dc;
-  margin-top:2px;
-  padding-top:4px;
 }
 
 .capture-toast-piece {
   width:30px;
   height:30px;
   object-fit:contain;
+}
+
+.capture-toast-detail {
+  min-width:0;
+}
+
+.capture-toast-piece-name {
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.capture-toast-move {
+  display:block;
+  margin-top:1px;
+  color:#8a6a33;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+}
+
+@keyframes captureToastIn {
+  from {
+    opacity:0;
+    transform:translateY(-5px);
+  }
+
+  to {
+    opacity:1;
+    transform:translateY(0);
+  }
 }
 
 
@@ -4371,6 +4414,7 @@ const CAMPAIGN_OPPONENTS = [
     difficultyKey:"campaign700",
     formation:"RNB",
     initials:"CV",
+    portrait:"./Graphics/Campaign/Opponents/cassian-varro.png",
     backstory:
       "Your owner watches from a marble chair above the arena, convinced that discipline and debt are stronger than hope. Varro is no champion, but he knows every weakness in a desperate man. Defeat him, and your chain grows lighter for the first time."
   },
@@ -4383,6 +4427,7 @@ const CAMPAIGN_OPPONENTS = [
     difficultyKey:"campaign950",
     formation:"NRB",
     initials:"MD",
+    portrait:"./Graphics/Campaign/Opponents/marcus-drusus.png",
     backstory:
       "A frontier officer with a soldier's patience, Drusus trusts clean development, hard trades, and steady pressure. He has broken shield walls from Gaul to Syria, and he treats the board like another formation to hold. He will not dazzle you; he will grind."
   },
@@ -4395,6 +4440,7 @@ const CAMPAIGN_OPPONENTS = [
     difficultyKey:"campaign1200",
     formation:"RBN",
     initials:"LC",
+    portrait:"./Graphics/Campaign/Opponents/lucius-corvinus.png",
     backstory:
       "Corvinus learned politics before war. He smiles as though the match is already decided, then waits for ambition to move one square too far. His formation hides sharp intent behind civilized manners."
   },
@@ -4407,6 +4453,7 @@ const CAMPAIGN_OPPONENTS = [
     difficultyKey:"campaign1450",
     formation:"BRN",
     initials:"GS",
+    portrait:"./Graphics/Campaign/Opponents/gaius-severan.png",
     backstory:
       "Severan treats the board like law: every careless move becomes evidence, every trapped piece a sentence. In Rome, his judgments are feared because they arrive cold and complete. Against him, escape routes matter as much as attacks."
   },
@@ -4419,6 +4466,7 @@ const CAMPAIGN_OPPONENTS = [
     difficultyKey:"campaign1700",
     formation:"BNR",
     initials:"TM",
+    portrait:"./Graphics/Campaign/Opponents/titus-marcellus.png",
     backstory:
       "The crowd loves Marcellus for his elegance, but beneath the ceremony is a veteran who sees endings early. He plays as if each exchange has already been weighed by the Senate. If you reach him, the arena is no longer laughing."
   },
@@ -4431,6 +4479,7 @@ const CAMPAIGN_OPPONENTS = [
     difficultyKey:"campaign2000",
     formation:"NBR",
     initials:"AC",
+    portrait:"./Graphics/Campaign/Opponents/augustus-caesar.png",
     backstory:
       "Caesar does not hurry. He lets the empire breathe, then makes one quiet move that leaves no appeal. The pardon is real, but so is the spectacle: Rome wants to see whether a gladiator can think like a ruler. Win here, and freedom is not granted; it is witnessed."
   }
@@ -6306,14 +6355,11 @@ let annotationMarkers =
 let ignoreBoardClickUntil =
   0;
 
-let captureToastItems =
-  [];
+let captureToastSequence =
+  0;
 
-let captureToastTimer =
-  null;
-
-let captureToastClearTimer =
-  null;
+const captureToastTimers =
+  new Map();
 
 let ruleToastTimer =
   null;
@@ -8267,11 +8313,20 @@ function renderCampaignPanel() {
       opponent.formation
     );
 
+  const portraitContent =
+    opponent.portrait
+      ? "<img class='campaign-portrait-img' src='" +
+          opponent.portrait +
+          "' alt='Portrait of " +
+          opponent.name +
+          "'>"
+      : opponent.initials;
+
 
   campaignDossier.innerHTML =
     "<div class='campaign-dossier-top'>" +
       "<div class='campaign-portrait'>" +
-        opponent.initials +
+        portraitContent +
       "</div>" +
       "<div>" +
         "<div class='campaign-rank'>Stage " +
@@ -13367,106 +13422,17 @@ function scheduleEngineMove() {
 
 function showCaptureToast(
   pieceType,
-  capturerColor
+  capturerColor,
+  moveNotation
 ) {
 
   if (
-    !pieceType
+    !pieceType ||
+    !captureToast
   ) {
     return;
   }
 
-
-  if (
-    captureToastTimer
-  ) {
-
-    clearTimeout(
-      captureToastTimer
-    );
-
-  }
-
-
-  if (
-    captureToastClearTimer
-  ) {
-
-    clearTimeout(
-      captureToastClearTimer
-    );
-
-  }
-
-
-  captureToastItems.push({
-
-    type:pieceType,
-
-    color:
-      capturerColor === "w"
-        ? "b"
-        : "w",
-
-    capturerColor
-
-  });
-
-
-  if (
-    captureToastItems.length > 4
-  ) {
-
-    captureToastItems =
-      captureToastItems.slice(-4);
-
-  }
-
-
-  renderCaptureToast(
-    capturerColor
-  );
-
-
-  captureToast.classList.add(
-    "visible"
-  );
-
-
-  captureToastTimer =
-    setTimeout(
-      () => {
-
-        captureToast.classList.remove(
-          "visible"
-        );
-
-
-        captureToastClearTimer =
-          setTimeout(
-            () => {
-
-              captureToastItems =
-                [];
-
-
-              captureToast.innerHTML =
-                "";
-
-            },
-            250
-          );
-
-      },
-      2900
-    );
-
-}
-
-
-function renderCaptureToast(
-  capturerColor
-) {
 
   let title =
     "Stockfish captured";
@@ -13483,90 +13449,220 @@ function renderCaptureToast(
 
   }
 
+  const capturedColor =
+    capturerColor === "w"
+      ? "b"
+      : "w";
 
-  let html =
+  const toastId =
+    "capture-toast-" +
+    String(
+      ++captureToastSequence
+    );
+
+  const card =
+    document.createElement(
+      "div"
+    );
+
+  card.className =
+    "capture-toast-card";
+
+  card.dataset.toastId =
+    toastId;
+
+
+  card.innerHTML =
 
     "<div class='capture-toast-title'>" +
     title +
+    "</div>" +
+
+    "<div class='capture-toast-row'>" +
+
+    "<img class='capture-toast-piece' " +
+    "src='" +
+    PIECE_IMAGES[
+      capturedColor +
+      pieceType
+    ] +
+    "' alt=''>" +
+
+    "<span class='capture-toast-detail'>" +
+      "<span class='capture-toast-piece-name'>" +
+        PIECE_NAMES[
+          pieceType
+        ] +
+      "</span>" +
+      (
+        moveNotation
+          ? "<span class='capture-toast-move'>" +
+              moveNotation +
+            "</span>"
+          : ""
+      ) +
+    "</span>" +
+
     "</div>";
 
 
-  captureToastItems.forEach(
-    item => {
-
-      html +=
-
-        "<div class='capture-toast-row'>" +
-
-        "<img class='capture-toast-piece' " +
-        "src='" +
-        PIECE_IMAGES[
-          item.color +
-          item.type
-        ] +
-        "' alt=''>" +
-
-        "<span>" +
-        PIECE_NAMES[
-          item.type
-        ] +
-        "</span>" +
-
-        "</div>";
-
-    }
+  captureToast.appendChild(
+    card
   );
 
 
-  captureToast.innerHTML =
-    html;
+  while (
+    captureToast.children.length > 4
+  ) {
+
+    const oldestCard =
+      captureToast.firstElementChild;
+
+    const oldestId =
+      oldestCard
+        ? oldestCard.dataset.toastId
+        : "";
+
+    if (
+      oldestId &&
+      captureToastTimers.has(
+        oldestId
+      )
+    ) {
+
+      clearTimeout(
+        captureToastTimers.get(
+          oldestId
+        )
+      );
+
+      captureToastTimers.delete(
+        oldestId
+      );
+
+    }
+
+    oldestCard?.remove();
+
+  }
+
+
+  captureToast.classList.add(
+    "visible"
+  );
+
+
+  const timer =
+    setTimeout(
+      () => {
+
+        removeCaptureToastCard(
+          card,
+          toastId
+        );
+
+      },
+      3600
+    );
+
+  captureToastTimers.set(
+    toastId,
+    timer
+  );
+
+}
+
+
+function removeCaptureToastCard(
+  card,
+  toastId
+) {
+
+  if (
+    !card
+  ) {
+    return;
+  }
+
+
+  if (
+    toastId &&
+    captureToastTimers.has(
+      toastId
+    )
+  ) {
+
+    clearTimeout(
+      captureToastTimers.get(
+        toastId
+      )
+    );
+
+    captureToastTimers.delete(
+      toastId
+    );
+
+  }
+
+
+  card.classList.add(
+    "removing"
+  );
+
+
+  setTimeout(
+    () => {
+
+      card.remove();
+
+
+      if (
+        captureToast &&
+        !captureToast.querySelector(
+          ".capture-toast-card"
+        )
+      ) {
+
+        captureToast.classList.remove(
+          "visible"
+        );
+
+      }
+
+    },
+    220
+  );
 
 }
 
 
 function clearCaptureToast() {
 
-  if (
-    captureToastTimer
-  ) {
+  captureToastTimers.forEach(
+    timer => {
 
-    clearTimeout(
-      captureToastTimer
-    );
+      clearTimeout(
+        timer
+      );
 
-  }
-
-
-  if (
-    captureToastClearTimer
-  ) {
-
-    clearTimeout(
-      captureToastClearTimer
-    );
-
-  }
-
-
-  captureToastTimer =
-    null;
-
-
-  captureToastClearTimer =
-    null;
-
-
-  captureToastItems =
-    [];
-
-
-  captureToast.classList.remove(
-    "visible"
+    }
   );
 
+  captureToastTimers.clear();
 
-  captureToast.innerHTML =
-    "";
+  if (
+    captureToast
+  ) {
+
+    captureToast.classList.remove(
+      "visible"
+    );
+
+
+    captureToast.innerHTML =
+      "";
+
+  }
 
 }
 
@@ -19904,7 +20000,8 @@ function afterMove(
 
       showCaptureToast(
         move.captured,
-        move.color
+        move.color,
+        move.san
       );
 
     }
@@ -19915,7 +20012,8 @@ function afterMove(
 
       showCaptureToast(
         move.captured,
-        move.color
+        move.color,
+        move.san
       );
 
     }
