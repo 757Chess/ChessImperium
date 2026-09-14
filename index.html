@@ -4178,6 +4178,8 @@ const MOVE_SOUND_VOLUME = .68;
 const CAPTURE_SOUND_VOLUME = .68;
 const STACKING_SOUND_VOLUME = .05;
 const KNIGHT_COMMAND_CAPTURE_VOLUME = .20;
+const PAWN_CAPTURE_VOICE_VOLUME = .16;
+const PAWN_VS_ROOK_VOICE_VOLUME = .16;
 
 /*
  * Global game-audio boost.
@@ -4230,6 +4232,24 @@ const KNIGHT_COMMAND_CAPTURE_SOUND_FILES = [
   "./Audio/Jonathan's Audio Files/Knight/knight11.wav",
   "./Audio/Jonathan's Audio Files/Knight/knight12.wav"
 ];
+
+
+const PAWN_CAPTURE_SOUND_FILES = [
+  "./Audio/pawn1.wav",
+  "./Audio/pawn2.wav",
+  "./Audio/pawn3.wav",
+  "./Audio/pawn4.wav",
+  "./Audio/pawn5.wav",
+  "./Audio/pawn6.wav",
+  "./Audio/pawn7.wav",
+  "./Audio/pawn8.wav",
+  "./Audio/pawn9.wav",
+  "./Audio/pawn10.wav"
+];
+
+
+const PAWN_VS_ROOK_SOUND_FILE =
+  "./Audio/pawnvsrook.wav";
 
 
 const KING_CAPTURE_SOUND_FILES = [
@@ -4288,6 +4308,7 @@ const AUDIO_MIX_DEFAULTS = {
   coronation:1,
   vocals:1,
   knightVoice:1,
+  pawnVoice:1,
   kingVoice:1,
   queenVoice:1
 };
@@ -4302,6 +4323,7 @@ const AUDIO_MIX_PARENTS = {
   stalemate:"themes",
   coronation:"themes",
   knightVoice:"vocals",
+  pawnVoice:"vocals",
   kingVoice:"vocals",
   queenVoice:"vocals"
 };
@@ -4338,6 +4360,7 @@ const AUDIO_MIX_GROUPS = [
     controls:[
       {key:"vocals", label:"All Voices"},
       {key:"knightVoice", label:"Knight"},
+      {key:"pawnVoice", label:"Pawn"},
       {key:"kingVoice", label:"King"},
       {key:"queenVoice", label:"Queen"}
     ]
@@ -4406,6 +4429,10 @@ const checkSequenceIndexBySide = {
 
 
 let lastKnightCommandCaptureIndex =
+  -1;
+
+
+let lastPawnCaptureIndex =
   -1;
 
 
@@ -4577,6 +4604,26 @@ function reloadAudioBuffersForCurrentContext() {
       );
 
     }
+  );
+
+
+  PAWN_CAPTURE_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "pawncapture" + index,
+        file,
+        generation
+      );
+
+    }
+  );
+
+
+  registerAudioBuffer(
+    "pawnvsrook",
+    PAWN_VS_ROOK_SOUND_FILE,
+    generation
   );
 
 
@@ -6308,6 +6355,105 @@ function playRandomKnightCommandCaptureSound(
     "knightcommandcapture" + nextIndex,
     KNIGHT_COMMAND_CAPTURE_VOLUME,
     "knightVoice",
+    buffer => {
+
+      updateVoiceBubbleDuration(
+        buffer.duration * 1000
+      );
+
+    }
+  );
+
+}
+
+
+function playPawnCaptureSound(
+  squareName = null,
+  capturedPiece = null
+) {
+
+  if (
+    !soundEnabled
+  ) {
+    return;
+  }
+
+
+  if (
+    capturedPiece === "r"
+  ) {
+
+    showVoiceBubble(
+      squareName
+    );
+
+    playBufferedSound(
+      "pawnvsrook",
+      PAWN_VS_ROOK_VOICE_VOLUME,
+      "pawnVoice",
+      buffer => {
+
+        updateVoiceBubbleDuration(
+          buffer.duration * 1000
+        );
+
+      }
+    );
+
+    return;
+
+  }
+
+
+  if (
+    PAWN_CAPTURE_SOUND_FILES.length === 0
+  ) {
+    return;
+  }
+
+
+  let nextIndex =
+    Math.floor(
+      Math.random() *
+      PAWN_CAPTURE_SOUND_FILES.length
+    );
+
+
+  if (
+    PAWN_CAPTURE_SOUND_FILES.length > 1 &&
+    nextIndex === lastPawnCaptureIndex
+  ) {
+
+    nextIndex =
+      (
+        nextIndex +
+        1 +
+        Math.floor(
+          Math.random() *
+          (
+            PAWN_CAPTURE_SOUND_FILES.length -
+            1
+          )
+        )
+      ) %
+      PAWN_CAPTURE_SOUND_FILES.length;
+
+  }
+
+
+  lastPawnCaptureIndex =
+    nextIndex;
+
+
+  showVoiceBubble(
+    squareName
+  );
+
+
+  playBufferedSound(
+    "pawncapture" + nextIndex,
+    PAWN_CAPTURE_VOICE_VOLUME,
+    "pawnVoice",
     buffer => {
 
       updateVoiceBubbleDuration(
@@ -11892,6 +12038,23 @@ async function animateLegalMove(
 
   if (
     plannedMove &&
+    plannedMove.piece === "p" &&
+    plannedMove.captured &&
+    !moveHasCheckPriority(
+      plannedMove
+    )
+  ) {
+
+    playPawnCaptureSound(
+      from,
+      plannedMove.captured
+    );
+
+  }
+
+
+  if (
+    plannedMove &&
     plannedMove.piece === "q" &&
     plannedMove.captured &&
     !moveHasCheckPriority(
@@ -15443,6 +15606,9 @@ function beginGame(
   checkSequenceIndexBySide.b =
     0;
 
+  lastPawnCaptureIndex =
+    -1;
+
   lastQueenDeathIndex =
     -1;
 
@@ -17841,6 +18007,24 @@ async function completePlayerMove(
 
     playRandomKingCaptureSound(
       to
+    );
+
+  }
+
+
+  if (
+    skipAnimation &&
+    plannedMove &&
+    plannedMove.piece === "p" &&
+    plannedMove.captured &&
+    !moveHasCheckPriority(
+      plannedMove
+    )
+  ) {
+
+    playPawnCaptureSound(
+      to,
+      plannedMove.captured
     );
 
   }
