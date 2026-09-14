@@ -4362,6 +4362,9 @@ const audioBuffers =
 const audioLoadPromises =
   new Map();
 
+let audioBufferGeneration =
+  0;
+
 
 let lastMoveSoundIndex =
   -1;
@@ -4413,7 +4416,8 @@ let openingThemeGain =
 
 function registerAudioBuffer(
   key,
-  file
+  file,
+  generation
 ) {
 
   if (
@@ -4424,6 +4428,9 @@ function registerAudioBuffer(
 
   }
 
+
+  const contextForLoad =
+    audioContext;
 
   const loadPromise =
     fetch(file)
@@ -4448,17 +4455,24 @@ function registerAudioBuffer(
       )
       .then(
         arrayBuffer =>
-          audioContext.decodeAudioData(
+          contextForLoad.decodeAudioData(
             arrayBuffer
           )
       )
       .then(
         buffer => {
 
-          audioBuffers.set(
-            key,
-            buffer
-          );
+          if (
+            generation === audioBufferGeneration &&
+            contextForLoad === audioContext
+          ) {
+
+            audioBuffers.set(
+              key,
+              buffer
+            );
+
+          }
 
 
           return buffer;
@@ -4489,129 +4503,160 @@ function registerAudioBuffer(
 }
 
 
-Object.entries(SOUND_FILES).forEach(
-  ([name,file]) => {
+function reloadAudioBuffersForCurrentContext() {
 
-    registerAudioBuffer(
-      name,
-      file
-    );
-
-  }
-);
+  audioBufferGeneration++;
 
 
-MOVE_SOUND_FILES.forEach(
-  (file,index) => {
-
-    registerAudioBuffer(
-      "move" + index,
-      file
-    );
-
-  }
-);
+  const generation =
+    audioBufferGeneration;
 
 
-CHECK_SOUND_FILES.forEach(
-  (file,index) => {
+  audioBuffers.clear();
 
-    registerAudioBuffer(
-      "check" + index,
-      file
-    );
-
-  }
-);
+  audioLoadPromises.clear();
 
 
-KNIGHT_CAPTURE_SOUND_FILES.forEach(
-  (file,index) => {
+  Object.entries(SOUND_FILES).forEach(
+    ([name,file]) => {
 
-    registerAudioBuffer(
-      "knightcapture" + index,
-      file
-    );
+      registerAudioBuffer(
+        name,
+        file,
+        generation
+      );
 
-  }
-);
-
-
-KNIGHT_COMMAND_CAPTURE_SOUND_FILES.forEach(
-  (file,index) => {
-
-    registerAudioBuffer(
-      "knightcommandcapture" + index,
-      file
-    );
-
-  }
-);
+    }
+  );
 
 
-ROOK_CAPTURE_SOUND_FILES.forEach(
-  (file,index) => {
+  MOVE_SOUND_FILES.forEach(
+    (file,index) => {
 
-    registerAudioBuffer(
-      "rookcapture" + index,
-      file
-    );
+      registerAudioBuffer(
+        "move" + index,
+        file,
+        generation
+      );
 
-  }
-);
-
-
-BISHOP_CAPTURE_SOUND_FILES.forEach(
-  (file,index) => {
-
-    registerAudioBuffer(
-      "bishopcapture" + index,
-      file
-    );
-
-  }
-);
+    }
+  );
 
 
-KING_CAPTURE_SOUND_FILES.forEach(
-  (file,index) => {
+  CHECK_SOUND_FILES.forEach(
+    (file,index) => {
 
-    registerAudioBuffer(
-      "kingcapture" + index,
-      file
-    );
+      registerAudioBuffer(
+        "check" + index,
+        file,
+        generation
+      );
 
-  }
-);
-
-
-registerAudioBuffer(
-  "queenwhoosh-w",
-  QUEEN_WHOOSH_FILES.w
-);
-
-registerAudioBuffer(
-  "queenwhoosh-b",
-  QUEEN_WHOOSH_FILES.b
-);
+    }
+  );
 
 
-QUEEN_DEATH_SOUND_FILES.forEach(
-  (file,index) => {
+  KNIGHT_CAPTURE_SOUND_FILES.forEach(
+    (file,index) => {
 
-    registerAudioBuffer(
-      "queendeath" + index,
-      file
-    );
+      registerAudioBuffer(
+        "knightcapture" + index,
+        file,
+        generation
+      );
 
-  }
-);
+    }
+  );
 
 
-registerAudioBuffer(
-  "openingtheme",
-  OPENING_THEME_FILE
-);
+  KNIGHT_COMMAND_CAPTURE_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "knightcommandcapture" + index,
+        file,
+        generation
+      );
+
+    }
+  );
+
+
+  ROOK_CAPTURE_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "rookcapture" + index,
+        file,
+        generation
+      );
+
+    }
+  );
+
+
+  BISHOP_CAPTURE_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "bishopcapture" + index,
+        file,
+        generation
+      );
+
+    }
+  );
+
+
+  KING_CAPTURE_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "kingcapture" + index,
+        file,
+        generation
+      );
+
+    }
+  );
+
+
+  registerAudioBuffer(
+    "queenwhoosh-w",
+    QUEEN_WHOOSH_FILES.w,
+    generation
+  );
+
+  registerAudioBuffer(
+    "queenwhoosh-b",
+    QUEEN_WHOOSH_FILES.b,
+    generation
+  );
+
+
+  QUEEN_DEATH_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "queendeath" + index,
+        file,
+        generation
+      );
+
+    }
+  );
+
+
+  registerAudioBuffer(
+    "openingtheme",
+    OPENING_THEME_FILE,
+    generation
+  );
+
+}
+
+
+reloadAudioBuffersForCurrentContext();
 
 
 function clampAudioMixValue(
@@ -5113,6 +5158,15 @@ async function playBufferedSound(
   }
 
 
+  if (
+    audioNeedsHardReset
+  ) {
+
+    rebuildAudioContextFromGesture();
+
+  }
+
+
   const ready =
     await ensureAudioContextReady();
 
@@ -5199,6 +5253,15 @@ async function playOpeningTheme() {
 
 
   stopOpeningTheme();
+
+
+  if (
+    audioNeedsHardReset
+  ) {
+
+    rebuildAudioContextFromGesture();
+
+  }
 
 
   const ready =
@@ -22918,6 +22981,12 @@ window.addEventListener(
 );
 
 
+window.addEventListener(
+  "blur",
+  recoverAudioAfterBackground
+);
+
+
 document.addEventListener(
   "visibilitychange",
   function() {
@@ -23135,6 +23204,8 @@ function rebuildAudioContextFromGesture() {
 
     attachAudioContextStateListener();
 
+    reloadAudioBuffersForCurrentContext();
+
 
     if (
       oldContext &&
@@ -23306,6 +23377,12 @@ window.addEventListener(
     recoverAudioAfterBackground();
 
   }
+);
+
+
+window.addEventListener(
+  "pagehide",
+  recoverAudioAfterBackground
 );
 
 
