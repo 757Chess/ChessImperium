@@ -1341,7 +1341,7 @@ select {
     transform:translate(-50%,-112%) scale(1.05);
   }
 
-  72% {
+  92% {
     opacity:1;
     transform:translate(-50%,-116%) scale(1);
   }
@@ -1362,7 +1362,7 @@ select {
   }
 
   @keyframes voiceBubbleFade {
-    0%,72% {
+    0%,92% {
       opacity:1;
     }
 
@@ -6292,6 +6292,7 @@ function playRandomKnightCommandCaptureSound(
 ) {
 
   if (
+    !soundEnabled ||
     KNIGHT_COMMAND_CAPTURE_SOUND_FILES.length === 0
   ) {
     return;
@@ -6331,14 +6332,18 @@ function playRandomKnightCommandCaptureSound(
     nextIndex;
 
 
+  showVoiceBubble(
+    squareName
+  );
+
+
   playBufferedSound(
     "knightcommandcapture" + nextIndex,
     KNIGHT_COMMAND_CAPTURE_VOLUME,
     "knightVoice",
     buffer => {
 
-      showVoiceBubble(
-        squareName,
+      updateVoiceBubbleDuration(
         buffer.duration * 1000
       );
 
@@ -6393,14 +6398,18 @@ function playRandomKingCaptureSound(
     nextIndex;
 
 
+  showVoiceBubble(
+    squareName
+  );
+
+
   playBufferedSound(
     "kingcapture" + nextIndex,
     0.15,
     "kingVoice",
     buffer => {
 
-      showVoiceBubble(
-        squareName,
+      updateVoiceBubbleDuration(
         buffer.duration * 1000
       );
 
@@ -6577,7 +6586,7 @@ function clearVoiceBubble() {
 
 function showVoiceBubble(
   squareName,
-  durationMs = 980
+  durationMs = 1600
 ) {
 
   if (
@@ -6673,6 +6682,55 @@ function showVoiceBubble(
 
     }
   );
+
+
+  voiceBubbleTimer =
+    setTimeout(
+      clearVoiceBubble,
+      Math.max(
+        700,
+        durationMs + 220
+      )
+    );
+
+}
+
+
+function updateVoiceBubbleDuration(
+  durationMs
+) {
+
+  if (
+    !activeVoiceBubble
+  ) {
+
+    return;
+
+  }
+
+
+  const visibleDuration =
+    Math.max(
+      700,
+      durationMs + 180
+    );
+
+
+  activeVoiceBubble.style.setProperty(
+    "--voice-bubble-duration",
+    visibleDuration + "ms"
+  );
+
+
+  if (
+    voiceBubbleTimer
+  ) {
+
+    clearTimeout(
+      voiceBubbleTimer
+    );
+
+  }
 
 
   voiceBubbleTimer =
