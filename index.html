@@ -4216,12 +4216,6 @@ const CHECK_SOUND_FILES = [
 ];
 
 
-const KNIGHT_CAPTURE_SOUND_FILES = [
-  "./Audio/knightcapture1.wav",
-  "./Audio/knightcapture2.wav"
-];
-
-
 const KNIGHT_COMMAND_CAPTURE_SOUND_FILES = [
   "./Audio/Jonathan's Audio Files/Knight/knight1.wav",
   "./Audio/Jonathan's Audio Files/Knight/knight2.wav",
@@ -4240,18 +4234,6 @@ const KNIGHT_COMMAND_CAPTURE_SOUND_FILES = [
 
 const ROOK_CAPTURE_SOUND_FILE =
   "./Audio/Rookcapture.wav";
-
-
-const ROOK_CAPTURED_SOUND_FILES = [
-  "./Audio/rookcaptured1.wav",
-  "./Audio/rookcaptured2.wav"
-];
-
-
-const BISHOP_CAPTURE_SOUND_FILES = [
-  "./Audio/bishopcapture1.wav",
-  "./Audio/bishopcapture2.wav"
-];
 
 
 const KING_CAPTURE_SOUND_FILES = [
@@ -4276,19 +4258,6 @@ const QUEEN_WHOOSH_FILES = {
 };
 
 
-const QUEEN_DEATH_SOUND_FILES = [
-  "./Audio/queendeath1.wav",
-  "./Audio/queendeath2.wav",
-  "./Audio/queendeath3.wav",
-  "./Audio/queendeath4.wav",
-  "./Audio/queendeath5.wav",
-  "./Audio/queendeath6.wav",
-  "./Audio/queendeath7.wav",
-  "./Audio/queendeath8.wav",
-  "./Audio/queendeath9.wav"
-];
-
-
 const OPENING_THEME_FILE =
   "./Audio/openingtheme.mp3";
 
@@ -4302,7 +4271,6 @@ const AUDIO_MIX_DEFAULTS = {
   move:1,
   capture:1,
   rookCapture:1,
-  capturedPiece:1,
   formation:1,
   themes:1,
   openingTheme:1,
@@ -4320,7 +4288,6 @@ const AUDIO_MIX_PARENTS = {
   move:"board",
   capture:"board",
   rookCapture:"board",
-  capturedPiece:"board",
   formation:"board",
   openingTheme:"themes",
   check:"themes",
@@ -4346,7 +4313,6 @@ const AUDIO_MIX_GROUPS = [
       {key:"move", label:"Moves"},
       {key:"capture", label:"Capture"},
       {key:"rookCapture", label:"Rook"},
-      {key:"capturedPiece", label:"Captured"},
       {key:"formation", label:"Formation"}
     ]
   },
@@ -4433,29 +4399,7 @@ const checkSequenceIndexBySide = {
 };
 
 
-const knightCaptureSequenceIndexBySide = {
-  w:0,
-  b:0
-};
-
-
 let lastKnightCommandCaptureIndex =
-  -1;
-
-
-const rookCaptureSequenceIndexBySide = {
-  w:0,
-  b:0
-};
-
-
-const bishopCaptureSequenceIndexBySide = {
-  w:0,
-  b:0
-};
-
-
-let lastQueenDeathIndex =
   -1;
 
 
@@ -4613,19 +4557,6 @@ function reloadAudioBuffersForCurrentContext() {
   );
 
 
-  KNIGHT_CAPTURE_SOUND_FILES.forEach(
-    (file,index) => {
-
-      registerAudioBuffer(
-        "knightcapture" + index,
-        file,
-        generation
-      );
-
-    }
-  );
-
-
   KNIGHT_COMMAND_CAPTURE_SOUND_FILES.forEach(
     (file,index) => {
 
@@ -4643,32 +4574,6 @@ function reloadAudioBuffersForCurrentContext() {
     "rookcapture",
     ROOK_CAPTURE_SOUND_FILE,
     generation
-  );
-
-
-  ROOK_CAPTURED_SOUND_FILES.forEach(
-    (file,index) => {
-
-      registerAudioBuffer(
-        "rookcaptured" + index,
-        file,
-        generation
-      );
-
-    }
-  );
-
-
-  BISHOP_CAPTURE_SOUND_FILES.forEach(
-    (file,index) => {
-
-      registerAudioBuffer(
-        "bishopcapture" + index,
-        file,
-        generation
-      );
-
-    }
   );
 
 
@@ -4695,19 +4600,6 @@ function reloadAudioBuffersForCurrentContext() {
     "queenwhoosh-b",
     QUEEN_WHOOSH_FILES.b,
     generation
-  );
-
-
-  QUEEN_DEATH_SOUND_FILES.forEach(
-    (file,index) => {
-
-      registerAudioBuffer(
-        "queendeath" + index,
-        file,
-        generation
-      );
-
-    }
   );
 
 
@@ -6295,57 +6187,6 @@ function playSequentialCheckSoundForSide(
 }
 
 
-function playRandomQueenDeathSound() {
-
-  if (
-    QUEEN_DEATH_SOUND_FILES.length === 0
-  ) {
-    return;
-  }
-
-
-  let nextIndex =
-    Math.floor(
-      Math.random() *
-      QUEEN_DEATH_SOUND_FILES.length
-    );
-
-
-  if (
-    QUEEN_DEATH_SOUND_FILES.length > 1 &&
-    nextIndex === lastQueenDeathIndex
-  ) {
-
-    nextIndex =
-      (
-        nextIndex +
-        1 +
-        Math.floor(
-          Math.random() *
-          (
-            QUEEN_DEATH_SOUND_FILES.length -
-            1
-          )
-        )
-      ) %
-      QUEEN_DEATH_SOUND_FILES.length;
-
-  }
-
-
-  lastQueenDeathIndex =
-    nextIndex;
-
-
-  playBufferedSound(
-    "queendeath" + nextIndex,
-    0.2,
-    "queenVoice"
-  );
-
-}
-
-
 function playRandomKnightCommandCaptureSound(
   squareName = null
 ) {
@@ -6493,110 +6334,6 @@ function playRookCaptureSound() {
     "rookcapture",
     0.34,
     "rookCapture"
-  );
-
-}
-
-
-function playSequentialPieceCaptureSound(
-  pieceType,
-  capturedSide
-) {
-
-  const normalizedSide =
-    capturedSide === "b"
-      ? "b"
-      : "w";
-
-
-  let fileList =
-    null;
-
-  let sequenceState =
-    null;
-
-  let keyPrefix =
-    "";
-
-
-  if (
-    pieceType === "n"
-  ) {
-
-    fileList =
-      KNIGHT_CAPTURE_SOUND_FILES;
-
-    sequenceState =
-      knightCaptureSequenceIndexBySide;
-
-    keyPrefix =
-      "knightcapture";
-
-  }
-
-  else if (
-    pieceType === "r"
-  ) {
-
-    fileList =
-      ROOK_CAPTURED_SOUND_FILES;
-
-    sequenceState =
-      rookCaptureSequenceIndexBySide;
-
-    keyPrefix =
-      "rookcaptured";
-
-  }
-
-  else if (
-    pieceType === "b"
-  ) {
-
-    fileList =
-      BISHOP_CAPTURE_SOUND_FILES;
-
-    sequenceState =
-      bishopCaptureSequenceIndexBySide;
-
-    keyPrefix =
-      "bishopcapture";
-
-  }
-
-  else {
-
-    return;
-
-  }
-
-
-  const nextIndex =
-    sequenceState[
-      normalizedSide
-    ] %
-    fileList.length;
-
-
-  sequenceState[
-    normalizedSide
-  ] =
-    (
-      nextIndex + 1
-    ) %
-    fileList.length;
-
-
-  playBufferedSound(
-    keyPrefix + nextIndex,
-    (
-      pieceType === "n" ||
-      pieceType === "b" ||
-      pieceType === "r"
-    )
-      ? 0.12
-      : 1,
-    "capturedPiece"
   );
 
 }
@@ -6833,7 +6570,7 @@ function playSoundForMove(move) {
   /*
    * CHECK / CHECKMATE HAVE ABSOLUTE AUDIO PRIORITY.
    * If the completed move gives check or checkmate, no move, capture,
-   * captured-piece, coronation, or vocal layer is allowed underneath.
+   * coronation, or vocal layer is allowed underneath.
    */
   if (
     game.isCheckmate()
@@ -6902,17 +6639,6 @@ function playSoundForMove(move) {
     move.captured
   ) {
 
-    const capturedSide =
-      move.color === "w"
-        ? "b"
-        : "w";
-
-
-    const localKnightCapturedKnight =
-      move.captured === "n" &&
-      move.piece === "n" &&
-      move.color === playerColor;
-
     playSound(
       "capture",
       CAPTURE_SOUND_VOLUME
@@ -6929,31 +6655,12 @@ function playSoundForMove(move) {
 
 
     if (
-      (
-        move.captured === "n" ||
-        move.captured === "b" ||
-        move.captured === "r"
-      ) &&
-      !localKnightCapturedKnight
-    ) {
-
-      playSequentialPieceCaptureSound(
-        move.captured,
-        capturedSide
-      );
-
-    }
-
-
-    if (
       move.captured === "q"
     ) {
 
       playSound(
         "queencapture"
       );
-
-      playRandomQueenDeathSound();
 
     }
 
@@ -15695,28 +15402,6 @@ function beginGame(
 
   checkSequenceIndexBySide.b =
     0;
-
-  knightCaptureSequenceIndexBySide.w =
-    0;
-
-  knightCaptureSequenceIndexBySide.b =
-    0;
-
-  rookCaptureSequenceIndexBySide.w =
-    0;
-
-  rookCaptureSequenceIndexBySide.b =
-    0;
-
-  bishopCaptureSequenceIndexBySide.w =
-    0;
-
-  bishopCaptureSequenceIndexBySide.b =
-    0;
-
-  lastQueenDeathIndex =
-    -1;
-
 
   hidePromotion();
 
