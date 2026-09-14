@@ -929,32 +929,46 @@ select {
 }
 
 .campaign-dossier {
-  padding:10px;
-  border:1px solid #d8cfbf;
-  border-radius:8px;
-  background:#fffdf8;
+  display:none;
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:min(470px,86%);
+  transform:translate(-50%,-50%);
+  z-index:78;
+  padding:16px;
+  border:1px solid #cdb77e;
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(255,253,248,.98) 0%,rgba(244,235,218,.98) 100%);
+  box-shadow:0 14px 34px rgba(0,0,0,.28);
+  box-sizing:border-box;
+}
+
+.campaign-dossier.visible {
+  display:block;
 }
 
 .campaign-dossier-top {
   display:flex;
-  gap:10px;
+  gap:14px;
   align-items:flex-start;
 }
 
 .campaign-portrait {
-  width:58px;
-  height:58px;
-  flex:0 0 58px;
+  width:92px;
+  height:112px;
+  flex:0 0 92px;
   display:flex;
   align-items:center;
   justify-content:center;
   border:1px solid #bda872;
-  border-radius:50%;
+  border-radius:8px;
   background:
-    radial-gradient(circle at 35% 28%, #fff2c8, #b58b39 42%, #5b3c18 100%);
+    linear-gradient(145deg, rgba(255,246,217,.38), rgba(71,45,20,.18)),
+    radial-gradient(circle at 42% 24%, #fff2c8, #b58b39 44%, #4f3215 100%);
   color:#fff7d4;
   font-family:Georgia, serif;
-  font-size:20px;
+  font-size:28px;
   font-weight:800;
   box-shadow:inset 0 0 0 3px rgba(255,255,255,.18);
 }
@@ -969,7 +983,8 @@ select {
 .campaign-name {
   margin-top:2px;
   color:var(--green);
-  font-size:15px;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:20px;
   font-weight:900;
 }
 
@@ -981,10 +996,27 @@ select {
 }
 
 .campaign-story {
-  margin:8px 0 0;
+  margin:10px 0 0;
   color:#4f473d;
-  font-size:12px;
-  line-height:1.35;
+  font-size:13px;
+  line-height:1.45;
+}
+
+.campaign-dossier-actions {
+  display:grid;
+  grid-template-columns:1fr;
+  margin-top:12px;
+}
+
+.campaign-dossier-btn {
+  min-height:40px;
+  padding:8px 10px;
+  border:1px solid var(--green);
+  border-radius:8px;
+  background:var(--green);
+  color:#fff;
+  cursor:pointer;
+  font-weight:900;
 }
 
 .campaign-list {
@@ -1042,6 +1074,28 @@ select {
   color:var(--muted);
   font-size:10px;
   line-height:1.3;
+}
+
+@media (max-width:700px) {
+  .campaign-dossier {
+    width:min(350px,86%);
+    padding:12px;
+  }
+
+  .campaign-dossier-top {
+    gap:10px;
+  }
+
+  .campaign-portrait {
+    width:68px;
+    height:86px;
+    flex-basis:68px;
+    font-size:22px;
+  }
+
+  .campaign-name {
+    font-size:16px;
+  }
 }
 
 
@@ -2081,7 +2135,9 @@ th {
   background:#fffaf0;
   color:var(--green);
   cursor:pointer;
+  line-height:1.2;
   font-weight:800;
+  white-space:normal;
 }
 
 .center-postgame-btn.primary {
@@ -2096,6 +2152,10 @@ th {
 
 .center-postgame-btn.primary:hover:not(:disabled) {
   background:var(--green-hover);
+}
+
+.campaign-next-btn {
+  grid-column:1 / -1;
 }
 
 @media (max-width:700px) {
@@ -3169,7 +3229,6 @@ if (
 
         <div id="campaignPanel" class="campaign-panel">
           <div class="label">Campaign Opponent</div>
-          <div id="campaignDossier" class="campaign-dossier"></div>
           <div id="campaignList" class="campaign-list"></div>
           <div class="campaign-dev-note">
             Development shortcut: type an opponent's full name in the player
@@ -3536,8 +3595,16 @@ if (
                       type="button">
                 ♟ Analyze Game
               </button>
+              <button id="challengeNextCampaignBtn"
+                      class="center-postgame-btn primary campaign-next-btn"
+                      type="button"
+                      style="display:none;">
+                Challenge Next
+              </button>
             </div>
           </div>
+
+          <div id="campaignDossier" class="campaign-dossier"></div>
 
           <div id="fileCoordinates" class="file-coordinates"></div>
 
@@ -4305,7 +4372,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"RNB",
     initials:"CV",
     backstory:
-      "Your owner watches from a marble chair above the arena, convinced that discipline and debt are stronger than hope."
+      "Your owner watches from a marble chair above the arena, convinced that discipline and debt are stronger than hope. Varro is no champion, but he knows every weakness in a desperate man. Defeat him, and your chain grows lighter for the first time."
   },
   {
     stage:2,
@@ -4317,7 +4384,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"NRB",
     initials:"MD",
     backstory:
-      "A frontier officer with a soldier's patience, Drusus trusts clean development, hard trades, and steady pressure."
+      "A frontier officer with a soldier's patience, Drusus trusts clean development, hard trades, and steady pressure. He has broken shield walls from Gaul to Syria, and he treats the board like another formation to hold. He will not dazzle you; he will grind."
   },
   {
     stage:3,
@@ -4329,7 +4396,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"RBN",
     initials:"LC",
     backstory:
-      "Corvinus learned politics before war. He wins by waiting for ambition to move one square too far."
+      "Corvinus learned politics before war. He smiles as though the match is already decided, then waits for ambition to move one square too far. His formation hides sharp intent behind civilized manners."
   },
   {
     stage:4,
@@ -4341,7 +4408,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"BRN",
     initials:"GS",
     backstory:
-      "Severan treats the board like law: every careless move becomes evidence, every trapped piece a sentence."
+      "Severan treats the board like law: every careless move becomes evidence, every trapped piece a sentence. In Rome, his judgments are feared because they arrive cold and complete. Against him, escape routes matter as much as attacks."
   },
   {
     stage:5,
@@ -4353,7 +4420,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"BNR",
     initials:"TM",
     backstory:
-      "The crowd loves Marcellus for his elegance, but beneath the ceremony is a veteran who sees endings early."
+      "The crowd loves Marcellus for his elegance, but beneath the ceremony is a veteran who sees endings early. He plays as if each exchange has already been weighed by the Senate. If you reach him, the arena is no longer laughing."
   },
   {
     stage:6,
@@ -4365,7 +4432,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"NBR",
     initials:"AC",
     backstory:
-      "Caesar does not hurry. He lets the empire breathe, then makes one quiet move that leaves no appeal."
+      "Caesar does not hurry. He lets the empire breathe, then makes one quiet move that leaves no appeal. The pardon is real, but so is the spectacle: Rome wants to see whether a gladiator can think like a ruler. Win here, and freedom is not granted; it is witnessed."
   }
 ];
 
@@ -5882,6 +5949,9 @@ const gameOverDetails =
 
 const rematchBtn =
   document.getElementById("rematchBtn");
+
+const challengeNextCampaignBtn =
+  document.getElementById("challengeNextCampaignBtn");
 
 const centerPostGameActions =
   document.getElementById("centerPostGameActions");
@@ -8221,7 +8291,36 @@ function renderCampaignPanel() {
     "</div>" +
     "<p class='campaign-story'>" +
       opponent.backstory +
-    "</p>";
+    "</p>" +
+    "<div class='campaign-dossier-actions'>" +
+      "<button id='campaignDossierChallengeBtn' class='campaign-dossier-btn' type='button'>" +
+        "Challenge " +
+        opponent.rank +
+      "</button>" +
+    "</div>";
+
+
+  const dossierChallengeBtn =
+    campaignDossier.querySelector(
+      "#campaignDossierChallengeBtn"
+    );
+
+  if (
+    dossierChallengeBtn
+  ) {
+
+    dossierChallengeBtn.addEventListener(
+      "click",
+      function() {
+
+        playMenuClick();
+
+        startNewGame();
+
+      }
+    );
+
+  }
 
 
   campaignList.innerHTML =
@@ -8292,6 +8391,44 @@ function renderCampaignPanel() {
     }
   );
 
+  updateCampaignDossierVisibility();
+
+}
+
+
+function updateCampaignDossierVisibility() {
+
+  if (
+    !campaignDossier
+  ) {
+    return;
+  }
+
+
+  const onlineFinished =
+    gameMode === "online" &&
+    onlineRoom &&
+    onlineRoom.status === "finished";
+
+  const finished =
+    Boolean(
+      gameStarted &&
+      game &&
+      (
+        game.isGameOver() ||
+        onlineFinished ||
+        localGameFinished()
+      )
+    );
+
+
+  campaignDossier.classList.toggle(
+    "visible",
+    gameMode === "campaign" &&
+    !gameStarted &&
+    !finished
+  );
+
 }
 
 
@@ -8316,6 +8453,30 @@ function campaignPlayerWonCurrentGame() {
 
 
   return winner === playerColor;
+
+}
+
+
+function getNextCampaignOpponentAfterActive() {
+
+  if (
+    !activeCampaignOpponent
+  ) {
+    return null;
+  }
+
+
+  if (
+    activeCampaignOpponent.stage >=
+    CAMPAIGN_OPPONENTS.length
+  ) {
+    return null;
+  }
+
+
+  return getCampaignOpponentByStage(
+    activeCampaignOpponent.stage + 1
+  );
 
 }
 
@@ -15239,6 +15400,38 @@ rematchBtn.addEventListener(
 );
 
 
+challengeNextCampaignBtn.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    const nextOpponent =
+      getNextCampaignOpponentAfterActive();
+
+    if (
+      !nextOpponent
+    ) {
+      return;
+    }
+
+
+    selectedCampaignStage =
+      nextOpponent.stage;
+
+    activeCampaignOpponent =
+      null;
+
+    applyCampaignOpponent(
+      nextOpponent
+    );
+
+    startNewGame();
+
+  }
+);
+
+
 
 /* ===================================================== */
 /* UNDO                                                  */
@@ -16358,6 +16551,27 @@ function updateCenterPostGameActions() {
     "visible",
     finished
   );
+
+  if (
+    challengeNextCampaignBtn
+  ) {
+
+    const nextOpponent =
+      campaignPlayerWonCurrentGame()
+        ? getNextCampaignOpponentAfterActive()
+        : null;
+
+    challengeNextCampaignBtn.style.display =
+      nextOpponent ? "" : "none";
+
+    challengeNextCampaignBtn.textContent =
+      nextOpponent
+        ? "Challenge " + nextOpponent.name
+        : "Challenge Next";
+
+  }
+
+  updateCampaignDossierVisibility();
 
 }
 
