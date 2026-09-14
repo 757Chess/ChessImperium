@@ -619,7 +619,7 @@ select {
 
 .mode-grid {
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(3,minmax(0,1fr));
   gap:6px;
   margin-bottom:11px;
 }
@@ -913,6 +913,135 @@ select {
 
 .online-hidden {
   display:none !important;
+}
+
+
+/* ===================================================== */
+/* CAMPAIGN                                              */
+/* ===================================================== */
+
+.campaign-panel {
+  display:none;
+}
+
+.campaign-panel.visible {
+  display:block;
+}
+
+.campaign-dossier {
+  padding:10px;
+  border:1px solid #d8cfbf;
+  border-radius:8px;
+  background:#fffdf8;
+}
+
+.campaign-dossier-top {
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+}
+
+.campaign-portrait {
+  width:58px;
+  height:58px;
+  flex:0 0 58px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #bda872;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 35% 28%, #fff2c8, #b58b39 42%, #5b3c18 100%);
+  color:#fff7d4;
+  font-family:Georgia, serif;
+  font-size:20px;
+  font-weight:800;
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.18);
+}
+
+.campaign-rank {
+  color:#8a6a33;
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.campaign-name {
+  margin-top:2px;
+  color:var(--green);
+  font-size:15px;
+  font-weight:900;
+}
+
+.campaign-meta {
+  margin-top:4px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+}
+
+.campaign-story {
+  margin:8px 0 0;
+  color:#4f473d;
+  font-size:12px;
+  line-height:1.35;
+}
+
+.campaign-list {
+  display:grid;
+  gap:6px;
+  margin-top:9px;
+}
+
+.campaign-opponent-btn {
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center;
+  width:100%;
+  padding:8px;
+  border:1px solid #ddd2c0;
+  border-radius:8px;
+  background:#fff;
+  color:var(--text);
+  cursor:pointer;
+  text-align:left;
+}
+
+.campaign-opponent-btn.active {
+  background:var(--green);
+  border-color:var(--green);
+  color:#fff;
+}
+
+.campaign-opponent-btn:disabled {
+  cursor:not-allowed;
+}
+
+.campaign-stage {
+  color:inherit;
+  font-size:11px;
+  font-weight:900;
+}
+
+.campaign-opponent-name {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12px;
+  font-weight:800;
+}
+
+.campaign-opponent-rating {
+  font-size:11px;
+  font-weight:900;
+}
+
+.campaign-dev-note {
+  margin-top:8px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.3;
 }
 
 
@@ -3010,6 +3139,9 @@ if (
           <button id="computerModeBtn" class="mode-btn active" type="button">
             Vs Computer
           </button>
+          <button id="campaignModeBtn" class="mode-btn" type="button">
+            Campaign
+          </button>
           <button id="onlineModeBtn" class="mode-btn" type="button">
             Online Multiplayer
           </button>
@@ -3034,6 +3166,18 @@ if (
                  autocomplete="nickname"
                  placeholder="e.g. Rut, TheHitman, Jonathan">
         </div>
+
+        <div id="campaignPanel" class="campaign-panel">
+          <div class="label">Campaign Opponent</div>
+          <div id="campaignDossier" class="campaign-dossier"></div>
+          <div id="campaignList" class="campaign-list"></div>
+          <div class="campaign-dev-note">
+            Development shortcut: type an opponent's full name in the player
+            name field to challenge them directly.
+          </div>
+        </div>
+
+        <div style="height:9px"></div>
 
         <div class="label">Your formation</div>
 
@@ -3995,6 +4139,42 @@ const DIFFICULTY_GUIDES = {
     elo:"1750",
     bestFor:
       "Players who want the toughest computer challenge currently available."
+  },
+
+  campaign700: {
+    title:"Dominus",
+    elo:"700",
+    bestFor:"Campaign stage I."
+  },
+
+  campaign950: {
+    title:"Centurion",
+    elo:"950",
+    bestFor:"Campaign stage II."
+  },
+
+  campaign1200: {
+    title:"Tribune",
+    elo:"1200",
+    bestFor:"Campaign stage III."
+  },
+
+  campaign1450: {
+    title:"Praetor",
+    elo:"1450",
+    bestFor:"Campaign stage IV."
+  },
+
+  campaign1700: {
+    title:"Consul",
+    elo:"1700",
+    bestFor:"Campaign stage V."
+  },
+
+  campaign2000: {
+    title:"Caesar",
+    elo:"2000",
+    bestFor:"Campaign stage VI."
   }
 
 };
@@ -4063,9 +4243,131 @@ const DIFFICULTIES = {
     skill:12,
     nodes:6000,
     randomMoveChance:0
+  },
+
+  campaign700:{
+    label:"Dominus",
+    skill:0,
+    nodes:120,
+    randomMoveChance:.38
+  },
+
+  campaign950:{
+    label:"Centurion",
+    skill:2,
+    nodes:600,
+    randomMoveChance:.08
+  },
+
+  campaign1200:{
+    label:"Tribune",
+    skill:5,
+    nodes:1500,
+    randomMoveChance:0
+  },
+
+  campaign1450:{
+    label:"Praetor",
+    skill:8,
+    nodes:3000,
+    randomMoveChance:0
+  },
+
+  campaign1700:{
+    label:"Consul",
+    skill:12,
+    nodes:6500,
+    randomMoveChance:0
+  },
+
+  campaign2000:{
+    label:"Caesar",
+    skill:16,
+    nodes:12000,
+    randomMoveChance:0
   }
 
 };
+
+
+const CAMPAIGN_PROGRESS_KEY =
+  "chessImperiumCampaignUnlockedStage";
+
+
+const CAMPAIGN_OPPONENTS = [
+  {
+    stage:1,
+    id:"cassian-varro",
+    rank:"Dominus",
+    name:"Dominus Cassian Varro",
+    rating:700,
+    difficultyKey:"campaign700",
+    formation:"RNB",
+    initials:"CV",
+    backstory:
+      "Your owner watches from a marble chair above the arena, convinced that discipline and debt are stronger than hope."
+  },
+  {
+    stage:2,
+    id:"marcus-drusus",
+    rank:"Centurion",
+    name:"Centurion Marcus Drusus",
+    rating:950,
+    difficultyKey:"campaign950",
+    formation:"NRB",
+    initials:"MD",
+    backstory:
+      "A frontier officer with a soldier's patience, Drusus trusts clean development, hard trades, and steady pressure."
+  },
+  {
+    stage:3,
+    id:"lucius-corvinus",
+    rank:"Tribune",
+    name:"Tribune Lucius Corvinus",
+    rating:1200,
+    difficultyKey:"campaign1200",
+    formation:"RBN",
+    initials:"LC",
+    backstory:
+      "Corvinus learned politics before war. He wins by waiting for ambition to move one square too far."
+  },
+  {
+    stage:4,
+    id:"gaius-severan",
+    rank:"Praetor",
+    name:"Praetor Gaius Severan",
+    rating:1450,
+    difficultyKey:"campaign1450",
+    formation:"BRN",
+    initials:"GS",
+    backstory:
+      "Severan treats the board like law: every careless move becomes evidence, every trapped piece a sentence."
+  },
+  {
+    stage:5,
+    id:"titus-marcellus",
+    rank:"Consul",
+    name:"Consul Titus Marcellus",
+    rating:1700,
+    difficultyKey:"campaign1700",
+    formation:"BNR",
+    initials:"TM",
+    backstory:
+      "The crowd loves Marcellus for his elegance, but beneath the ceremony is a veteran who sees endings early."
+  },
+  {
+    stage:6,
+    id:"augustus-caesar",
+    rank:"Augustus",
+    name:"Augustus Caesar",
+    rating:2000,
+    difficultyKey:"campaign2000",
+    formation:"NBR",
+    initials:"AC",
+    backstory:
+      "Caesar does not hurry. He lets the empire breathe, then makes one quiet move that leaves no appeal."
+  }
+];
 
 
 const ONLINE_TIME_CONTROLS = {
@@ -5743,11 +6045,23 @@ const feedbackMessage =
 const computerModeBtn =
   document.getElementById("computerModeBtn");
 
+const campaignModeBtn =
+  document.getElementById("campaignModeBtn");
+
 const onlineModeBtn =
   document.getElementById("onlineModeBtn");
 
 const computerFormationWrap =
   document.getElementById("computerFormationWrap");
+
+const campaignPanel =
+  document.getElementById("campaignPanel");
+
+const campaignDossier =
+  document.getElementById("campaignDossier");
+
+const campaignList =
+  document.getElementById("campaignList");
 
 const playAsSection =
   document.getElementById("playAsSection");
@@ -6000,6 +6314,18 @@ if (
 
 let gameMode =
   "computer";
+
+let campaignUnlockedStage =
+  loadCampaignUnlockedStage();
+
+let selectedCampaignStage =
+  1;
+
+let campaignDevOpponentId =
+  null;
+
+let activeCampaignOpponent =
+  null;
 
 let onlineRoom =
   null;
@@ -7576,15 +7902,473 @@ function getOnlineRole(
 }
 
 
+/* ===================================================== */
+/* CAMPAIGN                                              */
+/* ===================================================== */
+
+function loadCampaignUnlockedStage() {
+
+  const savedStage =
+    Number(
+      localStorage.getItem(
+        CAMPAIGN_PROGRESS_KEY
+      )
+    );
+
+
+  if (
+    Number.isFinite(
+      savedStage
+    )
+  ) {
+
+    return Math.min(
+      CAMPAIGN_OPPONENTS.length,
+      Math.max(
+        1,
+        Math.floor(
+          savedStage
+        )
+      )
+    );
+
+  }
+
+
+  return 1;
+
+}
+
+
+function saveCampaignUnlockedStage() {
+
+  localStorage.setItem(
+    CAMPAIGN_PROGRESS_KEY,
+    String(
+      campaignUnlockedStage
+    )
+  );
+
+}
+
+
+function getCampaignOpponentByStage(
+  stage
+) {
+
+  return CAMPAIGN_OPPONENTS.find(
+    opponent =>
+      opponent.stage === stage
+  ) ||
+  CAMPAIGN_OPPONENTS[0];
+
+}
+
+
+function getSelectedCampaignOpponent() {
+
+  return getCampaignOpponentByStage(
+    selectedCampaignStage
+  );
+
+}
+
+
+function getCampaignStageLabel(
+  stage
+) {
+
+  return [
+    "",
+    "I",
+    "II",
+    "III",
+    "IV",
+    "V",
+    "VI"
+  ][stage] ||
+  String(
+    stage
+  );
+
+}
+
+
+function normalizeCampaignName(
+  value
+) {
+
+  return String(
+    value ||
+    ""
+  )
+    .trim()
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .toLowerCase();
+
+}
+
+
+function isCampaignOpponentAvailable(
+  opponent
+) {
+
+  return Boolean(
+    opponent &&
+    (
+      opponent.stage <= campaignUnlockedStage ||
+      opponent.id === campaignDevOpponentId
+    )
+  );
+
+}
+
+
+function applyCampaignOpponent(
+  opponent
+) {
+
+  if (
+    !opponent
+  ) {
+    return;
+  }
+
+
+  selectedCampaignStage =
+    opponent.stage;
+
+  computerFormationChoice =
+    opponent.formation;
+
+  previewComputerFormation =
+    opponent.formation;
+
+  difficultyKey =
+    opponent.difficultyKey;
+
+  if (
+    computerFormationSelect
+  ) {
+
+    computerFormationSelect.value =
+      opponent.formation;
+
+  }
+
+
+  refreshDifficultyButtons();
+
+  applyDifficulty();
+
+  renderPreview();
+
+  renderCampaignPanel();
+
+  updateInfoPanel();
+
+  updateStartGameAttention();
+
+  updateSetupControlAvailability();
+
+}
+
+
+function selectCampaignOpponent(
+  opponent
+) {
+
+  if (
+    !isCampaignOpponentAvailable(
+      opponent
+    )
+  ) {
+
+    setStatus(
+      "Defeat the previous opponent to unlock " +
+      opponent.name +
+      "."
+    );
+
+    return;
+
+  }
+
+
+  applyCampaignOpponent(
+    opponent
+  );
+
+}
+
+
+function getCampaignBackdoorOpponent(
+  value
+) {
+
+  const normalizedName =
+    normalizeCampaignName(
+      value
+    );
+
+
+  if (
+    !normalizedName
+  ) {
+    return null;
+  }
+
+
+  return CAMPAIGN_OPPONENTS.find(
+    opponent =>
+      normalizeCampaignName(
+        opponent.name
+      ) === normalizedName
+  ) ||
+  null;
+
+}
+
+
+function handleCampaignNameBackdoor() {
+
+  const opponent =
+    getCampaignBackdoorOpponent(
+      playerDisplayName
+    );
+
+
+  if (
+    !opponent
+  ) {
+    return;
+  }
+
+
+  campaignDevOpponentId =
+    opponent.id;
+
+  playerDisplayName =
+    "";
+
+  playerNameInput.value =
+    "";
+
+  localStorage.removeItem(
+    PLAYER_DISPLAY_NAME_KEY
+  );
+
+  gameMode =
+    "campaign";
+
+  applyCampaignOpponent(
+    opponent
+  );
+
+  updateGameModeUI();
+
+  setStatus(
+    "Development challenge unlocked: " +
+    opponent.name +
+    "."
+  );
+
+}
+
+
+function renderCampaignPanel() {
+
+  if (
+    !campaignDossier ||
+    !campaignList
+  ) {
+    return;
+  }
+
+
+  const opponent =
+    getSelectedCampaignOpponent();
+
+  const formationText =
+    getFormationDisplayText(
+      opponent.formation
+    );
+
+
+  campaignDossier.innerHTML =
+    "<div class='campaign-dossier-top'>" +
+      "<div class='campaign-portrait'>" +
+        opponent.initials +
+      "</div>" +
+      "<div>" +
+        "<div class='campaign-rank'>Stage " +
+          opponent.stage +
+          " · " +
+          opponent.rank +
+        "</div>" +
+        "<div class='campaign-name'>" +
+          opponent.name +
+        "</div>" +
+        "<div class='campaign-meta'>Rating " +
+          opponent.rating +
+          " · " +
+          formationText +
+        "</div>" +
+      "</div>" +
+    "</div>" +
+    "<p class='campaign-story'>" +
+      opponent.backstory +
+    "</p>";
+
+
+  campaignList.innerHTML =
+    "";
+
+  CAMPAIGN_OPPONENTS.forEach(
+    entry => {
+
+      const available =
+        isCampaignOpponentAvailable(
+          entry
+        );
+
+      const button =
+        document.createElement(
+          "button"
+        );
+
+      button.type =
+        "button";
+
+      button.className =
+        "campaign-opponent-btn";
+
+      button.classList.toggle(
+        "active",
+        entry.stage === selectedCampaignStage
+      );
+
+      button.dataset.available =
+        available ? "true" : "false";
+
+      button.disabled =
+        !available;
+
+      button.innerHTML =
+        "<span class='campaign-stage'>" +
+          (
+            available
+              ? getCampaignStageLabel(entry.stage)
+              : "LOCK"
+          ) +
+        "</span>" +
+        "<span class='campaign-opponent-name'>" +
+          entry.name +
+        "</span>" +
+        "<span class='campaign-opponent-rating'>" +
+          entry.rating +
+        "</span>";
+
+      button.addEventListener(
+        "click",
+        function() {
+
+          playMenuClick();
+
+          selectCampaignOpponent(
+            entry
+          );
+
+        }
+      );
+
+      campaignList.appendChild(
+        button
+      );
+
+    }
+  );
+
+}
+
+
+function campaignPlayerWonCurrentGame() {
+
+  if (
+    gameMode !== "campaign" ||
+    !activeCampaignOpponent ||
+    !game ||
+    !game.isCheckmate()
+  ) {
+
+    return false;
+
+  }
+
+
+  const winner =
+    game.turn() === "w"
+      ? "b"
+      : "w";
+
+
+  return winner === playerColor;
+
+}
+
+
+function updateCampaignProgressAfterGame() {
+
+  if (
+    !campaignPlayerWonCurrentGame()
+  ) {
+    return;
+  }
+
+
+  const nextStage =
+    Math.min(
+      CAMPAIGN_OPPONENTS.length,
+      activeCampaignOpponent.stage + 1
+    );
+
+
+  if (
+    nextStage > campaignUnlockedStage
+  ) {
+
+    campaignUnlockedStage =
+      nextStage;
+
+    saveCampaignUnlockedStage();
+
+    renderCampaignPanel();
+
+  }
+
+}
+
+
 function updateGameModeUI() {
 
   const online =
     gameMode === "online";
 
+  const campaign =
+    gameMode === "campaign";
+
 
   computerModeBtn.classList.toggle(
     "active",
-    !online
+    gameMode === "computer"
+  );
+
+  campaignModeBtn.classList.toggle(
+    "active",
+    campaign
   );
 
   onlineModeBtn.classList.toggle(
@@ -7595,7 +8379,13 @@ function updateGameModeUI() {
 
   computerFormationWrap.classList.toggle(
     "online-hidden",
-    online
+    online ||
+    campaign
+  );
+
+  campaignPanel.classList.toggle(
+    "visible",
+    campaign
   );
 
   playAsSection.classList.toggle(
@@ -7605,7 +8395,8 @@ function updateGameModeUI() {
 
   difficultySection.classList.toggle(
     "online-hidden",
-    online
+    online ||
+    campaign
   );
 
   gameActionsWrap.classList.toggle(
@@ -7625,13 +8416,26 @@ function updateGameModeUI() {
    * controls disappear.
    */
   computerFormationWrap.style.display =
-    online ? "none" : "";
+    (
+      online ||
+      campaign
+    )
+      ? "none"
+      : "";
+
+  campaignPanel.style.display =
+    campaign ? "block" : "none";
 
   playAsSection.style.display =
     online ? "none" : "";
 
   difficultySection.style.display =
-    online ? "none" : "";
+    (
+      online ||
+      campaign
+    )
+      ? "none"
+      : "";
 
   gameActionsWrap.style.display =
     online ? "none" : "";
@@ -7679,10 +8483,25 @@ function updateGameModeUI() {
 
   else {
 
-    engineBox.textContent =
-      engineReady
-        ? "Stockfish ready."
-        : "Engine loading...";
+    if (
+      campaign
+    ) {
+
+      engineBox.textContent =
+        engineReady
+          ? "Campaign opponent ready."
+          : "Campaign opponent loading...";
+
+    }
+
+    else {
+
+      engineBox.textContent =
+        engineReady
+          ? "Stockfish ready."
+          : "Engine loading...";
+
+    }
 
   }
 
@@ -7702,6 +8521,8 @@ function updateGameModeUI() {
   updateEndGameButton();
 
   updateCenterPostGameActions();
+
+  updateStartGameAttention();
 
   updateSetupControlAvailability();
 
@@ -8628,6 +9449,8 @@ function setupOnlineGameFromRoom(
   updateStatus();
 
   updateGameOverSummary();
+
+  updateCampaignProgressAfterGame();
 
   updateUndoButton();
 
@@ -13227,6 +14050,8 @@ function initializeControls() {
 
       renderOnlineChat();
 
+      handleCampaignNameBackdoor();
+
     }
   );
 
@@ -13337,6 +14162,8 @@ function initializeControls() {
 
   computerFormationSelect.value =
     computerFormationChoice;
+
+  renderCampaignPanel();
 
 
   randomFormationBtn.dataset.code =
@@ -13674,6 +14501,27 @@ function initializeControls() {
       gameMode =
         "computer";
 
+      activeCampaignOpponent =
+        null;
+
+      campaignDevOpponentId =
+        null;
+
+      if (
+        difficultyKey.indexOf(
+          "campaign"
+        ) === 0
+      ) {
+
+        difficultyKey =
+          "casual";
+
+        refreshDifficultyButtons();
+
+        applyDifficulty();
+
+      }
+
       onlineRoom =
         null;
 
@@ -13705,6 +14553,96 @@ function initializeControls() {
   );
 
 
+  campaignModeBtn.addEventListener(
+    "click",
+    async function() {
+
+      playMenuClick();
+
+      if (
+        gameMode === "campaign"
+      ) {
+        return;
+      }
+
+
+      if (
+        onlineRoom &&
+        onlineRoom.status === "active"
+      ) {
+
+        const confirmed =
+          window.confirm(
+            "Switch to Campaign? This will resign your current online game."
+          );
+
+
+        if (
+          !confirmed
+        ) {
+          return;
+        }
+
+
+        const resigned =
+          await resignOnlineGame(
+            false
+          );
+
+
+        if (
+          !resigned
+        ) {
+          return;
+        }
+
+      }
+
+
+      await stopOnlineRealtime();
+
+      gameMode =
+        "campaign";
+
+      onlineRoom =
+        null;
+
+      onlineRole =
+        null;
+
+      onlineStartedRoomId =
+        null;
+
+      onlineResultReason =
+        null;
+
+      onlineWinnerColor =
+        null;
+
+      localStorage.removeItem(
+        ONLINE_ROOM_CODE_KEY
+      );
+
+      setOnlineFormationControlsLocked(
+        false
+      );
+
+      applyCampaignOpponent(
+        getSelectedCampaignOpponent()
+      );
+
+      updateGameModeUI();
+
+      setStatus(
+        "Campaign — challenge " +
+        getSelectedCampaignOpponent().name +
+        "."
+      );
+
+    }
+  );
+
+
   onlineModeBtn.addEventListener(
     "click",
     function() {
@@ -13719,6 +14657,9 @@ function initializeControls() {
 
       gameMode =
         "online";
+
+      activeCampaignOpponent =
+        null;
 
       /*
        * Switch the interface FIRST.
@@ -14888,6 +15829,24 @@ function updateSetupControlAvailability() {
   playerNameInput.disabled =
     computerGameActive;
 
+  if (
+    campaignList
+  ) {
+
+    campaignList
+      .querySelectorAll(
+        ".campaign-opponent-btn"
+      )
+      .forEach(
+        button => {
+          button.disabled =
+            computerGameActive ||
+            button.dataset.available !== "true";
+        }
+      );
+
+  }
+
 }
 
 
@@ -14964,6 +15923,41 @@ function updateStartGameAttention() {
     "start-attention",
     !gameStarted
   );
+
+  if (
+    gameStarted
+  ) {
+
+    newGameBtn.textContent =
+      "Start New Game";
+
+    return;
+
+  }
+
+
+  if (
+    gameMode === "campaign" &&
+    !gameStarted
+  ) {
+
+    newGameBtn.textContent =
+      "Challenge " +
+      getSelectedCampaignOpponent().rank;
+
+    return;
+
+  }
+
+
+  if (
+    !gameStarted
+  ) {
+
+    newGameBtn.textContent =
+      "Start New Game";
+
+  }
 
 }
 
@@ -15224,6 +16218,56 @@ function startNewGame() {
 
 
     return;
+
+  }
+
+
+  if (
+    gameMode === "campaign"
+  ) {
+
+    const opponent =
+      getSelectedCampaignOpponent();
+
+    if (
+      !isCampaignOpponentAvailable(
+        opponent
+      )
+    ) {
+
+      setStatus(
+        "Defeat the previous opponent to unlock " +
+        opponent.name +
+        "."
+      );
+
+      return;
+
+    }
+
+
+    activeCampaignOpponent =
+      opponent;
+
+    computerFormationChoice =
+      opponent.formation;
+
+    previewComputerFormation =
+      opponent.formation;
+
+    difficultyKey =
+      opponent.difficultyKey;
+
+    refreshDifficultyButtons();
+
+    applyDifficulty();
+
+  }
+
+  else {
+
+    activeCampaignOpponent =
+      null;
 
   }
 
@@ -19385,7 +20429,12 @@ function getGameResultText() {
         : (
             gameMode === "online"
               ? "Defeat — your opponent won by checkmate."
-              : "Defeat — Stockfish won by checkmate."
+              : gameMode === "campaign" &&
+                activeCampaignOpponent
+                ? "Defeat — " +
+                  activeCampaignOpponent.name +
+                  " won by checkmate."
+                : "Defeat — Stockfish won by checkmate."
           )
 
     );
@@ -19512,6 +20561,13 @@ function buildGameSummaryText() {
       ? "Black"
       : "White";
 
+  const summaryModeText =
+    gameMode === "online"
+      ? "Online Multiplayer"
+      : gameMode === "campaign"
+        ? "Campaign"
+        : "Computer";
+
 
   const lines = [
     "Chess Imperium Game Summary",
@@ -19519,11 +20575,7 @@ function buildGameSummaryText() {
       getGameResultText() ||
       "In progress"
     ),
-    "Mode: " + (
-      gameMode === "online"
-        ? "Online Multiplayer"
-        : "Computer"
-    ),
+    "Mode: " + summaryModeText,
     "Your color: " + colorText,
     "Your formation: " + playerFormationText,
     (
@@ -19549,7 +20601,31 @@ function buildGameSummaryText() {
 
 
   if (
-    gameMode !== "online"
+    gameMode === "campaign" &&
+    activeCampaignOpponent
+  ) {
+
+    lines.splice(
+      3,
+      0,
+      "Opponent: " +
+      activeCampaignOpponent.name,
+      "Campaign stage: " +
+      getCampaignStageLabel(
+        activeCampaignOpponent.stage
+      ),
+      "Rank: " +
+      activeCampaignOpponent.rank +
+      " · " +
+      activeCampaignOpponent.rating
+    );
+
+  }
+
+
+  if (
+    gameMode !== "online" &&
+    gameMode !== "campaign"
   ) {
 
     lines.splice(
@@ -19913,6 +20989,11 @@ function updateGameOverSummary() {
 
       : "Disabled";
 
+  const campaignOpponent =
+    gameMode === "campaign"
+      ? activeCampaignOpponent
+      : null;
+
 
   gameOverResult.textContent =
     getGameResultText();
@@ -19950,7 +21031,11 @@ function updateGameOverSummary() {
     (
       gameMode === "online"
         ? "<strong>Opponent formation:</strong> "
-        : "<strong>Computer formation:</strong> "
+        : campaignOpponent
+          ? "<strong>" +
+            campaignOpponent.name +
+            " formation:</strong> "
+          : "<strong>Computer formation:</strong> "
     ) +
     FORMATION_MAP[
       actualComputerFormation
@@ -19968,14 +21053,23 @@ function updateGameOverSummary() {
     (
       gameMode === "online"
         ? ""
-        : (
+        : campaignOpponent
+          ? (
+              "<div class='game-over-line'>" +
+              "<strong>Campaign rank:</strong> " +
+              campaignOpponent.rank +
+              " · ≈ " +
+              campaignOpponent.rating +
+              "</div>"
+            )
+          : (
             "<div class='game-over-line'>" +
             "<strong>Difficulty:</strong> " +
             DIFFICULTIES[
               difficultyKey
             ].label +
             "</div>"
-          )
+            )
     ) +
 
     "<div class='game-over-line'>" +
@@ -22376,13 +23470,19 @@ function updateStatus() {
     engineThinking
   ) {
 
+    const opponentName =
+      gameMode === "campaign" &&
+      activeCampaignOpponent
+        ? activeCampaignOpponent.name
+        : "Stockfish";
+
     setStatus(
 
       game.inCheck()
 
-        ? "Stockfish is thinking — Stockfish is in check."
+        ? opponentName + " is thinking — " + opponentName + " is in check."
 
-        : "Stockfish is thinking..."
+        : opponentName + " is thinking..."
 
     );
 
@@ -22422,13 +23522,19 @@ function updateStatus() {
 
   else {
 
+    const opponentName =
+      gameMode === "campaign" &&
+      activeCampaignOpponent
+        ? activeCampaignOpponent.name
+        : "Stockfish";
+
     setStatus(
 
       game.inCheck()
 
-        ? "Stockfish to move — Stockfish is in check."
+        ? opponentName + " to move — " + opponentName + " is in check."
 
-        : "Stockfish to move."
+        : opponentName + " to move."
 
     );
 
@@ -22562,6 +23668,17 @@ function updateInfoPanel() {
   const difficulty =
     DIFFICULTY_GUIDES[difficultyKey];
 
+  const campaign =
+    gameMode === "campaign";
+
+  const campaignOpponent =
+    campaign
+      ? (
+          activeCampaignOpponent ||
+          getSelectedCampaignOpponent()
+        )
+      : null;
+
 
   const playerFormationText =
     gameStarted
@@ -22629,14 +23746,34 @@ function updateInfoPanel() {
     colorText +
     "</div>" +
 
-    "<div class='match-line'><strong>Computer:</strong> " +
+    "<div class='match-line'><strong>" +
+    (
+      campaignOpponent
+        ? campaignOpponent.name
+        : "Computer"
+    ) +
+    ":</strong> " +
     computerFormationText +
     "</div>" +
 
-    "<div class='match-line'><strong>Difficulty:</strong> " +
-    difficulty.title +
+    "<div class='match-line'><strong>" +
+    (
+      campaign
+        ? "Rank"
+        : "Difficulty"
+    ) +
+    ":</strong> " +
+    (
+      campaignOpponent
+        ? campaignOpponent.rank
+        : difficulty.title
+    ) +
     " · ≈ " +
-    difficulty.elo +
+    (
+      campaignOpponent
+        ? campaignOpponent.rating
+        : difficulty.elo
+    ) +
     "</div>" +
 
     "<div class='match-line'><strong>Castling:</strong> " +
@@ -23076,7 +24213,9 @@ function(event) {
               ? "Online multiplayer · connected"
               : "Online multiplayer"
           )
-        : "Engine ready";
+        : gameMode === "campaign"
+          ? "Campaign opponent ready."
+          : "Engine ready";
 
 
     if (
