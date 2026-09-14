@@ -405,8 +405,43 @@ select {
   background:#fff;
 }
 
-.audio-mixer {
+.audio-mixer-wrap {
   margin-top:10px;
+}
+
+.audio-mixer-toggle {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  padding:8px 10px;
+  border:1px solid #d8cfbf;
+  border-radius:8px;
+  background:#fffdf9;
+  color:var(--green);
+  cursor:pointer;
+  font-size:12px;
+  font-weight:800;
+  list-style:none;
+}
+
+.audio-mixer-toggle::-webkit-details-marker {
+  display:none;
+}
+
+.audio-mixer-toggle::after {
+  content:"▾";
+  color:var(--muted);
+  font-size:12px;
+  transition:transform .18s ease;
+}
+
+.audio-mixer-wrap[open] .audio-mixer-toggle::after {
+  transform:rotate(180deg);
+}
+
+.audio-mixer {
+  margin-top:7px;
   padding:10px;
   border:1px solid #e4dbce;
   border-radius:8px;
@@ -3137,29 +3172,37 @@ if (
           🔊 Sound On
         </button>
 
-        <div id="audioMixer" class="audio-mixer">
+        <details class="audio-mixer-wrap">
 
-          <div class="audio-mixer-group">
-            <div class="audio-mixer-title">Master</div>
-            <div id="audioMixerMaster"></div>
+          <summary class="audio-mixer-toggle">
+            Audio Mixer
+          </summary>
+
+          <div id="audioMixer" class="audio-mixer">
+
+            <div class="audio-mixer-group">
+              <div class="audio-mixer-title">Master</div>
+              <div id="audioMixerMaster"></div>
+            </div>
+
+            <div class="audio-mixer-group">
+              <div class="audio-mixer-title">Move Sounds</div>
+              <div id="audioMixerBoard"></div>
+            </div>
+
+            <div class="audio-mixer-group">
+              <div class="audio-mixer-title">Themes & Alerts</div>
+              <div id="audioMixerThemes"></div>
+            </div>
+
+            <div class="audio-mixer-group">
+              <div class="audio-mixer-title">Vocal Lines</div>
+              <div id="audioMixerVocals"></div>
+            </div>
+
           </div>
 
-          <div class="audio-mixer-group">
-            <div class="audio-mixer-title">Move Sounds</div>
-            <div id="audioMixerBoard"></div>
-          </div>
-
-          <div class="audio-mixer-group">
-            <div class="audio-mixer-title">Themes & Alerts</div>
-            <div id="audioMixerThemes"></div>
-          </div>
-
-          <div class="audio-mixer-group">
-            <div class="audio-mixer-title">Vocal Lines</div>
-            <div id="audioMixerVocals"></div>
-          </div>
-
-        </div>
+        </details>
 
       </div>
 
@@ -6278,19 +6321,6 @@ function playSequentialPieceCaptureSound(
     pieceType === "r"
       ? "rookCapture"
       : "capturedPiece"
-  );
-
-}
-
-
-function moveHasCheckPriority(move) {
-
-  return Boolean(
-    move &&
-    typeof move.san === "string" &&
-    /[+#]$/.test(
-      move.san
-    )
   );
 
 }
