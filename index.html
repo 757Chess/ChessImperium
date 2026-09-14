@@ -22,6 +22,7 @@
   --button:#f7f4ee;
   --button-border:#d5cdc0;
   --shadow:0 8px 24px rgba(0,0,0,.07);
+  --imperium-cursor:url("./Graphics/imperium-cursor.png") 5 4;
 }
 
 * {
@@ -2950,6 +2951,41 @@ th {
     overflow:auto;
   }
 
+}
+
+body,
+#board,
+.square,
+.piece,
+button:not(:disabled),
+summary,
+select,
+input[type="range"] {
+  cursor:var(--imperium-cursor), auto;
+}
+
+button:not(:disabled),
+summary,
+.square,
+select,
+input[type="range"] {
+  cursor:var(--imperium-cursor), pointer;
+}
+
+input[type="text"],
+input[type="email"],
+textarea,
+.online-chat-input,
+.player-name-input {
+  cursor:text;
+}
+
+button:disabled,
+.online-action:disabled,
+.time-control-btn:disabled,
+.feedback-submit:disabled,
+.sound-btn:disabled {
+  cursor:not-allowed;
 }
 
 </style>
