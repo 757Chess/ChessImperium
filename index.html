@@ -1281,6 +1281,89 @@ select {
   pointer-events:none;
 }
 
+.voice-bubble-layer {
+  position:absolute;
+  inset:0;
+  z-index:58;
+  pointer-events:none;
+}
+
+.voice-bubble {
+  position:absolute;
+  min-width:28px;
+  height:21px;
+  padding:0 8px;
+  border:1px solid rgba(198,188,172,.86);
+  border-radius:999px;
+  background:rgba(255,253,249,.97);
+  box-shadow:
+    0 5px 12px rgba(0,0,0,.16),
+    inset 0 1px 0 rgba(255,255,255,.72);
+  color:#6a6256;
+  font-size:13px;
+  font-weight:800;
+  line-height:18px;
+  text-align:center;
+  opacity:0;
+  transform:translate(-50%,-100%) scale(.82);
+  transform-origin:50% 100%;
+}
+
+.voice-bubble::after {
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-5px;
+  width:9px;
+  height:9px;
+  border-right:1px solid rgba(198,188,172,.86);
+  border-bottom:1px solid rgba(198,188,172,.86);
+  background:rgba(255,253,249,.97);
+  transform:translateX(-50%) rotate(45deg);
+}
+
+.voice-bubble.visible {
+  animation:voiceBubblePop .9s ease forwards;
+}
+
+@keyframes voiceBubblePop {
+  0% {
+    opacity:0;
+    transform:translate(-50%,-92%) scale(.82);
+  }
+
+  14% {
+    opacity:1;
+    transform:translate(-50%,-112%) scale(1.05);
+  }
+
+  72% {
+    opacity:1;
+    transform:translate(-50%,-116%) scale(1);
+  }
+
+  100% {
+    opacity:0;
+    transform:translate(-50%,-130%) scale(.96);
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .voice-bubble.visible {
+    animation:voiceBubbleFade .9s ease forwards;
+  }
+
+  @keyframes voiceBubbleFade {
+    0%,72% {
+      opacity:1;
+    }
+
+    100% {
+      opacity:0;
+    }
+  }
+}
+
 .piece.capture-target-piece {
   animation:capturePiecePulse 1.35s ease-in-out infinite;
   transform-origin:center;
@@ -3268,6 +3351,8 @@ if (
           <div id="rankCoordinates" class="rank-coordinates"></div>
 
           <div id="board"></div>
+
+          <div id="voiceBubbleLayer" class="voice-bubble-layer"></div>
 
           <div id="centerPostGameActions" class="center-postgame-actions">
             <div class="center-postgame-title">Match Complete</div>
@@ -5327,6 +5412,9 @@ function fadeOutOpeningTheme(
 const boardEl =
   document.getElementById("board");
 
+const voiceBubbleLayer =
+  document.getElementById("voiceBubbleLayer");
+
 const rankCoordinatesEl =
   document.getElementById("rankCoordinates");
 
@@ -6335,6 +6423,132 @@ function moveHasCheckPriority(move) {
       move.san
     )
   );
+
+}
+
+
+let voiceBubbleTimer =
+  null;
+
+
+function clearVoiceBubble() {
+
+  if (
+    voiceBubbleTimer
+  ) {
+
+    clearTimeout(
+      voiceBubbleTimer
+    );
+
+  }
+
+
+  voiceBubbleTimer =
+    null;
+
+
+  if (
+    voiceBubbleLayer
+  ) {
+
+    voiceBubbleLayer.innerHTML =
+      "";
+
+  }
+
+}
+
+
+function showVoiceBubble(
+  squareName
+) {
+
+  if (
+    !voiceBubbleLayer ||
+    !boardEl ||
+    !squareName
+  ) {
+
+    return;
+
+  }
+
+
+  const square =
+    boardEl.querySelector(
+      `[data-square="${squareName}"]`
+    );
+
+
+  if (
+    !square
+  ) {
+
+    return;
+
+  }
+
+
+  clearVoiceBubble();
+
+
+  const boardRect =
+    boardEl.getBoundingClientRect();
+
+  const squareRect =
+    square.getBoundingClientRect();
+
+  const x =
+    squareRect.left -
+    boardRect.left +
+    squareRect.width / 2;
+
+  const y =
+    squareRect.top -
+    boardRect.top +
+    squareRect.height * .18;
+
+  const bubble =
+    document.createElement(
+      "div"
+    );
+
+
+  bubble.className =
+    "voice-bubble";
+
+  bubble.textContent =
+    "...";
+
+  bubble.style.left =
+    x + "px";
+
+  bubble.style.top =
+    y + "px";
+
+
+  voiceBubbleLayer.appendChild(
+    bubble
+  );
+
+
+  requestAnimationFrame(
+    () => {
+
+      bubble.classList.add(
+        "visible"
+      );
+
+    }
+  );
+
+
+  voiceBubbleTimer =
+    setTimeout(
+      clearVoiceBubble,
+      980
+    );
 
 }
 
@@ -11595,6 +11809,10 @@ async function animateLegalMove(
       plannedMove
     )
   ) {
+
+    showVoiceBubble(
+      from
+    );
 
     playRandomKingCaptureSound();
 
@@ -17569,6 +17787,10 @@ async function completePlayerMove(
     )
   ) {
 
+    showVoiceBubble(
+      from
+    );
+
     playRandomKingCaptureSound();
 
   }
@@ -17582,6 +17804,10 @@ async function completePlayerMove(
       plannedMove
     )
   ) {
+
+    showVoiceBubble(
+      from
+    );
 
     playRandomKnightCommandCaptureSound();
 
