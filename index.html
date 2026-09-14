@@ -405,6 +405,63 @@ select {
   background:#fff;
 }
 
+.audio-mixer {
+  margin-top:10px;
+  padding:10px;
+  border:1px solid #e4dbce;
+  border-radius:8px;
+  background:#fffdf8;
+}
+
+.audio-mixer-group {
+  padding-top:9px;
+  margin-top:9px;
+  border-top:1px solid #ece5db;
+}
+
+.audio-mixer-group:first-child {
+  padding-top:0;
+  margin-top:0;
+  border-top:none;
+}
+
+.audio-mixer-title {
+  margin-bottom:6px;
+  color:var(--green);
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.audio-mixer-row {
+  display:grid;
+  grid-template-columns:76px minmax(0,1fr) 36px;
+  gap:7px;
+  align-items:center;
+  min-height:24px;
+  font-size:11px;
+}
+
+.audio-mixer-row label {
+  overflow:hidden;
+  color:#504a43;
+  font-weight:700;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.audio-mixer-row input[type="range"] {
+  width:100%;
+  accent-color:var(--green);
+}
+
+.audio-mixer-value {
+  color:var(--muted);
+  text-align:right;
+  font-size:10px;
+  font-weight:700;
+}
+
 
 
 .how-to-play-btn {
@@ -3059,6 +3116,30 @@ if (
           🔊 Sound On
         </button>
 
+        <div id="audioMixer" class="audio-mixer">
+
+          <div class="audio-mixer-group">
+            <div class="audio-mixer-title">Master</div>
+            <div id="audioMixerMaster"></div>
+          </div>
+
+          <div class="audio-mixer-group">
+            <div class="audio-mixer-title">Move Sounds</div>
+            <div id="audioMixerBoard"></div>
+          </div>
+
+          <div class="audio-mixer-group">
+            <div class="audio-mixer-title">Themes & Alerts</div>
+            <div id="audioMixerThemes"></div>
+          </div>
+
+          <div class="audio-mixer-group">
+            <div class="audio-mixer-title">Vocal Lines</div>
+            <div id="audioMixerVocals"></div>
+          </div>
+
+        </div>
+
       </div>
 
 
@@ -3997,6 +4078,90 @@ const OPENING_THEME_FILE =
   "./Audio/openingtheme.mp3";
 
 
+const AUDIO_MIX_STORAGE_KEY =
+  "chessImperiumAudioMix";
+
+const AUDIO_MIX_DEFAULTS = {
+  master:1,
+  board:1,
+  move:1,
+  capture:1,
+  rookCapture:1,
+  capturedPiece:1,
+  formation:1,
+  themes:1,
+  openingTheme:1,
+  check:1,
+  checkmate:1,
+  stalemate:1,
+  coronation:1,
+  vocals:1,
+  knightVoice:1,
+  kingVoice:1,
+  queenVoice:1
+};
+
+const AUDIO_MIX_PARENTS = {
+  move:"board",
+  capture:"board",
+  rookCapture:"board",
+  capturedPiece:"board",
+  formation:"board",
+  openingTheme:"themes",
+  check:"themes",
+  checkmate:"themes",
+  stalemate:"themes",
+  coronation:"themes",
+  knightVoice:"vocals",
+  kingVoice:"vocals",
+  queenVoice:"vocals"
+};
+
+const AUDIO_MIX_GROUPS = [
+  {
+    targetId:"audioMixerMaster",
+    controls:[
+      {key:"master", label:"Master"}
+    ]
+  },
+  {
+    targetId:"audioMixerBoard",
+    controls:[
+      {key:"board", label:"Board FX"},
+      {key:"move", label:"Moves"},
+      {key:"capture", label:"Capture"},
+      {key:"rookCapture", label:"Rook"},
+      {key:"capturedPiece", label:"Captured"},
+      {key:"formation", label:"Formation"}
+    ]
+  },
+  {
+    targetId:"audioMixerThemes",
+    controls:[
+      {key:"themes", label:"All Themes"},
+      {key:"openingTheme", label:"Opening"},
+      {key:"check", label:"Check"},
+      {key:"checkmate", label:"Checkmate"},
+      {key:"stalemate", label:"Stalemate"},
+      {key:"coronation", label:"Coronation"}
+    ]
+  },
+  {
+    targetId:"audioMixerVocals",
+    controls:[
+      {key:"vocals", label:"All Voices"},
+      {key:"knightVoice", label:"Knight"},
+      {key:"kingVoice", label:"King"},
+      {key:"queenVoice", label:"Queen"}
+    ]
+  }
+];
+
+
+const audioMix =
+  loadAudioMix();
+
+
 const AudioContextClass =
   window.AudioContext ||
   window.webkitAudioContext;
@@ -4018,8 +4183,7 @@ if (
   masterAudioGain
 ) {
 
-  masterAudioGain.gain.value =
-    MASTER_AUDIO_GAIN;
+  updateMasterAudioGain();
 
 
   masterAudioGain.connect(
@@ -5666,6 +5830,19 @@ function playSequentialPieceCaptureSound(
 }
 
 
+function moveHasCheckPriority(move) {
+
+  return Boolean(
+    move &&
+    typeof move.san === "string" &&
+    /[+#]$/.test(
+      move.san
+    )
+  );
+
+}
+
+
 function playSoundForMove(move) {
 
   if (
@@ -5675,16 +5852,45 @@ function playSoundForMove(move) {
   }
 
 
+  /*
+   * CHECK / CHECKMATE HAVE ABSOLUTE AUDIO PRIORITY.
+   * If the completed move gives check or checkmate, no move, capture,
+   * captured-piece, coronation, or vocal layer is allowed underneath.
+   */
   if (
-    move &&
-    move.promotion &&
-    !game.inCheck() &&
-    !game.isCheckmate()
+    game.isCheckmate()
   ) {
 
     playSound(
-      "pawncoronation"
+      "checkmate"
     );
+
+    return;
+
+  }
+
+
+  if (
+    game.inCheck()
+  ) {
+
+    const checkedSide =
+      game.turn();
+
+
+    setTimeout(
+      () => {
+
+        playSequentialCheckSoundForSide(
+          checkedSide
+        );
+
+      },
+      120
+    );
+
+
+    return;
 
   }
 
@@ -5693,34 +5899,23 @@ function playSoundForMove(move) {
     game.isGameOver()
   ) {
 
-    if (
-      game.isCheckmate()
-    ) {
-
-      /*
-        Final move = normal physical move sound
-        plus the musical checkmate cue at the
-        same moment.
-      */
-
-      playRandomMoveSound();
-
-      playSound(
-        "checkmate"
-      );
-
-    }
-
-    else {
-
-      playSound(
-        "draw"
-      );
-
-    }
-
+    playSound(
+      "draw"
+    );
 
     return;
+
+  }
+
+
+  if (
+    move &&
+    move.promotion
+  ) {
+
+    playSound(
+      "pawncoronation"
+    );
 
   }
 
@@ -5815,27 +6010,6 @@ function playSoundForMove(move) {
 
   }
 
-
-  if (
-    game.inCheck()
-  ) {
-
-    const checkedSide =
-      game.turn();
-
-
-    setTimeout(
-      () => {
-
-        playSequentialCheckSoundForSide(
-          checkedSide
-        );
-
-      },
-      120
-    );
-
-  }
 
 }
 
@@ -10920,7 +11094,10 @@ async function animateLegalMove(
   if (
     plannedMove &&
     plannedMove.piece === "k" &&
-    plannedMove.captured
+    plannedMove.captured &&
+    !moveHasCheckPriority(
+      plannedMove
+    )
   ) {
 
     playRandomKingCaptureSound();
@@ -10931,7 +11108,10 @@ async function animateLegalMove(
   if (
     plannedMove &&
     plannedMove.piece === "q" &&
-    plannedMove.captured
+    plannedMove.captured &&
+    !moveHasCheckPriority(
+      plannedMove
+    )
   ) {
 
     playBufferedSound(
@@ -16871,7 +17051,10 @@ async function completePlayerMove(
     skipAnimation &&
     plannedMove &&
     plannedMove.piece === "k" &&
-    plannedMove.captured
+    plannedMove.captured &&
+    !moveHasCheckPriority(
+      plannedMove
+    )
   ) {
 
     playRandomKingCaptureSound();
@@ -16882,7 +17065,10 @@ async function completePlayerMove(
   if (
     plannedMove &&
     plannedMove.piece === "n" &&
-    plannedMove.captured
+    plannedMove.captured &&
+    !moveHasCheckPriority(
+      plannedMove
+    )
   ) {
 
     playRandomKnightCommandCaptureSound();
