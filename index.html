@@ -6430,6 +6430,12 @@ function moveHasCheckPriority(move) {
 let voiceBubbleTimer =
   null;
 
+let activeVoiceBubble =
+  null;
+
+let activeVoiceBubbleSquare =
+  null;
+
 
 function clearVoiceBubble() {
 
@@ -6445,6 +6451,12 @@ function clearVoiceBubble() {
 
 
   voiceBubbleTimer =
+    null;
+
+  activeVoiceBubble =
+    null;
+
+  activeVoiceBubbleSquare =
     null;
 
 
@@ -6502,12 +6514,12 @@ function showVoiceBubble(
   const x =
     squareRect.left -
     boardRect.left +
-    squareRect.width / 2;
+    squareRect.width * .72;
 
   const y =
     squareRect.top -
     boardRect.top +
-    squareRect.height * .18;
+    squareRect.height * .22;
 
   const bubble =
     document.createElement(
@@ -6531,6 +6543,12 @@ function showVoiceBubble(
   voiceBubbleLayer.appendChild(
     bubble
   );
+
+  activeVoiceBubble =
+    bubble;
+
+  activeVoiceBubbleSquare =
+    squareName;
 
 
   requestAnimationFrame(
@@ -11710,6 +11728,13 @@ function animateSinglePiece(
         );
 
 
+      const movingVoiceBubble =
+        activeVoiceBubble &&
+        activeVoiceBubbleSquare === fromSquare
+          ? activeVoiceBubble
+          : null;
+
+
       pieceImage.classList.add(
         "move-glide"
       );
@@ -11735,6 +11760,25 @@ function animateSinglePiece(
         pieceImage.classList.remove(
           "move-glide"
         );
+
+        if (
+          movingVoiceBubble &&
+          movingVoiceBubble.isConnected
+        ) {
+
+          movingVoiceBubble.style.left =
+            parseFloat(
+              movingVoiceBubble.dataset.finalLeft
+            ) +
+            "px";
+
+          movingVoiceBubble.style.top =
+            parseFloat(
+              movingVoiceBubble.dataset.finalTop
+            ) +
+            "px";
+
+        }
 
         resolve();
 
@@ -11776,6 +11820,60 @@ function animateSinglePiece(
 
       animation.oncancel =
         finish;
+
+
+      if (
+        movingVoiceBubble
+      ) {
+
+        const startLeft =
+          parseFloat(
+            movingVoiceBubble.style.left
+          );
+
+        const startTop =
+          parseFloat(
+            movingVoiceBubble.style.top
+          );
+
+        movingVoiceBubble.dataset.finalLeft =
+          startLeft + deltaX;
+
+        movingVoiceBubble.dataset.finalTop =
+          startTop + deltaY;
+
+        movingVoiceBubble.animate(
+          [
+            {
+              left:startLeft + "px",
+              top:startTop + "px"
+            },
+            {
+              left:
+                (
+                  startLeft +
+                  deltaX
+                ) +
+                "px",
+              top:
+                (
+                  startTop +
+                  deltaY
+                ) +
+                "px"
+            }
+          ],
+          {
+            duration:
+              duration,
+            easing:
+              "cubic-bezier(.22,.61,.36,1)",
+            fill:
+              "forwards"
+          }
+        );
+
+      }
 
 
       setTimeout(
