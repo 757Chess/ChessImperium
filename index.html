@@ -1323,7 +1323,11 @@ select {
 }
 
 .voice-bubble.visible {
-  animation:voiceBubblePop .9s ease forwards;
+  animation:
+    voiceBubblePop
+    var(--voice-bubble-duration,.9s)
+    ease
+    forwards;
 }
 
 @keyframes voiceBubblePop {
@@ -1350,7 +1354,11 @@ select {
 
 @media (prefers-reduced-motion:reduce) {
   .voice-bubble.visible {
-    animation:voiceBubbleFade .9s ease forwards;
+    animation:
+      voiceBubbleFade
+      var(--voice-bubble-duration,.9s)
+      ease
+      forwards;
   }
 
   @keyframes voiceBubbleFade {
@@ -5146,7 +5154,8 @@ async function getAudioBuffer(
 async function playBufferedSound(
   key,
   volume = 1,
-  mixKey = null
+  mixKey = null,
+  onStart = null
 ) {
 
   if (
@@ -5226,6 +5235,17 @@ async function playBufferedSound(
     masterAudioGain ||
     audioContext.destination
   );
+
+
+  if (
+    typeof onStart === "function"
+  ) {
+
+    onStart(
+      buffer
+    );
+
+  }
 
 
   source.start(
@@ -6267,7 +6287,9 @@ function playRandomQueenDeathSound() {
 }
 
 
-function playRandomKnightCommandCaptureSound() {
+function playRandomKnightCommandCaptureSound(
+  squareName = null
+) {
 
   if (
     KNIGHT_COMMAND_CAPTURE_SOUND_FILES.length === 0
@@ -6312,13 +6334,23 @@ function playRandomKnightCommandCaptureSound() {
   playBufferedSound(
     "knightcommandcapture" + nextIndex,
     KNIGHT_COMMAND_CAPTURE_VOLUME,
-    "knightVoice"
+    "knightVoice",
+    buffer => {
+
+      showVoiceBubble(
+        squareName,
+        buffer.duration * 1000
+      );
+
+    }
   );
 
 }
 
 
-function playRandomKingCaptureSound() {
+function playRandomKingCaptureSound(
+  squareName = null
+) {
 
   if (
     !soundEnabled ||
@@ -6364,7 +6396,15 @@ function playRandomKingCaptureSound() {
   playBufferedSound(
     "kingcapture" + nextIndex,
     0.15,
-    "kingVoice"
+    "kingVoice",
+    buffer => {
+
+      showVoiceBubble(
+        squareName,
+        buffer.duration * 1000
+      );
+
+    }
   );
 
 }
@@ -6536,7 +6576,8 @@ function clearVoiceBubble() {
 
 
 function showVoiceBubble(
-  squareName
+  squareName,
+  durationMs = 980
 ) {
 
   if (
@@ -6596,6 +6637,15 @@ function showVoiceBubble(
   bubble.textContent =
     "...";
 
+  bubble.style.setProperty(
+    "--voice-bubble-duration",
+    Math.max(
+      700,
+      durationMs + 180
+    ) +
+    "ms"
+  );
+
   bubble.style.left =
     x + "px";
 
@@ -6628,7 +6678,10 @@ function showVoiceBubble(
   voiceBubbleTimer =
     setTimeout(
       clearVoiceBubble,
-      980
+      Math.max(
+        700,
+        durationMs + 220
+      )
     );
 
 }
@@ -11971,11 +12024,9 @@ async function animateLegalMove(
     )
   ) {
 
-    showVoiceBubble(
+    playRandomKingCaptureSound(
       from
     );
-
-    playRandomKingCaptureSound();
 
   }
 
@@ -17948,11 +17999,9 @@ async function completePlayerMove(
     )
   ) {
 
-    showVoiceBubble(
+    playRandomKingCaptureSound(
       from
     );
-
-    playRandomKingCaptureSound();
 
   }
 
@@ -17966,11 +18015,9 @@ async function completePlayerMove(
     )
   ) {
 
-    showVoiceBubble(
+    playRandomKnightCommandCaptureSound(
       from
     );
-
-    playRandomKnightCommandCaptureSound();
 
   }
 
