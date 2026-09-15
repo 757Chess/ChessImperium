@@ -8584,6 +8584,11 @@ function updateGameModeUI() {
     online
   );
 
+  undoBtn.classList.toggle(
+    "online-hidden",
+    campaign
+  );
+
   onlinePanel.classList.toggle(
     "visible",
     online
@@ -8619,6 +8624,9 @@ function updateGameModeUI() {
 
   gameActionsWrap.style.display =
     online ? "none" : "";
+
+  undoBtn.style.display =
+    campaign ? "none" : "";
 
   onlinePanel.style.display =
     online ? "block" : "none";
@@ -15606,6 +15614,21 @@ function showMoveGhost(
 function updateUndoButton() {
 
   if (
+    gameMode === "campaign"
+  ) {
+
+    undoBtn.disabled =
+      true;
+
+    undoBtn.textContent =
+      "Undo (0)";
+
+    return;
+
+  }
+
+
+  if (
     gameMode === "online"
   ) {
 
@@ -15749,6 +15772,7 @@ function restoreLastMoveHighlight() {
 function undoPlayerTurn() {
 
   if (
+    gameMode === "campaign" ||
     !gameStarted ||
     !game ||
     game.isGameOver() ||
