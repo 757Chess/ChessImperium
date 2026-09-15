@@ -3419,6 +3419,26 @@ if (
             </button>
             <button class="time-control-btn"
                     type="button"
+                    data-time-control="1">
+              1 min
+            </button>
+            <button class="time-control-btn"
+                    type="button"
+                    data-time-control="3">
+              3 min
+            </button>
+            <button class="time-control-btn"
+                    type="button"
+                    data-time-control="5">
+              5 min
+            </button>
+            <button class="time-control-btn"
+                    type="button"
+                    data-time-control="3+2">
+              3+2
+            </button>
+            <button class="time-control-btn"
+                    type="button"
                     data-time-control="10">
               10 min
             </button>
@@ -4514,6 +4534,30 @@ const ONLINE_TIME_CONTROLS = {
     label:"No Clock",
     initialMs:null,
     incrementMs:0
+  },
+
+  "1":{
+    label:"1 min",
+    initialMs:1 * 60 * 1000,
+    incrementMs:0
+  },
+
+  "3":{
+    label:"3 min",
+    initialMs:3 * 60 * 1000,
+    incrementMs:0
+  },
+
+  "5":{
+    label:"5 min",
+    initialMs:5 * 60 * 1000,
+    incrementMs:0
+  },
+
+  "3+2":{
+    label:"3+2",
+    initialMs:3 * 60 * 1000,
+    incrementMs:2 * 1000
   },
 
   "10":{
