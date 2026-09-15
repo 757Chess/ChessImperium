@@ -235,30 +235,32 @@ select {
 }
 
 .choice-btn {
-  min-height:52px;
-  padding:7px 5px;
-  font-size:13px;
+  min-height:50px;
+  padding:7px 4px;
+  font-size:11px;
   line-height:1.2;
+  text-align:center;
 }
 
 .choice-btn .formation-code {
   display:block;
   font-weight:bold;
-  font-size:13px;
+  font-size:12px;
 }
 
 .choice-btn .formation-name {
   display:block;
   margin-top:2px;
-  font-size:11px;
+  font-size:9px;
+  line-height:1.2;
 }
 
 .random-formation-btn .formation-code {
-  font-size:13px;
+  font-size:12px;
 }
 
 .random-formation-btn .formation-name {
-  font-size:11px;
+  font-size:10px;
 }
 
 button:hover:not(:disabled) {
@@ -288,8 +290,8 @@ button:disabled {
 
 .difficulty-grid {
   display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:5px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
 }
 
 .side-btn,
@@ -305,6 +307,7 @@ button:disabled {
   display:flex;
   align-items:center;
   justify-content:center;
+  min-height:38px;
   font-size:12px;
   line-height:normal;
 }
@@ -327,10 +330,10 @@ button:disabled {
   align-items:center;
   justify-content:center;
   margin-top:0;
-  font-size:17px;
+  font-size:15px;
   line-height:normal;
   font-weight:700;
-  letter-spacing:.01em;
+  letter-spacing:0;
   opacity:.92;
 }
 
@@ -625,11 +628,21 @@ select {
 }
 
 .mode-btn {
-  padding:8px 7px;
+  min-height:38px;
+  padding:7px 8px;
   border:1px solid var(--button-border);
   background:var(--button);
   border-radius:9px;
   cursor:pointer;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.15;
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+
+.mode-btn.wide {
+  grid-column:auto;
 }
 
 .mode-btn.active {
@@ -1027,54 +1040,28 @@ select {
   font-weight:900;
 }
 
-.campaign-list {
-  display:grid;
-  gap:6px;
-  margin-top:9px;
-}
-
-.campaign-opponent-btn {
-  display:grid;
-  grid-template-columns:34px minmax(0,1fr) auto;
-  gap:8px;
-  align-items:center;
+.campaign-select {
   width:100%;
-  padding:8px;
-  border:1px solid #ddd2c0;
+  min-height:40px;
+  padding:8px 9px;
+  border:1px solid var(--button-border);
   border-radius:8px;
   background:#fff;
   color:var(--text);
-  cursor:pointer;
-  text-align:left;
-}
-
-.campaign-opponent-btn.active {
-  background:var(--green);
-  border-color:var(--green);
-  color:#fff;
-}
-
-.campaign-opponent-btn:disabled {
-  cursor:not-allowed;
-}
-
-.campaign-stage {
-  color:inherit;
-  font-size:11px;
-  font-weight:900;
-}
-
-.campaign-opponent-name {
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
   font-size:12px;
   font-weight:800;
+  line-height:1.25;
 }
 
-.campaign-opponent-rating {
-  font-size:11px;
-  font-weight:900;
+.campaign-select:focus {
+  outline:none;
+  border-color:var(--green);
+  box-shadow:0 0 0 2px rgba(53,92,77,.10);
+}
+
+.campaign-select:disabled {
+  opacity:.52;
+  cursor:not-allowed;
 }
 
 .campaign-dev-note {
@@ -3117,12 +3104,12 @@ th {
   }
 
   .difficulty-grid {
-    gap:4px;
+    gap:5px;
   }
 
   .difficulty-btn {
-    padding-left:3px;
-    padding-right:3px;
+    padding-left:5px;
+    padding-right:5px;
     font-size:10px;
   }
 
@@ -3245,8 +3232,8 @@ if (
           <button id="campaignModeBtn" class="mode-btn" type="button">
             Campaign
           </button>
-          <button id="onlineModeBtn" class="mode-btn" type="button">
-            Online Multiplayer
+          <button id="onlineModeBtn" class="mode-btn wide" type="button">
+            Online
           </button>
         </div>
 
@@ -3271,11 +3258,13 @@ if (
         </div>
 
         <div id="campaignPanel" class="campaign-panel">
-          <div class="label">Campaign Opponent</div>
-          <div id="campaignList" class="campaign-list"></div>
+          <label class="label" for="campaignOpponentSelect">
+            Campaign Opponent
+          </label>
+          <select id="campaignOpponentSelect"
+                  class="campaign-select"></select>
           <div class="campaign-dev-note">
-            Development shortcut: type an opponent's full name in the player
-            name field to challenge them directly.
+            Dev shortcut: enter an opponent's full name as player name.
           </div>
         </div>
 
@@ -6176,11 +6165,11 @@ const computerFormationWrap =
 const campaignPanel =
   document.getElementById("campaignPanel");
 
+const campaignOpponentSelect =
+  document.getElementById("campaignOpponentSelect");
+
 const campaignDossier =
   document.getElementById("campaignDossier");
-
-const campaignList =
-  document.getElementById("campaignList");
 
 const playAsSection =
   document.getElementById("playAsSection");
@@ -8299,7 +8288,7 @@ function renderCampaignPanel() {
 
   if (
     !campaignDossier ||
-    !campaignList
+    !campaignOpponentSelect
   ) {
     return;
   }
@@ -8378,7 +8367,7 @@ function renderCampaignPanel() {
   }
 
 
-  campaignList.innerHTML =
+  campaignOpponentSelect.innerHTML =
     "";
 
   CAMPAIGN_OPPONENTS.forEach(
@@ -8389,62 +8378,37 @@ function renderCampaignPanel() {
           entry
         );
 
-      const button =
+      const option =
         document.createElement(
-          "button"
+          "option"
         );
 
-      button.type =
-        "button";
+      option.value =
+        entry.id;
 
-      button.className =
-        "campaign-opponent-btn";
-
-      button.classList.toggle(
-        "active",
-        entry.stage === selectedCampaignStage
-      );
-
-      button.dataset.available =
-        available ? "true" : "false";
-
-      button.disabled =
+      option.disabled =
         !available;
 
-      button.innerHTML =
-        "<span class='campaign-stage'>" +
-          (
-            available
-              ? getCampaignStageLabel(entry.stage)
-              : "LOCK"
-          ) +
-        "</span>" +
-        "<span class='campaign-opponent-name'>" +
-          entry.name +
-        "</span>" +
-        "<span class='campaign-opponent-rating'>" +
-          entry.rating +
-        "</span>";
+      option.textContent =
+        (
+          available
+            ? getCampaignStageLabel(entry.stage)
+            : "Locked"
+        ) +
+        " - " +
+        entry.name +
+        " - " +
+        entry.rating;
 
-      button.addEventListener(
-        "click",
-        function() {
-
-          playMenuClick();
-
-          selectCampaignOpponent(
-            entry
-          );
-
-        }
-      );
-
-      campaignList.appendChild(
-        button
+      campaignOpponentSelect.appendChild(
+        option
       );
 
     }
   );
+
+  campaignOpponentSelect.value =
+    opponent.id;
 
   updateCampaignDossierVisibility();
 
@@ -14326,6 +14290,32 @@ function initializeControls() {
     }
   );
 
+  campaignOpponentSelect.addEventListener(
+    "change",
+    function() {
+
+      const opponent =
+        CAMPAIGN_OPPONENTS.find(
+          entry =>
+            entry.id ===
+            campaignOpponentSelect.value
+        );
+
+      if (
+        opponent
+      ) {
+
+        playMenuClick();
+
+        selectCampaignOpponent(
+          opponent
+        );
+
+      }
+
+    }
+  );
+
 
   FORMATIONS.forEach(
     function(formation) {
@@ -16133,20 +16123,11 @@ function updateSetupControlAvailability() {
     computerGameActive;
 
   if (
-    campaignList
+    campaignOpponentSelect
   ) {
 
-    campaignList
-      .querySelectorAll(
-        ".campaign-opponent-btn"
-      )
-      .forEach(
-        button => {
-          button.disabled =
-            computerGameActive ||
-            button.dataset.available !== "true";
-        }
-      );
+    campaignOpponentSelect.disabled =
+      computerGameActive;
 
   }
 
