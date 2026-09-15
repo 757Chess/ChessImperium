@@ -1064,6 +1064,26 @@ select {
   cursor:not-allowed;
 }
 
+.campaign-premise {
+  margin:0 0 9px;
+  padding:9px 10px;
+  border:1px solid #e0d4be;
+  border-radius:8px;
+  background:#fffaf0;
+  color:#4f473d;
+  font-size:11px;
+  line-height:1.42;
+}
+
+.campaign-premise strong {
+  display:block;
+  margin-bottom:3px;
+  color:#8a6a33;
+  font-size:10px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
 .campaign-dev-note {
   margin-top:8px;
   color:var(--muted);
@@ -3258,6 +3278,12 @@ if (
         </div>
 
         <div id="campaignPanel" class="campaign-panel">
+          <div class="campaign-premise">
+            <strong>The Arena</strong>
+            You are a victorious gladiator, still bound to your Dominus.
+            Caesar will grant freedom only to the player who rises through
+            Rome's ranks and defeats him at Chess Imperium.
+          </div>
           <label class="label" for="campaignOpponentSelect">
             Campaign Opponent
           </label>
