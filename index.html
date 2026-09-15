@@ -2680,7 +2680,7 @@ th {
 
 .analysis-move-row {
   display:grid;
-  grid-template-columns:48px 78px 92px minmax(0,1fr);
+  grid-template-columns:48px 64px 78px 92px minmax(0,1fr);
   gap:8px;
   align-items:center;
   width:100%;
@@ -2719,6 +2719,30 @@ th {
 
 .analysis-san {
   font-weight:800;
+}
+
+.analysis-side {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:52px;
+  padding:4px 7px;
+  border:1px solid #d4c7ac;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.analysis-side.light {
+  background:#fffdf5;
+  color:#5d4a24;
+}
+
+.analysis-side.dark {
+  background:#2f2a23;
+  color:#f7e9c8;
+  border-color:#514430;
 }
 
 .analysis-badge {
@@ -2794,9 +2818,15 @@ th {
   }
 
   .analysis-move-row {
-    grid-template-columns:38px 64px 82px minmax(0,1fr);
+    grid-template-columns:34px 54px 58px 78px minmax(0,1fr);
     gap:5px;
     font-size:11px;
+  }
+
+  .analysis-side {
+    min-width:46px;
+    padding:3px 5px;
+    font-size:9px;
   }
 }
 
@@ -23455,8 +23485,34 @@ function analysisReplayPositionLabel(
         ? ". "
         : "... "
     ) +
+    analysisSideLabel(
+      entry.move.color
+    ) +
+    " — " +
     entry.move.san
   );
+
+}
+
+
+function analysisSideLabel(
+  color
+) {
+
+  return color === "w"
+    ? "Light"
+    : "Dark";
+
+}
+
+
+function analysisSideClass(
+  color
+) {
+
+  return color === "w"
+    ? "light"
+    : "dark";
 
 }
 
@@ -23672,6 +23728,10 @@ function renderAnalysisReplayBoard(
 
     analysisReplayDetail.innerHTML =
       "<strong>" +
+      analysisSideLabel(
+        latestEntry.move.color
+      ) +
+      " side — " +
       (
         latestEntry.move.color ===
           playerColor
@@ -23994,6 +24054,16 @@ function renderAnalysisResults(
             : "..."
         ) +
         "</div>" +
+
+        "<div><span class='analysis-side " +
+        analysisSideClass(
+          entry.move.color
+        ) +
+        "'>" +
+        analysisSideLabel(
+          entry.move.color
+        ) +
+        "</span></div>" +
 
         "<div class='analysis-san'>" +
         entry.move.san +
