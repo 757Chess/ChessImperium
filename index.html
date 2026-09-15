@@ -173,6 +173,53 @@ h1 {
   text-transform:uppercase;
 }
 
+.campaign-banner-nameplate {
+  display:none;
+  position:absolute;
+  bottom:10px;
+  max-width:42%;
+  padding:5px 9px 6px;
+  border-top:1px solid rgba(215,184,119,.82);
+  border-bottom:1px solid rgba(215,184,119,.5);
+  background:linear-gradient(90deg,rgba(10,12,10,.7),rgba(10,12,10,.18));
+  color:#f8edd4;
+  text-shadow:0 2px 5px rgba(0,0,0,.82);
+  pointer-events:none;
+}
+
+.campaign-banner-nameplate.visible {
+  display:block;
+}
+
+.campaign-banner-nameplate.placement-left {
+  left:13px;
+  text-align:left;
+}
+
+.campaign-banner-nameplate.placement-right {
+  right:13px;
+  text-align:right;
+  background:linear-gradient(270deg,rgba(10,12,10,.7),rgba(10,12,10,.18));
+}
+
+.campaign-banner-rank {
+  color:#d8bd81;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:0;
+  line-height:1.2;
+  text-transform:uppercase;
+}
+
+.campaign-banner-name {
+  margin-top:1px;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:15px;
+  font-weight:800;
+  letter-spacing:0;
+  line-height:1.05;
+}
+
 
 .section {
   padding-bottom:11px;
@@ -3187,6 +3234,28 @@ th {
     font-size:28px;
   }
 
+  .campaign-banner-nameplate {
+    bottom:6px;
+    max-width:46%;
+    padding:4px 6px;
+  }
+
+  .campaign-banner-nameplate.placement-left {
+    left:8px;
+  }
+
+  .campaign-banner-nameplate.placement-right {
+    right:8px;
+  }
+
+  .campaign-banner-rank {
+    font-size:7px;
+  }
+
+  .campaign-banner-name {
+    font-size:11px;
+  }
+
   .subtitle {
     font-size:14px;
   }
@@ -3792,6 +3861,13 @@ if (
         <div class="chess-imperium-banner-title" aria-label="Chess Imperium — A Strategic Chess Variant">
           <div class="chess-imperium-banner-title-main">Chess Imperium</div>
           <div class="chess-imperium-banner-title-sub">A Strategic Chess Variant</div>
+        </div>
+        <div
+          id="campaignBannerNameplate"
+          class="campaign-banner-nameplate"
+          aria-hidden="true">
+          <div id="campaignBannerRank" class="campaign-banner-rank"></div>
+          <div id="campaignBannerName" class="campaign-banner-name"></div>
         </div>
 
       </div>
@@ -4611,6 +4687,7 @@ const CAMPAIGN_OPPONENTS = [
     initials:"CV",
     portrait:"./Graphics/Campaign/Opponents/cassian-varro.png",
     banner:"./Graphics/Campaign/Banners/cassian-varro-banner.png",
+    bannerNamePlacement:"left",
     backstory:
       "Your owner watches from a marble chair above the arena, convinced that discipline and debt are stronger than hope. Varro is no champion, but he knows every weakness in a desperate man. Defeat him, and your chain grows lighter for the first time."
   },
@@ -4625,6 +4702,7 @@ const CAMPAIGN_OPPONENTS = [
     initials:"MD",
     portrait:"./Graphics/Campaign/Opponents/marcus-drusus.png",
     banner:"./Graphics/Campaign/Banners/marcus-drusus-banner.png",
+    bannerNamePlacement:"right",
     backstory:
       "A frontier officer with a soldier's patience, Drusus trusts clean development, hard trades, and steady pressure. He has broken shield walls from Gaul to Syria, and he treats the board like another formation to hold. He will not dazzle you; he will grind."
   },
@@ -4639,6 +4717,7 @@ const CAMPAIGN_OPPONENTS = [
     initials:"LC",
     portrait:"./Graphics/Campaign/Opponents/livia-corvina.png",
     banner:"./Graphics/Campaign/Banners/livia-corvina-banner.png",
+    bannerNamePlacement:"left",
     backstory:
       "Corvina learned politics before war. She studies the arena as if every cheer, debt, and favor were another piece to command. Her formation hides sharp intent behind civilized manners, then punishes ambition the moment it moves one square too far."
   },
@@ -4653,6 +4732,7 @@ const CAMPAIGN_OPPONENTS = [
     initials:"GS",
     portrait:"./Graphics/Campaign/Opponents/gaius-severan.png",
     banner:"./Graphics/Campaign/Banners/gaius-severan-banner.png",
+    bannerNamePlacement:"left",
     backstory:
       "Severan treats the board like law: every careless move becomes evidence, every trapped piece a sentence. In Rome, his judgments are feared because they arrive cold and complete. Against him, escape routes matter as much as attacks."
   },
@@ -4667,6 +4747,7 @@ const CAMPAIGN_OPPONENTS = [
     initials:"TM",
     portrait:"./Graphics/Campaign/Opponents/titus-marcellus.png",
     banner:"./Graphics/Campaign/Banners/titus-marcellus-banner.png",
+    bannerNamePlacement:"left",
     backstory:
       "The crowd loves Marcellus for his elegance, but beneath the ceremony is a veteran who sees endings early. He plays as if each exchange has already been weighed by the Senate. If you reach him, the arena is no longer laughing."
   },
@@ -4681,6 +4762,7 @@ const CAMPAIGN_OPPONENTS = [
     initials:"AC",
     portrait:"./Graphics/Campaign/Opponents/augustus-caesar.png",
     banner:"./Graphics/Campaign/Banners/augustus-caesar-banner.png",
+    bannerNamePlacement:"left",
     backstory:
       "Caesar does not hurry. He lets the empire breathe, then makes one quiet move that leaves no appeal. The pardon is real, but so is the spectacle: Rome wants to see whether a gladiator can think like a ruler. Win here, and freedom is not granted; it is witnessed."
   }
@@ -6165,6 +6247,15 @@ const chessImperiumBanner =
 
 const chessImperiumBannerTitle =
   document.querySelector(".chess-imperium-banner-title");
+
+const campaignBannerNameplate =
+  document.getElementById("campaignBannerNameplate");
+
+const campaignBannerRank =
+  document.getElementById("campaignBannerRank");
+
+const campaignBannerName =
+  document.getElementById("campaignBannerName");
 
 const voiceBubbleLayer =
   document.getElementById("voiceBubbleLayer");
@@ -8982,37 +9073,80 @@ function versionedCampaignBannerSrc(
 }
 
 
-function getCurrentBannerSrc() {
+function getCurrentCampaignBannerOpponent() {
 
   if (
-    gameMode === "campaign"
+    gameMode !== "campaign"
+  ) {
+    return null;
+  }
+
+
+  const activeCampaignGame =
+    Boolean(
+      gameStarted &&
+      activeCampaignOpponent &&
+      game &&
+      !game.isGameOver() &&
+      !localGameFinished()
+    );
+
+
+  return activeCampaignGame
+    ? activeCampaignOpponent
+    : getSelectedCampaignOpponent();
+
+}
+
+
+function getCampaignBannerDisplayName(
+  opponent
+) {
+
+  if (
+    !opponent
+  ) {
+    return "";
+  }
+
+
+  const rankPrefix =
+    opponent.rank +
+    " ";
+
+
+  if (
+    opponent.name.indexOf(
+      rankPrefix
+    ) === 0
   ) {
 
-    const activeCampaignGame =
-      Boolean(
-        gameStarted &&
-        activeCampaignOpponent &&
-        game &&
-        !game.isGameOver() &&
-        !localGameFinished()
-      );
+    return opponent.name.slice(
+      rankPrefix.length
+    );
 
-    const campaignOpponent =
-      activeCampaignGame
-        ? activeCampaignOpponent
-        : getSelectedCampaignOpponent();
+  }
 
 
-    if (
-      campaignOpponent &&
+  return opponent.name;
+
+}
+
+
+function getCurrentBannerSrc() {
+
+  const campaignOpponent =
+    getCurrentCampaignBannerOpponent();
+
+
+  if (
+    campaignOpponent &&
+    campaignOpponent.banner
+  ) {
+
+    return versionedCampaignBannerSrc(
       campaignOpponent.banner
-    ) {
-
-      return versionedCampaignBannerSrc(
-        campaignOpponent.banner
-      );
-
-    }
+    );
 
   }
 
@@ -9024,14 +9158,86 @@ function getCurrentBannerSrc() {
 
 function updateBannerArt() {
 
+  const campaignOpponent =
+    getCurrentCampaignBannerOpponent();
+
+  const isCampaignBanner =
+    Boolean(
+      campaignOpponent
+    );
+
+
   if (
     chessImperiumBannerTitle
   ) {
 
     chessImperiumBannerTitle.classList.toggle(
       "hidden",
-      gameMode === "campaign"
+      isCampaignBanner
     );
+
+  }
+
+
+  if (
+    campaignBannerNameplate
+  ) {
+
+    const placeRight =
+      isCampaignBanner &&
+      campaignOpponent.bannerNamePlacement === "right";
+
+
+    campaignBannerNameplate.classList.toggle(
+      "visible",
+      isCampaignBanner
+    );
+
+    campaignBannerNameplate.classList.toggle(
+      "placement-left",
+      isCampaignBanner &&
+      !placeRight
+    );
+
+    campaignBannerNameplate.classList.toggle(
+      "placement-right",
+      placeRight
+    );
+
+    campaignBannerNameplate.setAttribute(
+      "aria-hidden",
+      isCampaignBanner
+        ? "false"
+        : "true"
+    );
+
+  }
+
+
+  if (
+    campaignBannerRank
+  ) {
+
+    campaignBannerRank.textContent =
+      campaignOpponent
+        ? getCampaignStageLabel(
+          campaignOpponent.stage
+        ) +
+          " · " +
+          campaignOpponent.rank
+        : "";
+
+  }
+
+
+  if (
+    campaignBannerName
+  ) {
+
+    campaignBannerName.textContent =
+      getCampaignBannerDisplayName(
+        campaignOpponent
+      );
 
   }
 
