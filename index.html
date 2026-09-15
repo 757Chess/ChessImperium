@@ -8647,7 +8647,8 @@ function updateGameModeUI() {
 
   playAsSection.classList.toggle(
     "online-hidden",
-    online
+    online ||
+    campaign
   );
 
   difficultySection.classList.toggle(
@@ -8689,7 +8690,12 @@ function updateGameModeUI() {
     campaign ? "block" : "none";
 
   playAsSection.style.display =
-    online ? "none" : "";
+    (
+      online ||
+      campaign
+    )
+      ? "none"
+      : "";
 
   difficultySection.style.display =
     (
@@ -16200,13 +16206,16 @@ function updateSetupControlAvailability() {
     computerGameActive;
 
   playWhiteBtn.disabled =
-    computerGameActive;
+    computerGameActive ||
+    gameMode === "campaign";
 
   playRandomBtn.disabled =
-    computerGameActive;
+    computerGameActive ||
+    gameMode === "campaign";
 
   playBlackBtn.disabled =
-    computerGameActive;
+    computerGameActive ||
+    gameMode === "campaign";
 
   difficultyRelaxed.disabled =
     computerGameActive;
@@ -16517,11 +16526,15 @@ function renderPreview() {
     ) +
 
     (
-      playerColorChoice === "RANDOM"
+      gameMode === "campaign"
 
-        ? "&nbsp;— Color will be chosen when the game starts."
+        ? "&nbsp;— Color will be assigned by Rome."
 
-        : ""
+        : playerColorChoice === "RANDOM"
+
+          ? "&nbsp;— Color will be chosen when the game starts."
+
+          : ""
     );
 
 
@@ -16587,6 +16600,17 @@ function resolvePlayerColor() {
 
 
   return playerColorChoice;
+
+}
+
+
+function resolveCampaignPlayerColor() {
+
+  return (
+    Math.random() < .5
+      ? "w"
+      : "b"
+  );
 
 }
 
@@ -16666,7 +16690,9 @@ function startNewGame() {
 
 
   actualPlayerColor =
-    resolvePlayerColor();
+    gameMode === "campaign"
+      ? resolveCampaignPlayerColor()
+      : resolvePlayerColor();
 
 
   beginGame(
@@ -24093,6 +24119,8 @@ function updateInfoPanel() {
             ? "White"
             : "Black"
         )
+      : campaign
+        ? "Assigned by Rome"
       : playerColorChoice === "RANDOM"
         ? "Random"
         : (
