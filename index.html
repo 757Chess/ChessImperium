@@ -13435,7 +13435,9 @@ function showCaptureToast(
 
 
   let title =
-    "Stockfish captured";
+    capturerColor === playerColor
+      ? "You captured"
+      : "Stockfish captured";
 
 
   if (
@@ -13446,6 +13448,18 @@ function showCaptureToast(
       capturerColor === playerColor
         ? "You captured"
         : "Opponent captured";
+
+  }
+
+  else if (
+    gameMode === "campaign" &&
+    capturerColor !== playerColor &&
+    activeCampaignOpponent
+  ) {
+
+    title =
+      activeCampaignOpponent.rank +
+      " captured";
 
   }
 
@@ -19994,29 +20008,11 @@ function afterMove(
     move.captured
   ) {
 
-    if (
-      gameMode === "online"
-    ) {
-
-      showCaptureToast(
-        move.captured,
-        move.color,
-        move.san
-      );
-
-    }
-
-    else if (
-      move.color !== playerColor
-    ) {
-
-      showCaptureToast(
-        move.captured,
-        move.color,
-        move.san
-      );
-
-    }
+    showCaptureToast(
+      move.captured,
+      move.color,
+      move.san
+    );
 
   }
 
