@@ -117,19 +117,56 @@ h1 {
 
 .chess-imperium-banner-wrap {
   width:100%;
-  max-width:576px;
+  max-width:640px;
   margin:0 auto 1px;
   display:block;
+  position:relative;
+  overflow:hidden;
+  border:2px solid #4a443c;
+  border-radius:3px;
   box-sizing:border-box;
+  background:#102018;
 }
 
 .chess-imperium-banner {
   display:block;
   width:100%;
+  aspect-ratio:2034 / 773;
   height:auto;
-  border:2px solid #4a443c;
-  border-radius:2px;
   box-sizing:border-box;
+  object-fit:cover;
+}
+
+.chess-imperium-banner-title {
+  position:absolute;
+  left:11%;
+  right:36%;
+  top:50%;
+  transform:translateY(-50%);
+  color:#f6ead2;
+  text-align:center;
+  text-shadow:0 2px 6px rgba(0,0,0,.72),0 0 18px rgba(193,153,79,.28);
+  pointer-events:none;
+}
+
+.chess-imperium-banner-title-main {
+  color:#fff4d8;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:34px;
+  font-weight:800;
+  letter-spacing:0;
+  line-height:1.02;
+  text-transform:uppercase;
+}
+
+.chess-imperium-banner-title-sub {
+  margin-top:5px;
+  color:#d8bd81;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:0;
+  line-height:1.2;
+  text-transform:uppercase;
 }
 
 
@@ -3177,6 +3214,20 @@ th {
     box-sizing:border-box;
   }
 
+  .chess-imperium-banner-title {
+    left:7%;
+    right:37%;
+  }
+
+  .chess-imperium-banner-title-main {
+    font-size:20px;
+  }
+
+  .chess-imperium-banner-title-sub {
+    margin-top:3px;
+    font-size:8px;
+  }
+
   .section {
     padding-bottom:9px;
     margin-bottom:9px;
@@ -3731,8 +3782,12 @@ if (
       <div class="chess-imperium-banner-wrap">
         <img
           class="chess-imperium-banner"
-          src="./Graphics/cibanner.png?v=dominant-marble-title-20260915"
-          alt="Chess Imperium — A Strategic Chess Variant">
+          src="./Graphics/cibanner-arena.png?v=arena-title-overlay-20260915"
+          alt="">
+        <div class="chess-imperium-banner-title" aria-label="Chess Imperium — Strategy Lives Forever">
+          <div class="chess-imperium-banner-title-main">Chess Imperium</div>
+          <div class="chess-imperium-banner-title-sub">Strategy Lives Forever</div>
+        </div>
 
       </div>
 
@@ -6888,6 +6943,21 @@ function stopPawnCoronationSound(
 }
 
 
+function isCapturingPromotedQueen(
+  move
+) {
+
+  return Boolean(
+    move &&
+    move.captured === "q" &&
+    promotedQueenSquares.has(
+      move.to
+    )
+  );
+
+}
+
+
 function playRandomMoveSound() {
 
   if (
@@ -7569,6 +7639,17 @@ function playSoundForMove(move) {
   if (
     move.captured
   ) {
+
+    if (
+      isCapturingPromotedQueen(
+        move
+      )
+    ) {
+
+      stopPawnCoronationSound();
+
+    }
+
 
     playSound(
       "capture",
@@ -21237,11 +21318,11 @@ function afterMove(
 
   updateSetupControlAvailability();
 
-  updatePawnCoronationStateAfterMove(
+  playSoundForMove(
     move
   );
 
-  playSoundForMove(
+  updatePawnCoronationStateAfterMove(
     move
   );
 
