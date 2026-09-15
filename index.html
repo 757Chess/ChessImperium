@@ -149,6 +149,10 @@ h1 {
   pointer-events:none;
 }
 
+.chess-imperium-banner-title.hidden {
+  display:none;
+}
+
 .chess-imperium-banner-title-main {
   color:#fff4d8;
   font-family:Georgia,"Times New Roman",serif;
@@ -6159,6 +6163,9 @@ const boardEl =
 const chessImperiumBanner =
   document.getElementById("chessImperiumBanner");
 
+const chessImperiumBannerTitle =
+  document.querySelector(".chess-imperium-banner-title");
+
 const voiceBubbleLayer =
   document.getElementById("voiceBubbleLayer");
 
@@ -9016,6 +9023,18 @@ function getCurrentBannerSrc() {
 
 
 function updateBannerArt() {
+
+  if (
+    chessImperiumBannerTitle
+  ) {
+
+    chessImperiumBannerTitle.classList.toggle(
+      "hidden",
+      gameMode === "campaign"
+    );
+
+  }
+
 
   if (
     !chessImperiumBanner
