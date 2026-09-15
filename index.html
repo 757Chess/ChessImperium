@@ -719,6 +719,19 @@ select {
 
 .online-chat.visible {
   display:block;
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  width:min(320px,calc(100vw - 32px));
+  max-height:calc(100vh - 36px);
+  margin-top:0;
+  padding:10px;
+  border:1px solid #d8cfbf;
+  border-radius:10px;
+  background:#fffdf9;
+  box-shadow:0 16px 38px rgba(0,0,0,.22);
+  z-index:620;
+  box-sizing:border-box;
 }
 
 .online-chat-heading {
@@ -727,6 +740,13 @@ select {
   justify-content:space-between;
   gap:8px;
   margin-bottom:6px;
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+}
+
+.online-chat.dragging .online-chat-heading {
+  cursor:grabbing;
 }
 
 .online-chat-title {
@@ -743,6 +763,7 @@ select {
 
 .online-chat-messages {
   height:158px;
+  max-height:calc(100vh - 180px);
   overflow-y:auto;
   padding:7px;
   border:1px solid #d8d0c4;
@@ -1884,6 +1905,27 @@ select {
   box-shadow:
     0 0 0 2px rgba(166,132,66,.08),
     0 4px 12px rgba(72,57,29,.09);
+}
+
+.status-box.turn-waiting {
+  animation:statusTurnPulse 1.25s ease-in-out infinite;
+  border-color:#c99e3d;
+  box-shadow:
+    0 0 0 2px rgba(201,158,61,.16),
+    0 0 20px rgba(201,158,61,.34);
+}
+
+@keyframes statusTurnPulse {
+  0%,
+  100% {
+    transform:scale(1);
+    background:#faf8f4;
+  }
+
+  50% {
+    transform:scale(1.018);
+    background:#fff8e6;
+  }
 }
 
 .engine {
@@ -3645,7 +3687,7 @@ if (
       <div class="chess-imperium-banner-wrap">
         <img
           class="chess-imperium-banner"
-          src="./Graphics/cibanner.png"
+          src="./Graphics/cibanner.png?v=hero-gladiator-20260915"
           alt="Chess Imperium — A Strategic Chess Variant">
 
       </div>
@@ -4664,6 +4706,9 @@ const STACKING_SOUND_VOLUME = .05;
 const KNIGHT_COMMAND_CAPTURE_VOLUME = .20;
 const PAWN_CAPTURE_VOICE_VOLUME = .16;
 const PAWN_VS_ROOK_VOICE_VOLUME = .16;
+const CHAT_BEEP_VOLUME = .36;
+const ONLINE_NO_CLOCK_TURN_PULSE_DELAY_MS =
+  180000;
 
 /*
  * Global game-audio boost.
@@ -4681,7 +4726,8 @@ const SOUND_FILES = {
   draw:"./Audio/Stalemate.wav",
   pawncoronation:"./Audio/pawncoronation.wav",
   invalid:"./Audio/Invalidmove.wav",
-  stacking:"./Audio/stackingpieces.wav"
+  stacking:"./Audio/stackingpieces.wav",
+  chatbeep:"./Audio/beep.wav"
 
 };
 
@@ -5345,7 +5391,8 @@ function getSoundMixKey(
 
   if (
     name === "invalid" ||
-    name === "menuclick"
+    name === "menuclick" ||
+    name === "chatbeep"
   ) {
     return "board";
   }
@@ -6566,6 +6613,27 @@ let onlineChatItems =
 let onlineChatSending =
   false;
 
+let onlineDisplayNameSyncTimer =
+  null;
+
+let onlineChatDragState =
+  null;
+
+let onlineChatFloatingPosition =
+  null;
+
+let onlineRuleToastShownKey =
+  null;
+
+let onlineResultSoundKey =
+  null;
+
+let onlineTurnPulseTimer =
+  null;
+
+let onlineTurnPulseKey =
+  null;
+
 
 const MOVE_ANIMATION_DURATION =
   230;
@@ -7385,6 +7453,416 @@ function setOnlineStatus(
 }
 
 
+function playOnlineChatBeep() {
+
+  playSound(
+    "chatbeep",
+    CHAT_BEEP_VOLUME
+  );
+
+}
+
+
+function updateLocalOnlineDisplayName() {
+
+  if (
+    !onlineRoom ||
+    !onlineRole
+  ) {
+    return;
+  }
+
+
+  const displayName =
+    normalizedPlayerDisplayName() ||
+    null;
+
+
+  if (
+    onlineRole === "white"
+  ) {
+
+    onlineRoom.white_display_name =
+      displayName;
+
+  }
+
+  else if (
+    onlineRole === "black"
+  ) {
+
+    onlineRoom.black_display_name =
+      displayName;
+
+  }
+
+}
+
+
+function clearOnlineDisplayNameSyncTimer() {
+
+  if (
+    onlineDisplayNameSyncTimer
+  ) {
+
+    clearTimeout(
+      onlineDisplayNameSyncTimer
+    );
+
+  }
+
+
+  onlineDisplayNameSyncTimer =
+    null;
+
+}
+
+
+async function syncOnlineDisplayName() {
+
+  onlineDisplayNameSyncTimer =
+    null;
+
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    !onlineRoom.id ||
+    !onlineRole
+  ) {
+    return;
+  }
+
+
+  const displayName =
+    normalizedPlayerDisplayName() ||
+    null;
+
+  const roleColumn =
+    onlineRole === "white"
+      ? "white_player_id"
+      : "black_player_id";
+
+  const updateValues = {
+    updated_at:
+      new Date().toISOString()
+  };
+
+
+  if (
+    onlineRole === "white"
+  ) {
+
+    updateValues.white_display_name =
+      displayName;
+
+  }
+
+  else {
+
+    updateValues.black_display_name =
+      displayName;
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .update(
+        updateValues
+      )
+      .eq(
+        "id",
+        onlineRoom.id
+      )
+      .eq(
+        roleColumn,
+        onlinePlayerId
+      )
+      .select()
+      .single();
+
+
+  if (
+    error ||
+    !data
+  ) {
+    return;
+  }
+
+
+  onlineRoom =
+    data;
+
+  updateInfoPanel();
+
+  updateStatus();
+
+  renderOnlineChat();
+
+}
+
+
+function scheduleOnlineDisplayNameSync() {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    !onlineRoom.id ||
+    !onlineRole
+  ) {
+    return;
+  }
+
+
+  updateLocalOnlineDisplayName();
+
+  updateInfoPanel();
+
+  updateStatus();
+
+  renderOnlineChat();
+
+  clearOnlineDisplayNameSyncTimer();
+
+
+  onlineDisplayNameSyncTimer =
+    setTimeout(
+      syncOnlineDisplayName,
+      550
+    );
+
+}
+
+
+function clampOnlineChatPosition(
+  left,
+  top
+) {
+
+  if (
+    !onlineChat
+  ) {
+    return {
+      left:0,
+      top:0
+    };
+  }
+
+
+  const rect =
+    onlineChat.getBoundingClientRect();
+
+  const margin =
+    10;
+
+  const maxLeft =
+    Math.max(
+      margin,
+      window.innerWidth -
+        rect.width -
+        margin
+    );
+
+  const maxTop =
+    Math.max(
+      margin,
+      window.innerHeight -
+        rect.height -
+        margin
+    );
+
+
+  return {
+    left:
+      Math.min(
+        Math.max(
+          margin,
+          left
+        ),
+        maxLeft
+      ),
+    top:
+      Math.min(
+        Math.max(
+          margin,
+          top
+        ),
+        maxTop
+      )
+  };
+
+}
+
+
+function applyOnlineChatPosition() {
+
+  if (
+    !onlineChat
+  ) {
+    return;
+  }
+
+
+  if (
+    !onlineChatFloatingPosition
+  ) {
+
+    onlineChat.style.left =
+      "";
+
+    onlineChat.style.top =
+      "";
+
+    onlineChat.style.right =
+      "18px";
+
+    onlineChat.style.bottom =
+      "18px";
+
+    return;
+
+  }
+
+
+  const position =
+    clampOnlineChatPosition(
+      onlineChatFloatingPosition.left,
+      onlineChatFloatingPosition.top
+    );
+
+
+  onlineChatFloatingPosition =
+    position;
+
+  onlineChat.style.left =
+    position.left + "px";
+
+  onlineChat.style.top =
+    position.top + "px";
+
+  onlineChat.style.right =
+    "auto";
+
+  onlineChat.style.bottom =
+    "auto";
+
+}
+
+
+function beginOnlineChatDrag(
+  event
+) {
+
+  if (
+    !onlineChat ||
+    (
+      event.pointerType === "mouse" &&
+      event.button !== 0
+    )
+  ) {
+    return;
+  }
+
+
+  const rect =
+    onlineChat.getBoundingClientRect();
+
+  onlineChatDragState = {
+    pointerId:event.pointerId,
+    offsetX:
+      event.clientX -
+      rect.left,
+    offsetY:
+      event.clientY -
+      rect.top
+  };
+
+
+  onlineChat.classList.add(
+    "dragging"
+  );
+
+
+  try {
+    onlineChat.setPointerCapture(
+      event.pointerId
+    );
+  }
+  catch(error) {
+    /* Some older Safari builds are shy about pointer capture. */
+  }
+
+
+  event.preventDefault();
+
+}
+
+
+function moveOnlineChatDrag(
+  event
+) {
+
+  if (
+    !onlineChatDragState ||
+    onlineChatDragState.pointerId !==
+      event.pointerId
+  ) {
+    return;
+  }
+
+
+  onlineChatFloatingPosition =
+    clampOnlineChatPosition(
+      event.clientX -
+        onlineChatDragState.offsetX,
+      event.clientY -
+        onlineChatDragState.offsetY
+    );
+
+
+  applyOnlineChatPosition();
+
+}
+
+
+function endOnlineChatDrag(
+  event
+) {
+
+  if (
+    !onlineChatDragState ||
+    onlineChatDragState.pointerId !==
+      event.pointerId
+  ) {
+    return;
+  }
+
+
+  try {
+    onlineChat.releasePointerCapture(
+      event.pointerId
+    );
+  }
+  catch(error) {
+    /* Ignore if capture was not granted. */
+  }
+
+
+  onlineChatDragState =
+    null;
+
+  onlineChat.classList.remove(
+    "dragging"
+  );
+
+}
+
+
 function clearOnlineChat() {
 
   onlineChatItems =
@@ -7654,6 +8132,8 @@ function appendOnlineChatMessage(
 
   renderOnlineChat();
 
+  playOnlineChatBeep();
+
 }
 
 
@@ -7671,6 +8151,8 @@ function updateOnlineChatAvailability() {
     "visible",
     available
   );
+
+  applyOnlineChatPosition();
 
 
   onlineChatInput.disabled =
@@ -8842,6 +9324,8 @@ function setOnlineFormationControlsLocked(
 
 async function stopOnlineRealtime() {
 
+  clearOnlineDisplayNameSyncTimer();
+
   if (
     onlineSafetyPollTimer
   ) {
@@ -9495,6 +9979,312 @@ async function handleIncomingOnlineUndoRequest(
 
     await denyOnlineUndo(
       room
+    );
+
+  }
+
+}
+
+
+function clearOnlineTurnPulseTimer() {
+
+  if (
+    onlineTurnPulseTimer
+  ) {
+
+    clearTimeout(
+      onlineTurnPulseTimer
+    );
+
+  }
+
+
+  onlineTurnPulseTimer =
+    null;
+
+  onlineTurnPulseKey =
+    null;
+
+
+  if (
+    statusBox
+  ) {
+
+    statusBox.classList.remove(
+      "turn-waiting"
+    );
+
+  }
+
+}
+
+
+function shouldPulseOnlineTurnStatus() {
+
+  return Boolean(
+    gameMode === "online" &&
+    onlineRoom &&
+    onlineRoom.id &&
+    onlineRoom.status === "active" &&
+    onlineRoom.time_control === "none" &&
+    gameStarted &&
+    game &&
+    !game.isGameOver() &&
+    game.turn() === playerColor
+  );
+
+}
+
+
+function refreshOnlineTurnPulse() {
+
+  if (
+    !shouldPulseOnlineTurnStatus()
+  ) {
+
+    clearOnlineTurnPulseTimer();
+
+    return;
+
+  }
+
+
+  const moveCount =
+    Array.isArray(
+      onlineRoom.move_history
+    )
+      ? onlineRoom.move_history.length
+      : game.history().length;
+
+  const pulseKey =
+    onlineRoom.id +
+    ":" +
+    moveCount +
+    ":" +
+    game.turn();
+
+
+  if (
+    onlineTurnPulseKey === pulseKey
+  ) {
+    return;
+  }
+
+
+  clearOnlineTurnPulseTimer();
+
+  onlineTurnPulseKey =
+    pulseKey;
+
+  onlineTurnPulseTimer =
+    setTimeout(
+      function() {
+
+        onlineTurnPulseTimer =
+          null;
+
+
+        if (
+          onlineTurnPulseKey === pulseKey &&
+          shouldPulseOnlineTurnStatus()
+        ) {
+
+          statusBox.classList.add(
+            "turn-waiting"
+          );
+
+        }
+
+      },
+      ONLINE_NO_CLOCK_TURN_PULSE_DELAY_MS
+    );
+
+}
+
+
+function resetOnlineRuleToastTracking(
+  room = null
+) {
+
+  if (
+    room &&
+    room.status === "active"
+  ) {
+    return;
+  }
+
+
+  onlineRuleToastShownKey =
+    null;
+
+}
+
+
+function maybeShowOnlineRuleToast(
+  room,
+  historyRecords
+) {
+
+  const historyLength =
+    Array.isArray(
+      historyRecords
+    )
+      ? historyRecords.length
+      : 0;
+
+
+  if (
+    !room ||
+    !room.id ||
+    room.status !== "active" ||
+    historyLength !== 0
+  ) {
+    return;
+  }
+
+
+  const toastKey =
+    room.id +
+    ":" +
+    room.white_formation +
+    ":" +
+    room.black_formation;
+
+
+  if (
+    onlineRuleToastShownKey === toastKey
+  ) {
+    return;
+  }
+
+
+  onlineRuleToastShownKey =
+    toastKey;
+
+  showRuleToast();
+
+}
+
+
+function clearOnlineResultSoundTracking(
+  room = null
+) {
+
+  if (
+    room &&
+    room.status === "finished"
+  ) {
+    return;
+  }
+
+
+  onlineResultSoundKey =
+    null;
+
+}
+
+
+function playOnlineFinishedSound(
+  room,
+  previousRoom
+) {
+
+  if (
+    !room ||
+    room.status !== "finished" ||
+    !previousRoom ||
+    previousRoom.status !== "active"
+  ) {
+    return;
+  }
+
+
+  const historyLength =
+    Array.isArray(
+      room.move_history
+    )
+      ? room.move_history.length
+      : 0;
+
+  const soundKey =
+    room.id +
+    ":" +
+    historyLength +
+    ":" +
+    (
+      room.result_reason ||
+      ""
+    ) +
+    ":" +
+    (
+      room.winner_color ||
+      ""
+    );
+
+
+  if (
+    onlineResultSoundKey === soundKey
+  ) {
+    return;
+  }
+
+
+  onlineResultSoundKey =
+    soundKey;
+
+
+  if (
+    room.result_reason === "checkmate"
+  ) {
+
+    playSound(
+      "checkmate"
+    );
+
+    return;
+
+  }
+
+
+  if (
+    room.result_reason === "resignation"
+  ) {
+
+    const myColor =
+      onlineRole === "white"
+        ? "w"
+        : onlineRole === "black"
+          ? "b"
+          : null;
+
+
+    if (
+      myColor
+    ) {
+
+      playSound(
+        room.winner_color === myColor
+          ? "checkmate"
+          : "draw"
+      );
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
+    room.result_reason === "stalemate" ||
+    room.result_reason === "threefold" ||
+    room.result_reason === "insufficient_material" ||
+    !room.winner_color
+  ) {
+
+    playSound(
+      "draw"
     );
 
   }
@@ -10916,6 +11706,14 @@ async function applyOnlineRoomUpdate(
 
   updateStatus();
 
+  resetOnlineRuleToastTracking(
+    room
+  );
+
+  clearOnlineResultSoundTracking(
+    room
+  );
+
 
   onlineRoomCodeInput.value =
     room.room_code;
@@ -11051,33 +11849,10 @@ async function applyOnlineRoomUpdate(
     room.status === "finished"
   ) {
 
-    if (
-      previousRoom &&
-      previousRoom.status === "active" &&
-      room.result_reason === "resignation"
-    ) {
-
-      const myColor =
-        onlineRole === "white"
-          ? "w"
-          : onlineRole === "black"
-            ? "b"
-            : null;
-
-
-      if (
-        myColor
-      ) {
-
-        playSound(
-          room.winner_color === myColor
-            ? "checkmate"
-            : "draw"
-        );
-
-      }
-
-    }
+    playOnlineFinishedSound(
+      room,
+      previousRoom
+    );
 
 
     onlineResultReason =
@@ -12417,6 +13192,14 @@ async function leaveOnlineRoom() {
 
   onlineTimeoutClaimInFlight =
     false;
+
+  onlineRuleToastShownKey =
+    null;
+
+  onlineResultSoundKey =
+    null;
+
+  clearOnlineTurnPulseTimer();
 
   onlineClockTop.classList.remove(
     "visible",
@@ -14376,6 +15159,8 @@ function initializeControls() {
 
       renderOnlineChat();
 
+      scheduleOnlineDisplayNameSync();
+
       handleCampaignNameBackdoor();
 
     }
@@ -15201,6 +15986,39 @@ function initializeControls() {
 
     }
   );
+
+
+  const onlineChatHeading =
+    onlineChat.querySelector(
+      ".online-chat-heading"
+    );
+
+
+  if (
+    onlineChatHeading
+  ) {
+
+    onlineChatHeading.addEventListener(
+      "pointerdown",
+      beginOnlineChatDrag
+    );
+
+    onlineChat.addEventListener(
+      "pointermove",
+      moveOnlineChatDrag
+    );
+
+    onlineChat.addEventListener(
+      "pointerup",
+      endOnlineChatDrag
+    );
+
+    onlineChat.addEventListener(
+      "pointercancel",
+      endOnlineChatDrag
+    );
+
+  }
 
 
   onlineRoomCodeInput.addEventListener(
@@ -16168,9 +16986,7 @@ function updateSetupControlAvailability() {
       false;
 
     playerNameInput.disabled =
-      Boolean(
-        onlineRoom
-      );
+      false;
 
 
     return;
@@ -23556,6 +24372,8 @@ function closeAnalysis() {
 
 function updateStatus() {
 
+  refreshOnlineTurnPulse();
+
   if (
     gameMode === "online"
   ) {
@@ -25205,6 +26023,12 @@ window.addEventListener(
 window.addEventListener(
   "pagehide",
   recoverAudioAfterBackground
+);
+
+
+window.addEventListener(
+  "resize",
+  applyOnlineChatPosition
 );
 
 
