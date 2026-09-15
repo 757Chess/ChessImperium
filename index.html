@@ -2217,6 +2217,20 @@ th {
   font-weight:800;
 }
 
+.center-postgame-message {
+  display:none;
+  margin:-2px 0 9px;
+  color:#5c5143;
+  text-align:center;
+  font-size:12px;
+  font-weight:700;
+  line-height:1.35;
+}
+
+.center-postgame-message.visible {
+  display:block;
+}
+
 .center-postgame-buttons {
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -3740,7 +3754,8 @@ if (
           <div id="voiceBubbleLayer" class="voice-bubble-layer"></div>
 
           <div id="centerPostGameActions" class="center-postgame-actions">
-            <div class="center-postgame-title">Match Complete</div>
+            <div id="centerPostGameTitle" class="center-postgame-title">Match Complete</div>
+            <div id="centerPostGameMessage" class="center-postgame-message"></div>
             <div class="center-postgame-buttons">
               <button id="rematchBtn"
                       class="center-postgame-btn primary"
@@ -5011,6 +5026,12 @@ let openingThemeSource =
 let openingThemeGain =
   null;
 
+let pawnCoronationPlayback =
+  null;
+
+let pawnCoronationPlaybackToken =
+  0;
+
 
 function registerAudioBuffer(
   key,
@@ -6148,6 +6169,12 @@ const challengeNextCampaignBtn =
 const centerPostGameActions =
   document.getElementById("centerPostGameActions");
 
+const centerPostGameTitle =
+  document.getElementById("centerPostGameTitle");
+
+const centerPostGameMessage =
+  document.getElementById("centerPostGameMessage");
+
 
 const analyzeGameBtn =
   document.getElementById("analyzeGameBtn");
@@ -6513,6 +6540,9 @@ let formationAnimationTimers =
 let localResultReason =
   null;
 
+const promotedQueenSquares =
+  new Set();
+
 
 /* ===================================================== */
 /* ONLINE MULTIPLAYER STATE                              */
@@ -6750,6 +6780,110 @@ function playMenuClick() {
     "menuclick",
     MENU_CLICK_VOLUME
   );
+
+}
+
+async function playPawnCoronationSound() {
+
+  const playbackToken =
+    ++pawnCoronationPlaybackToken;
+
+  stopPawnCoronationSound(
+    false
+  );
+
+
+  const playback =
+    await playBufferedSound(
+      "pawncoronation"
+    );
+
+
+  if (
+    !playback
+  ) {
+    return;
+  }
+
+
+  if (
+    playbackToken !== pawnCoronationPlaybackToken
+  ) {
+
+    try {
+
+      playback.source.stop();
+
+    }
+    catch(error) {
+
+      /* Already ended. */
+
+    }
+
+
+    return;
+
+  }
+
+
+  pawnCoronationPlayback =
+    playback;
+
+
+  playback.source.addEventListener(
+    "ended",
+    () => {
+
+      if (
+        pawnCoronationPlayback === playback
+      ) {
+
+        pawnCoronationPlayback =
+          null;
+
+      }
+
+    },
+    {once:true}
+  );
+
+}
+
+
+function stopPawnCoronationSound(
+  advanceToken = true
+) {
+
+  if (
+    advanceToken
+  ) {
+
+    pawnCoronationPlaybackToken++;
+
+  }
+
+
+  if (
+    pawnCoronationPlayback
+  ) {
+
+    try {
+
+      pawnCoronationPlayback.source.stop();
+
+    }
+    catch(error) {
+
+      /* Already stopped. */
+
+    }
+
+  }
+
+
+  pawnCoronationPlayback =
+    null;
 
 }
 
@@ -7427,9 +7561,7 @@ function playSoundForMove(move) {
     move.promotion
   ) {
 
-    playSound(
-      "pawncoronation"
-    );
+    playPawnCoronationSound();
 
   }
 
@@ -7465,6 +7597,64 @@ function playSoundForMove(move) {
 
   }
 
+
+}
+
+
+function updatePawnCoronationStateAfterMove(
+  move
+) {
+
+  if (
+    !move
+  ) {
+    return;
+  }
+
+
+  if (
+    move.captured === "q" &&
+    promotedQueenSquares.has(
+      move.to
+    )
+  ) {
+
+    promotedQueenSquares.delete(
+      move.to
+    );
+
+    stopPawnCoronationSound();
+
+  }
+
+
+  if (
+    move.piece === "q" &&
+    promotedQueenSquares.has(
+      move.from
+    )
+  ) {
+
+    promotedQueenSquares.delete(
+      move.from
+    );
+
+    promotedQueenSquares.add(
+      move.to
+    );
+
+  }
+
+
+  if (
+    move.promotion === "q"
+  ) {
+
+    promotedQueenSquares.add(
+      move.to
+    );
+
+  }
 
 }
 
@@ -9061,6 +9251,18 @@ function campaignPlayerWonCurrentGame() {
 
 
   return winner === playerColor;
+
+}
+
+
+function campaignPlayerWonFinalGame() {
+
+  return Boolean(
+    campaignPlayerWonCurrentGame() &&
+    activeCampaignOpponent &&
+    activeCampaignOpponent.stage >=
+      CAMPAIGN_OPPONENTS.length
+  );
 
 }
 
@@ -17279,6 +17481,10 @@ function renderPreview() {
 
   clearCaptureToast();
 
+  stopPawnCoronationSound();
+
+  promotedQueenSquares.clear();
+
   hideGameOverSummary();
 
 
@@ -17616,14 +17822,51 @@ function updateCenterPostGameActions() {
     finished
   );
 
+  const finalCampaignVictory =
+    campaignPlayerWonFinalGame();
+
+  const nextOpponent =
+    campaignPlayerWonCurrentGame()
+      ? getNextCampaignOpponentAfterActive()
+      : null;
+
+
+  if (
+    centerPostGameTitle
+  ) {
+
+    centerPostGameTitle.textContent =
+      finalCampaignVictory
+        ? "Freedom Won"
+        : "Match Complete";
+
+  }
+
+
+  if (
+    centerPostGameMessage
+  ) {
+
+    centerPostGameMessage.textContent =
+      finalCampaignVictory
+        ? "Caesar rises, the arena falls silent, and your chains are struck away. Rome has witnessed your freedom."
+        : nextOpponent
+          ? "Victory carries you higher through the ranks of Rome."
+          : "";
+
+    centerPostGameMessage.classList.toggle(
+      "visible",
+      Boolean(
+        centerPostGameMessage.textContent
+      )
+    );
+
+  }
+
+
   if (
     challengeNextCampaignBtn
   ) {
-
-    const nextOpponent =
-      campaignPlayerWonCurrentGame()
-        ? getNextCampaignOpponentAfterActive()
-        : null;
 
     challengeNextCampaignBtn.style.display =
       nextOpponent ? "" : "none";
@@ -17714,6 +17957,7 @@ async function resignComputerGame() {
 
   hidePromotion();
   clearCaptureToast();
+  stopPawnCoronationSound();
 
   localResultReason =
     "resignation";
@@ -17879,6 +18123,10 @@ function beginGame(
 
 
   clearCaptureToast();
+
+  stopPawnCoronationSound();
+
+  promotedQueenSquares.clear();
 
 
   gameStarted =
@@ -20989,6 +21237,10 @@ function afterMove(
 
   updateSetupControlAvailability();
 
+  updatePawnCoronationStateAfterMove(
+    move
+  );
+
   playSoundForMove(
     move
   );
@@ -21686,7 +21938,14 @@ function getGameResultText() {
 
       winner === playerColor
 
-        ? "Victory — you won by checkmate."
+        ? (
+            gameMode === "campaign" &&
+            activeCampaignOpponent &&
+            activeCampaignOpponent.stage >=
+              CAMPAIGN_OPPONENTS.length
+              ? "Victory — Caesar grants your freedom."
+              : "Victory — you won by checkmate."
+          )
 
         : (
             gameMode === "online"
