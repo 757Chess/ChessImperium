@@ -3781,6 +3781,7 @@ if (
 
       <div class="chess-imperium-banner-wrap">
         <img
+          id="chessImperiumBanner"
           class="chess-imperium-banner"
           src="./Graphics/cibanner-arena.png?v=arena-title-overlay-20260915"
           alt="">
@@ -4587,6 +4588,12 @@ const DIFFICULTIES = {
 const CAMPAIGN_PROGRESS_KEY =
   "chessImperiumCampaignUnlockedStage";
 
+const DEFAULT_BANNER_SRC =
+  "./Graphics/cibanner-arena.png?v=arena-title-overlay-20260915";
+
+const CAMPAIGN_BANNER_VERSION =
+  "campaign-banners-20260915";
+
 
 const CAMPAIGN_OPPONENTS = [
   {
@@ -4599,6 +4606,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"RNB",
     initials:"CV",
     portrait:"./Graphics/Campaign/Opponents/cassian-varro.png",
+    banner:"./Graphics/Campaign/Banners/cassian-varro-banner.png",
     backstory:
       "Your owner watches from a marble chair above the arena, convinced that discipline and debt are stronger than hope. Varro is no champion, but he knows every weakness in a desperate man. Defeat him, and your chain grows lighter for the first time."
   },
@@ -4612,6 +4620,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"NRB",
     initials:"MD",
     portrait:"./Graphics/Campaign/Opponents/marcus-drusus.png",
+    banner:"./Graphics/Campaign/Banners/marcus-drusus-banner.png",
     backstory:
       "A frontier officer with a soldier's patience, Drusus trusts clean development, hard trades, and steady pressure. He has broken shield walls from Gaul to Syria, and he treats the board like another formation to hold. He will not dazzle you; he will grind."
   },
@@ -4625,6 +4634,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"RBN",
     initials:"LC",
     portrait:"./Graphics/Campaign/Opponents/livia-corvina.png",
+    banner:"./Graphics/Campaign/Banners/livia-corvina-banner.png",
     backstory:
       "Corvina learned politics before war. She studies the arena as if every cheer, debt, and favor were another piece to command. Her formation hides sharp intent behind civilized manners, then punishes ambition the moment it moves one square too far."
   },
@@ -4638,6 +4648,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"BRN",
     initials:"GS",
     portrait:"./Graphics/Campaign/Opponents/gaius-severan.png",
+    banner:"./Graphics/Campaign/Banners/gaius-severan-banner.png",
     backstory:
       "Severan treats the board like law: every careless move becomes evidence, every trapped piece a sentence. In Rome, his judgments are feared because they arrive cold and complete. Against him, escape routes matter as much as attacks."
   },
@@ -4651,6 +4662,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"BNR",
     initials:"TM",
     portrait:"./Graphics/Campaign/Opponents/titus-marcellus.png",
+    banner:"./Graphics/Campaign/Banners/titus-marcellus-banner.png",
     backstory:
       "The crowd loves Marcellus for his elegance, but beneath the ceremony is a veteran who sees endings early. He plays as if each exchange has already been weighed by the Senate. If you reach him, the arena is no longer laughing."
   },
@@ -4664,6 +4676,7 @@ const CAMPAIGN_OPPONENTS = [
     formation:"NBR",
     initials:"AC",
     portrait:"./Graphics/Campaign/Opponents/augustus-caesar.png",
+    banner:"./Graphics/Campaign/Banners/augustus-caesar-banner.png",
     backstory:
       "Caesar does not hurry. He lets the empire breathe, then makes one quiet move that leaves no appeal. The pardon is real, but so is the spectacle: Rome wants to see whether a gladiator can think like a ruler. Win here, and freedom is not granted; it is witnessed."
   }
@@ -6142,6 +6155,9 @@ function fadeOutOpeningTheme(
 
 const boardEl =
   document.getElementById("board");
+
+const chessImperiumBanner =
+  document.getElementById("chessImperiumBanner");
 
 const voiceBubbleLayer =
   document.getElementById("voiceBubbleLayer");
@@ -8939,6 +8955,93 @@ function getSelectedCampaignOpponent() {
 }
 
 
+function versionedCampaignBannerSrc(
+  banner
+) {
+
+  if (
+    !banner
+  ) {
+    return DEFAULT_BANNER_SRC;
+  }
+
+
+  return (
+    banner +
+    "?v=" +
+    CAMPAIGN_BANNER_VERSION
+  );
+
+}
+
+
+function getCurrentBannerSrc() {
+
+  if (
+    gameMode === "campaign"
+  ) {
+
+    const activeCampaignGame =
+      Boolean(
+        gameStarted &&
+        activeCampaignOpponent &&
+        game &&
+        !game.isGameOver() &&
+        !localGameFinished()
+      );
+
+    const campaignOpponent =
+      activeCampaignGame
+        ? activeCampaignOpponent
+        : getSelectedCampaignOpponent();
+
+
+    if (
+      campaignOpponent &&
+      campaignOpponent.banner
+    ) {
+
+      return versionedCampaignBannerSrc(
+        campaignOpponent.banner
+      );
+
+    }
+
+  }
+
+
+  return DEFAULT_BANNER_SRC;
+
+}
+
+
+function updateBannerArt() {
+
+  if (
+    !chessImperiumBanner
+  ) {
+    return;
+  }
+
+
+  const nextSrc =
+    getCurrentBannerSrc();
+
+
+  if (
+    chessImperiumBanner.getAttribute(
+      "src"
+    ) !== nextSrc
+  ) {
+
+    chessImperiumBanner.src =
+      nextSrc;
+
+  }
+
+}
+
+
 function getCampaignStageLabel(
   stage
 ) {
@@ -9030,6 +9133,8 @@ function applyCampaignOpponent(
   applyDifficulty();
 
   renderPreview();
+
+  updateBannerArt();
 
   renderCampaignPanel();
 
@@ -9577,6 +9682,8 @@ function updateGameModeUI() {
       ? onlineRoom
       : null
   );
+
+  updateBannerArt();
 
   updateInfoPanel();
 
@@ -17529,6 +17636,8 @@ function renderPreview() {
 
   updateStartGameAttention();
 
+  updateBannerArt();
+
 
   actualPlayerColor =
     null;
@@ -18218,6 +18327,8 @@ function beginGame(
 
 
   updateStartGameAttention();
+
+  updateBannerArt();
 
 
   playerColor =
