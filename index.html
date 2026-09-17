@@ -4905,6 +4905,10 @@ const STACKING_SOUND_VOLUME = .05;
 const KNIGHT_COMMAND_CAPTURE_VOLUME = .20;
 const PAWN_CAPTURE_VOICE_VOLUME = .16;
 const PAWN_VS_ROOK_VOICE_VOLUME = .16;
+const PAWN_MOVE_VOICE_VOLUME = .14;
+const PAWN_FIRST_MOVE_VOICE_VOLUME = .14;
+const SARCASTIC_PAWN_VOICE_VOLUME = .14;
+const PAWN_MOVE_VOICE_CHANCE = .5;
 const CHAT_BEEP_VOLUME = .36;
 const ONLINE_NO_CLOCK_TURN_PULSE_DELAY_MS =
   180000;
@@ -4980,6 +4984,64 @@ const PAWN_CAPTURE_SOUND_FILES = [
 const PAWN_VS_ROOK_SOUND_FILE =
   "./Audio/pawnvsrook.wav";
 
+const PAWN_MOVE_SOUND_FILES = [
+  "./Audio/Non attacking pawn moves/pawnmove1.wav",
+  "./Audio/Non attacking pawn moves/pawnmove2.wav",
+  "./Audio/Non attacking pawn moves/pawnmove3.wav",
+  "./Audio/Non attacking pawn moves/pawnmove4.wav",
+  "./Audio/Non attacking pawn moves/pawnmove5.wav",
+  "./Audio/Non attacking pawn moves/pawnmove6.wav",
+  "./Audio/Non attacking pawn moves/pawnmove7.wav",
+  "./Audio/Non attacking pawn moves/pawnmove8.wav",
+  "./Audio/Non attacking pawn moves/pawnmove9.wav",
+  "./Audio/Non attacking pawn moves/pawnmove10.wav",
+  "./Audio/Non attacking pawn moves/pawnmove11.wav",
+  "./Audio/Non attacking pawn moves/pawnmove12.wav",
+  "./Audio/Non attacking pawn moves/pawnmove13.wav",
+  "./Audio/Non attacking pawn moves/pawnmove14.wav",
+  "./Audio/Non attacking pawn moves/pawnmove15.wav"
+];
+
+const PAWN_FIRST_MOVE_SOUND_FILES = [
+  "./Audio/Pawn's first move/pawnfirstmove1.wav",
+  "./Audio/Pawn's first move/pawnfirstmove2.wav",
+  "./Audio/Pawn's first move/pawnfirstmove3.wav",
+  "./Audio/Pawn's first move/pawnfirstmove4.wav"
+];
+
+const SARCASTIC_PAWN_SOUND_FILES = [
+  "./Audio/Sarcastic Pawn/sarcasm1.wav",
+  "./Audio/Sarcastic Pawn/sarcasm2.wav",
+  "./Audio/Sarcastic Pawn/sarcasm3.wav",
+  "./Audio/Sarcastic Pawn/sarcasm4.wav",
+  "./Audio/Sarcastic Pawn/sarcasm5.wav",
+  "./Audio/Sarcastic Pawn/sarcasm6.wav",
+  "./Audio/Sarcastic Pawn/sarcasm7.wav",
+  "./Audio/Sarcastic Pawn/sarcasm8.wav",
+  "./Audio/Sarcastic Pawn/sarcasm9.wav",
+  "./Audio/Sarcastic Pawn/sarcasm10.wav",
+  "./Audio/Sarcastic Pawn/sarcasm11.wav",
+  "./Audio/Sarcastic Pawn/sarcasm12.wav",
+  "./Audio/Sarcastic Pawn/sarcasm13.wav",
+  "./Audio/Sarcastic Pawn/sarcasm14.wav",
+  "./Audio/Sarcastic Pawn/sarcasm15.wav",
+  "./Audio/Sarcastic Pawn/sarcasm16.wav",
+  "./Audio/Sarcastic Pawn/sarcasm17.wav",
+  "./Audio/Sarcastic Pawn/sarcasm18.wav",
+  "./Audio/Sarcastic Pawn/sarcasm19.wav",
+  "./Audio/Sarcastic Pawn/sarcasm20.wav",
+  "./Audio/Sarcastic Pawn/sarcasm21.wav",
+  "./Audio/Sarcastic Pawn/sarcasm22.wav",
+  "./Audio/Sarcastic Pawn/sarcasm23.wav",
+  "./Audio/Sarcastic Pawn/sarcasm24.wav",
+  "./Audio/Sarcastic Pawn/sarcasm25.wav",
+  "./Audio/Sarcastic Pawn/sarcasm26.wav",
+  "./Audio/Sarcastic Pawn/sarcasm27.wav",
+  "./Audio/Sarcastic Pawn/sarcasm28.wav",
+  "./Audio/Sarcastic Pawn/sarcasm29.wav",
+  "./Audio/Sarcastic Pawn/sarcasm30.wav"
+];
+
 
 const KING_CAPTURE_SOUND_FILES = [
   "./Audio/Jonathan's Audio Files/King/king1.wav",
@@ -5038,6 +5100,9 @@ const AUDIO_MIX_DEFAULTS = {
   vocals:1,
   knightVoice:1,
   pawnVoice:1,
+  pawnMoveVoice:1,
+  pawnFirstMoveVoice:1,
+  sarcasticPawnVoice:1,
   kingVoice:1,
   queenVoice:1
 };
@@ -5053,6 +5118,9 @@ const AUDIO_MIX_PARENTS = {
   coronation:"themes",
   knightVoice:"vocals",
   pawnVoice:"vocals",
+  pawnMoveVoice:"pawnVoice",
+  pawnFirstMoveVoice:"pawnVoice",
+  sarcasticPawnVoice:"pawnVoice",
   kingVoice:"vocals",
   queenVoice:"vocals"
 };
@@ -5090,6 +5158,9 @@ const AUDIO_MIX_GROUPS = [
       {key:"vocals", label:"All Voices"},
       {key:"knightVoice", label:"Knight"},
       {key:"pawnVoice", label:"Pawn"},
+      {key:"pawnMoveVoice", label:"Pawn Moves"},
+      {key:"pawnFirstMoveVoice", label:"Pawn First Move"},
+      {key:"sarcasticPawnVoice", label:"Sarcastic Pawn"},
       {key:"kingVoice", label:"King"},
       {key:"queenVoice", label:"Queen"}
     ]
@@ -5162,6 +5233,12 @@ let lastKnightCommandCaptureIndex =
 
 
 let lastPawnCaptureIndex =
+  -1;
+
+let lastPawnMoveVoiceKey =
+  null;
+
+let lastSarcasticPawnVoiceIndex =
   -1;
 
 
@@ -5359,6 +5436,44 @@ function reloadAudioBuffersForCurrentContext() {
     "pawnvsrook",
     PAWN_VS_ROOK_SOUND_FILE,
     generation
+  );
+
+  PAWN_MOVE_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "pawnmove" + index,
+        file,
+        generation
+      );
+
+    }
+  );
+
+
+  PAWN_FIRST_MOVE_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "pawnfirstmove" + index,
+        file,
+        generation
+      );
+
+    }
+  );
+
+
+  SARCASTIC_PAWN_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "sarcasticpawn" + index,
+        file,
+        generation
+      );
+
+    }
   );
 
 
@@ -6712,6 +6827,15 @@ let localResultReason =
 const promotedQueenSquares =
   new Set();
 
+let sarcasticPawnSquare =
+  null;
+
+let sarcasticPawnAssignedThisGame =
+  false;
+
+let sarcasticPawnGameKey =
+  null;
+
 
 /* ===================================================== */
 /* ONLINE MULTIPLAYER STATE                              */
@@ -7386,6 +7510,346 @@ function playPawnCaptureSound(
 
     }
   );
+
+}
+
+
+function isPawnFirstMove(
+  move
+) {
+
+  return Boolean(
+    move &&
+    move.piece === "p" &&
+    (
+      (
+        move.color === "w" &&
+        move.from.charAt(1) === "2"
+      ) ||
+      (
+        move.color === "b" &&
+        move.from.charAt(1) === "7"
+      )
+    )
+  );
+
+}
+
+
+function choosePawnMoveVoiceOption(
+  isFirstMove
+) {
+
+  const options =
+    [];
+
+
+  PAWN_MOVE_SOUND_FILES.forEach(
+    (file,index) => {
+
+      options.push({
+        key:"pawnmove" + index,
+        volume:PAWN_MOVE_VOICE_VOLUME,
+        mixKey:"pawnMoveVoice"
+      });
+
+    }
+  );
+
+
+  if (
+    isFirstMove
+  ) {
+
+    PAWN_FIRST_MOVE_SOUND_FILES.forEach(
+      (file,index) => {
+
+        options.push({
+          key:"pawnfirstmove" + index,
+          volume:PAWN_FIRST_MOVE_VOICE_VOLUME,
+          mixKey:"pawnFirstMoveVoice"
+        });
+
+      }
+    );
+
+  }
+
+
+  if (
+    options.length === 0
+  ) {
+    return null;
+  }
+
+
+  let nextOption =
+    options[
+      Math.floor(
+        Math.random() *
+        options.length
+      )
+    ];
+
+
+  if (
+    options.length > 1 &&
+    nextOption.key === lastPawnMoveVoiceKey
+  ) {
+
+    const nextIndex =
+      (
+        options.findIndex(
+          option =>
+            option.key === nextOption.key
+        ) +
+        1 +
+        Math.floor(
+          Math.random() *
+          (
+            options.length - 1
+          )
+        )
+      ) %
+      options.length;
+
+
+    nextOption =
+      options[nextIndex];
+
+  }
+
+
+  lastPawnMoveVoiceKey =
+    nextOption.key;
+
+
+  return nextOption;
+
+}
+
+
+function playPawnMoveVoice(
+  move,
+  squareName = null
+) {
+
+  if (
+    !soundEnabled ||
+    !move ||
+    move.piece !== "p" ||
+    move.captured ||
+    move.promotion ||
+    moveHasCheckPriority(
+      move
+    ) ||
+    Math.random() >= PAWN_MOVE_VOICE_CHANCE
+  ) {
+    return;
+  }
+
+
+  let voiceOption =
+    null;
+
+
+  if (
+    sarcasticPawnSquare &&
+    move.from === sarcasticPawnSquare &&
+    SARCASTIC_PAWN_SOUND_FILES.length > 0
+  ) {
+
+    let nextIndex =
+      Math.floor(
+        Math.random() *
+        SARCASTIC_PAWN_SOUND_FILES.length
+      );
+
+
+    if (
+      SARCASTIC_PAWN_SOUND_FILES.length > 1 &&
+      nextIndex === lastSarcasticPawnVoiceIndex
+    ) {
+
+      nextIndex =
+        (
+          nextIndex +
+          1 +
+          Math.floor(
+            Math.random() *
+            (
+              SARCASTIC_PAWN_SOUND_FILES.length -
+              1
+            )
+          )
+        ) %
+        SARCASTIC_PAWN_SOUND_FILES.length;
+
+    }
+
+
+    lastSarcasticPawnVoiceIndex =
+      nextIndex;
+
+    voiceOption = {
+      key:"sarcasticpawn" + nextIndex,
+      volume:SARCASTIC_PAWN_VOICE_VOLUME,
+      mixKey:"sarcasticPawnVoice"
+    };
+
+  }
+
+  else {
+
+    voiceOption =
+      choosePawnMoveVoiceOption(
+        isPawnFirstMove(
+          move
+        )
+      );
+
+  }
+
+
+  if (
+    !voiceOption
+  ) {
+    return;
+  }
+
+
+  showVoiceBubble(
+    squareName ||
+    move.from
+  );
+
+
+  playBufferedSound(
+    voiceOption.key,
+    voiceOption.volume,
+    voiceOption.mixKey,
+    buffer => {
+
+      updateVoiceBubbleDuration(
+        buffer.duration * 1000
+      );
+
+    }
+  );
+
+}
+
+
+function assignRandomSarcasticPawn() {
+
+  const pawnSquares =
+    [];
+
+
+  "abcdefgh"
+    .split("")
+    .forEach(
+      file => {
+
+        "12345678"
+          .split("")
+          .forEach(
+            rank => {
+
+              const square =
+                file + rank;
+
+              const piece =
+                game &&
+                typeof game.get === "function"
+                  ? game.get(
+                      square
+                    )
+                  : null;
+
+
+              if (
+                piece &&
+                piece.type === "p"
+              ) {
+
+                pawnSquares.push(
+                  square
+                );
+
+              }
+
+            }
+          );
+
+      }
+    );
+
+
+  sarcasticPawnSquare =
+    pawnSquares[
+      Math.floor(
+        Math.random() *
+        pawnSquares.length
+      )
+    ] ||
+    null;
+
+  sarcasticPawnAssignedThisGame =
+    true;
+
+  lastSarcasticPawnVoiceIndex =
+    -1;
+
+}
+
+
+function updateSarcasticPawnAfterMove(
+  move
+) {
+
+  if (
+    !move ||
+    !sarcasticPawnSquare
+  ) {
+    return;
+  }
+
+
+  if (
+    move.captured &&
+    move.to === sarcasticPawnSquare
+  ) {
+
+    sarcasticPawnSquare =
+      null;
+
+    return;
+
+  }
+
+
+  if (
+    move.from !== sarcasticPawnSquare
+  ) {
+    return;
+  }
+
+
+  if (
+    move.promotion
+  ) {
+
+    sarcasticPawnSquare =
+      null;
+
+    return;
+
+  }
+
+
+  sarcasticPawnSquare =
+    move.to;
 
 }
 
@@ -11087,6 +11551,37 @@ function setupOnlineGameFromRoom(
   }
 
 
+  const onlineSarcasticPawnGameKey =
+    "online:" +
+    room.id;
+
+
+  if (
+    sarcasticPawnGameKey !==
+    onlineSarcasticPawnGameKey
+  ) {
+
+    sarcasticPawnGameKey =
+      onlineSarcasticPawnGameKey;
+
+    sarcasticPawnSquare =
+      null;
+
+    sarcasticPawnAssignedThisGame =
+      false;
+
+  }
+
+
+  if (
+    !sarcasticPawnAssignedThisGame
+  ) {
+
+    assignRandomSarcasticPawn();
+
+  }
+
+
   gameStarted =
     true;
 
@@ -14577,6 +15072,20 @@ async function animateLegalMove(
 
   if (
     plannedMove &&
+    plannedMove.piece === "p" &&
+    !plannedMove.captured
+  ) {
+
+    playPawnMoveVoice(
+      plannedMove,
+      from
+    );
+
+  }
+
+
+  if (
+    plannedMove &&
     plannedMove.piece === "q" &&
     plannedMove.captured &&
     !moveHasCheckPriority(
@@ -17904,6 +18413,15 @@ function renderPreview() {
 
   promotedQueenSquares.clear();
 
+  sarcasticPawnSquare =
+    null;
+
+  sarcasticPawnAssignedThisGame =
+    false;
+
+  sarcasticPawnGameKey =
+    null;
+
   hideGameOverSummary();
 
 
@@ -18600,6 +19118,12 @@ function beginGame(
   lastPawnCaptureIndex =
     -1;
 
+  lastPawnMoveVoiceKey =
+    null;
+
+  lastSarcasticPawnVoiceIndex =
+    -1;
+
   lastQueenDeathIndex =
     -1;
 
@@ -18636,6 +19160,15 @@ function beginGame(
         allowCastling
       )
     );
+
+  sarcasticPawnAssignedThisGame =
+    false;
+
+  sarcasticPawnGameKey =
+    "local:" +
+    Date.now();
+
+  assignRandomSarcasticPawn();
 
 
   engine.postMessage(
@@ -21022,6 +21555,21 @@ async function completePlayerMove(
 
 
   if (
+    skipAnimation &&
+    plannedMove &&
+    plannedMove.piece === "p" &&
+    !plannedMove.captured
+  ) {
+
+    playPawnMoveVoice(
+      plannedMove,
+      to
+    );
+
+  }
+
+
+  if (
     plannedMove &&
     plannedMove.piece === "n" &&
     plannedMove.captured &&
@@ -21659,6 +22207,10 @@ function afterMove(
   updateSetupControlAvailability();
 
   playSoundForMove(
+    move
+  );
+
+  updateSarcasticPawnAfterMove(
     move
   );
 
