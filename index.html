@@ -9629,6 +9629,46 @@ function normalizedPlayerDisplayName() {
 }
 
 
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value ||
+    ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#39;"
+    );
+
+}
+
+
+function getPlayerDisplayLabel() {
+
+  return normalizedPlayerDisplayName() ||
+    "You";
+
+}
+
+
 function possessiveLabel(
   name
 ) {
@@ -19501,9 +19541,19 @@ function beginGame(
     (
       playerColor === "w"
 
-        ? "You are White"
+        ? (
+            escapeHtml(
+              getPlayerDisplayLabel()
+            ) +
+            " is White"
+          )
 
-        : "You are Black"
+        : (
+            escapeHtml(
+              getPlayerDisplayLabel()
+            ) +
+            " is Black"
+          )
     );
 
 
@@ -23324,6 +23374,9 @@ function buildGameSummaryText() {
       ? "Black"
       : "White";
 
+  const playerName =
+    normalizedPlayerDisplayName();
+
   const summaryModeText =
     gameMode === "online"
       ? "Online Multiplayer"
@@ -23339,6 +23392,11 @@ function buildGameSummaryText() {
       "In progress"
     ),
     "Mode: " + summaryModeText,
+    (
+      playerName
+        ? "Player: " + playerName
+        : "Player: You"
+    ),
     "Your color: " + colorText,
     "Your formation: " + playerFormationText,
     (
@@ -26395,6 +26453,11 @@ function updateInfoPanel() {
         : "—"
     );
 
+  const playerLabel =
+    escapeHtml(
+      getPlayerDisplayLabel()
+    );
+
 
   if (
     gameMode === "online"
@@ -26422,10 +26485,9 @@ function updateInfoPanel() {
         "</div>" +
 
         "<div class='match-line'><strong>" +
-        (
-          getMyOnlineDisplayName()
-            ? getMyOnlineDisplayName()
-            : "You"
+        escapeHtml(
+          getMyOnlineDisplayName() ||
+          "You"
         ) +
         ":</strong> " +
         colorText +
@@ -26445,10 +26507,9 @@ function updateInfoPanel() {
 
       infoBox.innerHTML =
         "<div class='match-line'><strong>" +
-        (
-          getMyOnlineDisplayName()
-            ? getMyOnlineDisplayName()
-            : "You"
+        escapeHtml(
+          getMyOnlineDisplayName() ||
+          "You"
         ) +
         ":</strong> " +
         (
@@ -26461,10 +26522,9 @@ function updateInfoPanel() {
         "</div>" +
 
         "<div class='match-line'><strong>" +
-        (
-          getOpponentOnlineDisplayName()
-            ? getOpponentOnlineDisplayName()
-            : "Opponent"
+        escapeHtml(
+          getOpponentOnlineDisplayName() ||
+          "Opponent"
         ) +
         ":</strong> " +
         "Formation hidden until both players lock in" +
@@ -26555,7 +26615,9 @@ function updateInfoPanel() {
         : ""
     ) +
 
-    "<div class='match-line'><strong>You:</strong> " +
+    "<div class='match-line'><strong>" +
+    playerLabel +
+    ":</strong> " +
     playerFormationText +
     " · " +
     colorText +
