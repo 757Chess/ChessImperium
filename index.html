@@ -2463,7 +2463,7 @@ th {
   display:none;
   grid-template-columns:minmax(0,360px) minmax(190px,1fr);
   gap:14px;
-  align-items:start;
+  align-items:stretch;
   margin-bottom:15px;
 }
 
@@ -2507,6 +2507,11 @@ th {
   transition:height .28s ease;
 }
 
+.analysis-eval-meter.white-bottom .analysis-eval-white {
+  top:auto;
+  bottom:0;
+}
+
 .analysis-eval-side {
   position:absolute;
   left:50%;
@@ -2526,6 +2531,16 @@ th {
 .analysis-eval-side-black {
   bottom:5px;
   color:#fff;
+}
+
+.analysis-eval-meter.white-bottom .analysis-eval-side-white {
+  top:auto;
+  bottom:5px;
+}
+
+.analysis-eval-meter.white-bottom .analysis-eval-side-black {
+  top:5px;
+  bottom:auto;
 }
 
 .analysis-eval-value {
@@ -2602,10 +2617,13 @@ th {
 }
 
 .analysis-replay-panel {
+  display:flex;
+  flex-direction:column;
   padding:12px;
   border:1px solid #ddd2bd;
   border-radius:11px;
   background:#fffaf2;
+  min-height:276px;
 }
 
 .analysis-replay-label {
@@ -2624,11 +2642,12 @@ th {
 }
 
 .analysis-replay-detail {
-  min-height:48px;
+  height:126px;
   margin:6px 0 11px;
   color:#504a43;
   font-size:11px;
   line-height:1.45;
+  overflow:auto;
 }
 
 .analysis-coach-note {
@@ -2652,6 +2671,7 @@ th {
   display:grid;
   grid-template-columns:38px 38px minmax(72px,1fr) 38px 38px;
   gap:5px;
+  margin-top:auto;
 }
 
 .analysis-replay-controls button {
@@ -24278,6 +24298,12 @@ function evaluationWhiteShare(
 function updateAnalysisEvalMeter(
   value
 ) {
+
+  analysisEvalMeter.classList.toggle(
+    "white-bottom",
+    playerColor === "w"
+  );
+
 
   analysisEvalWhite.style.height =
     evaluationWhiteShare(
