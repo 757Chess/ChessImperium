@@ -386,6 +386,55 @@ button:disabled {
   gap:6px;
 }
 
+.strength-slider-panel {
+  padding:10px;
+  border:1px solid #ddd2bd;
+  border-radius:8px;
+  background:#fffaf2;
+}
+
+.strength-slider-header {
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:8px;
+}
+
+.strength-slider-title {
+  color:var(--green);
+  font-weight:800;
+  font-size:13px;
+}
+
+.strength-slider-value {
+  color:#9a7424;
+  font-weight:900;
+  font-size:18px;
+  line-height:1;
+}
+
+.strength-slider-panel input[type="range"] {
+  width:100%;
+  margin:2px 0 4px;
+  accent-color:var(--green);
+}
+
+.strength-slider-ticks {
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:800;
+}
+
+.strength-slider-note {
+  margin-top:7px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.35;
+}
+
 .side-btn,
 .difficulty-btn,
 .action-btn,
@@ -3598,38 +3647,54 @@ if (
 
       <div id="difficultySection" class="section">
 
-        <div class="label">Computer Difficulty Rating</div>
+        <label class="label" for="computerStrengthSlider">
+          Computer strength
+        </label>
 
-        <div class="difficulty-grid">
+        <div class="strength-slider-panel">
 
-          <button
-            id="difficultyRelaxed"
-            class="difficulty-btn active"
-            type="button">
-            <span class="difficulty-rating difficulty-rating-primary">700</span>
-          </button>
+          <div class="strength-slider-header">
+            <span id="computerStrengthTitle"
+                  class="strength-slider-title">
+              Initiate
+            </span>
+            <span id="computerStrengthValue"
+                  class="strength-slider-value">
+              700
+            </span>
+          </div>
 
-          <button
-            id="difficultyStandard"
-            class="difficulty-btn"
-            type="button">
-            <span class="difficulty-rating difficulty-rating-primary">1000</span>
-          </button>
+          <input
+            id="computerStrengthSlider"
+            type="range"
+            min="500"
+            max="2500"
+            step="50"
+            value="700"
+            list="computerStrengthTicks">
 
-          <button
-            id="difficultyFierce"
-            class="difficulty-btn"
-            type="button">
-            <span class="difficulty-rating difficulty-rating-primary">1350</span>
-          </button>
+          <datalist id="computerStrengthTicks">
+            <option value="500"></option>
+            <option value="1000"></option>
+            <option value="1500"></option>
+            <option value="2000"></option>
+            <option value="2500"></option>
+          </datalist>
 
-          <button
-            id="difficultyRuthless"
-            class="difficulty-btn"
-            type="button">
-            <span class="difficulty-rating difficulty-rating-primary">1750</span>
-          </button>
+          <div class="strength-slider-ticks"
+               aria-hidden="true">
+            <span>500</span>
+            <span>1000</span>
+            <span>1500</span>
+            <span>2000</span>
+            <span>2500</span>
+          </div>
 
+          <div id="computerStrengthNote"
+               class="strength-slider-note">
+            Estimated rating. The engine uses this to shape skill, search depth,
+            and early randomness.
+          </div>
         </div>
 
       </div>
@@ -4683,6 +4748,165 @@ const DIFFICULTIES = {
   }
 
 };
+
+const COMPUTER_STRENGTH_MIN =
+  500;
+
+const COMPUTER_STRENGTH_MAX =
+  2500;
+
+
+function clampComputerStrength(
+  value
+) {
+
+  const numericValue =
+    Number(
+      value
+    );
+
+
+  if (
+    !Number.isFinite(
+      numericValue
+    )
+  ) {
+
+    return 700;
+
+  }
+
+
+  return Math.max(
+    COMPUTER_STRENGTH_MIN,
+    Math.min(
+      COMPUTER_STRENGTH_MAX,
+      Math.round(
+        numericValue / 50
+      ) * 50
+    )
+  );
+
+}
+
+
+function getComputerStrengthTitle(
+  rating
+) {
+
+  if (
+    rating < 800
+  ) {
+    return "Initiate";
+  }
+
+  if (
+    rating < 1100
+  ) {
+    return "Apprentice";
+  }
+
+  if (
+    rating < 1400
+  ) {
+    return "Contender";
+  }
+
+  if (
+    rating < 1700
+  ) {
+    return "Veteran";
+  }
+
+  if (
+    rating < 2000
+  ) {
+    return "Champion";
+  }
+
+  if (
+    rating < 2300
+  ) {
+    return "Master";
+  }
+
+
+  return "Imperator";
+
+}
+
+
+function buildComputerDifficultyFromRating(
+  rating
+) {
+
+  const clampedRating =
+    clampComputerStrength(
+      rating
+    );
+
+  const progress =
+    (
+      clampedRating -
+      COMPUTER_STRENGTH_MIN
+    ) /
+    (
+      COMPUTER_STRENGTH_MAX -
+      COMPUTER_STRENGTH_MIN
+    );
+
+  const skill =
+    Math.round(
+      progress * 20
+    );
+
+  const nodes =
+    Math.round(
+      80 *
+      Math.pow(
+        260,
+        progress
+      )
+    );
+
+  const randomMoveChance =
+    clampedRating < 1000
+      ? (
+          .42 *
+          (
+            1000 - clampedRating
+          ) /
+          500
+        )
+      : 0;
+
+
+  return {
+    label:getComputerStrengthTitle(
+      clampedRating
+    ),
+    elo:String(
+      clampedRating
+    ),
+    skill,
+    nodes,
+    randomMoveChance
+  };
+
+}
+
+
+function getActiveDifficulty() {
+
+  return gameMode === "campaign"
+    ? DIFFICULTIES[
+        difficultyKey
+      ]
+    : buildComputerDifficultyFromRating(
+        computerStrengthRating
+      );
+
+}
 
 
 const CAMPAIGN_PROGRESS_KEY =
@@ -6566,17 +6790,17 @@ const playRandomBtn =
 const playBlackBtn =
   document.getElementById("playBlackBtn");
 
-const difficultyRelaxed =
-  document.getElementById("difficultyRelaxed");
+const computerStrengthSlider =
+  document.getElementById("computerStrengthSlider");
 
-const difficultyStandard =
-  document.getElementById("difficultyStandard");
+const computerStrengthTitle =
+  document.getElementById("computerStrengthTitle");
 
-const difficultyFierce =
-  document.getElementById("difficultyFierce");
+const computerStrengthValue =
+  document.getElementById("computerStrengthValue");
 
-const difficultyRuthless =
-  document.getElementById("difficultyRuthless");
+const computerStrengthNote =
+  document.getElementById("computerStrengthNote");
 
 const newGameBtn =
   document.getElementById("newGameBtn");
@@ -6781,6 +7005,9 @@ let actualComputerFormation =
 
 let difficultyKey =
   "casual";
+
+let computerStrengthRating =
+  700;
 
 let engineReady =
   false;
@@ -16635,104 +16862,35 @@ function initializeControls() {
   );
 
 
-  attachDifficultyTooltip(
-    difficultyRelaxed,
-    "casual"
-  );
+  if (
+    computerStrengthSlider
+  ) {
+
+    computerStrengthSlider.addEventListener(
+      "input",
+      function() {
+
+        computerStrengthRating =
+          clampComputerStrength(
+            computerStrengthSlider.value
+          );
+
+        refreshDifficultyButtons();
+
+        applyDifficulty();
+
+        updateInfoPanel();
+
+      }
+    );
 
 
-  attachDifficultyTooltip(
-    difficultyStandard,
-    "beginner"
-  );
+    computerStrengthSlider.addEventListener(
+      "change",
+      playMenuClick
+    );
 
-
-  attachDifficultyTooltip(
-    difficultyFierce,
-    "intermediate"
-  );
-
-
-  attachDifficultyTooltip(
-    difficultyRuthless,
-    "hard"
-  );
-
-
-  difficultyRelaxed.addEventListener(
-    "click",
-    function() {
-
-      playMenuClick();
-
-      difficultyKey =
-        "casual";
-
-      refreshDifficultyButtons();
-
-      applyDifficulty();
-
-      updateInfoPanel();
-
-    }
-  );
-
-
-  difficultyStandard.addEventListener(
-    "click",
-    function() {
-
-      playMenuClick();
-
-      difficultyKey =
-        "beginner";
-
-      refreshDifficultyButtons();
-
-      applyDifficulty();
-
-      updateInfoPanel();
-
-    }
-  );
-
-
-  difficultyFierce.addEventListener(
-    "click",
-    function() {
-
-      playMenuClick();
-
-      difficultyKey =
-        "intermediate";
-
-      refreshDifficultyButtons();
-
-      applyDifficulty();
-
-      updateInfoPanel();
-
-    }
-  );
-
-
-  difficultyRuthless.addEventListener(
-    "click",
-    function() {
-
-      playMenuClick();
-
-      difficultyKey =
-        "hard";
-
-      refreshDifficultyButtons();
-
-      applyDifficulty();
-
-      updateInfoPanel();
-
-    }
-  );
+  }
 
 
   howToPlayBtn.addEventListener(
@@ -18094,28 +18252,56 @@ function refreshSideButtons() {
 
 function refreshDifficultyButtons() {
 
-  difficultyRelaxed.classList.toggle(
-    "active",
-    difficultyKey === "casual"
-  );
+  const difficulty =
+    buildComputerDifficultyFromRating(
+      computerStrengthRating
+    );
 
 
-  difficultyStandard.classList.toggle(
-    "active",
-    difficultyKey === "beginner"
-  );
+  if (
+    computerStrengthSlider
+  ) {
+
+    computerStrengthSlider.value =
+      String(
+        computerStrengthRating
+      );
+
+  }
 
 
-  difficultyFierce.classList.toggle(
-    "active",
-    difficultyKey === "intermediate"
-  );
+  if (
+    computerStrengthTitle
+  ) {
+
+    computerStrengthTitle.textContent =
+      difficulty.label;
+
+  }
 
 
-  difficultyRuthless.classList.toggle(
-    "active",
-    difficultyKey === "hard"
-  );
+  if (
+    computerStrengthValue
+  ) {
+
+    computerStrengthValue.textContent =
+      difficulty.elo;
+
+  }
+
+
+  if (
+    computerStrengthNote
+  ) {
+
+    computerStrengthNote.textContent =
+      "Estimated rating. Skill " +
+      difficulty.skill +
+      "/20 · " +
+      difficulty.nodes.toLocaleString() +
+      " search nodes.";
+
+  }
 
 }
 
@@ -18159,17 +18345,14 @@ function updateSetupControlAvailability() {
     playBlackBtn.disabled =
       false;
 
-    difficultyRelaxed.disabled =
-      false;
+    if (
+      computerStrengthSlider
+    ) {
 
-    difficultyStandard.disabled =
-      false;
+      computerStrengthSlider.disabled =
+        false;
 
-    difficultyFierce.disabled =
-      false;
-
-    difficultyRuthless.disabled =
-      false;
+    }
 
     playerNameInput.disabled =
       false;
@@ -18219,17 +18402,14 @@ function updateSetupControlAvailability() {
     computerGameActive ||
     gameMode === "campaign";
 
-  difficultyRelaxed.disabled =
-    computerGameActive;
+  if (
+    computerStrengthSlider
+  ) {
 
-  difficultyStandard.disabled =
-    computerGameActive;
+    computerStrengthSlider.disabled =
+      computerGameActive;
 
-  difficultyFierce.disabled =
-    computerGameActive;
-
-  difficultyRuthless.disabled =
-    computerGameActive;
+  }
 
   playerNameInput.disabled =
     computerGameActive;
@@ -19299,7 +19479,7 @@ function applyDifficulty() {
 
 
   const difficulty =
-    DIFFICULTIES[difficultyKey];
+    getActiveDifficulty();
 
 
   engine.postMessage(
@@ -21807,7 +21987,7 @@ function requestEngineMove() {
 
 
   const difficulty =
-    DIFFICULTIES[difficultyKey];
+    getActiveDifficulty();
 
 
   if (
@@ -23153,10 +23333,10 @@ function buildGameSummaryText() {
     lines.splice(
       3,
       0,
-      "Difficulty: " +
-      DIFFICULTY_GUIDES[
-        difficultyKey
-      ].title
+      "Estimated strength: " +
+      getActiveDifficulty().elo +
+      " · " +
+      getActiveDifficulty().label
     );
 
   }
@@ -23588,10 +23768,10 @@ function updateGameOverSummary() {
             )
           : (
             "<div class='game-over-line'>" +
-            "<strong>Difficulty:</strong> " +
-            DIFFICULTIES[
-              difficultyKey
-            ].label +
+            "<strong>Estimated strength:</strong> " +
+            getActiveDifficulty().elo +
+            " · " +
+            getActiveDifficulty().label +
             "</div>"
             )
     ) +
@@ -26238,7 +26418,7 @@ function updateInfoPanel() {
 
 
   const difficulty =
-    DIFFICULTY_GUIDES[difficultyKey];
+    getActiveDifficulty();
 
   const campaign =
     gameMode === "campaign";
@@ -26334,13 +26514,13 @@ function updateInfoPanel() {
     (
       campaign
         ? "Rank"
-        : "Difficulty"
+        : "Estimated strength"
     ) +
     ":</strong> " +
     (
       campaignOpponent
         ? campaignOpponent.rank
-        : difficulty.title
+        : difficulty.label
     ) +
     " · ≈ " +
     (
@@ -26619,9 +26799,9 @@ feedbackForm.addEventListener(
 
       formData.append(
         "difficulty",
-        DIFFICULTIES[
-          difficultyKey
-        ].label
+        getActiveDifficulty().elo +
+        " " +
+        getActiveDifficulty().label
       );
 
 
