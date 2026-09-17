@@ -4905,6 +4905,7 @@ const STACKING_SOUND_VOLUME = .05;
 const KNIGHT_COMMAND_CAPTURE_VOLUME = .20;
 const PAWN_CAPTURE_VOICE_VOLUME = .16;
 const PAWN_VS_ROOK_VOICE_VOLUME = .16;
+const PAWN_VS_KNIGHT_VOICE_VOLUME = .16;
 const PAWN_MOVE_VOICE_VOLUME = .14;
 const PAWN_FIRST_MOVE_VOICE_VOLUME = .14;
 const SARCASTIC_PAWN_VOICE_VOLUME = .14;
@@ -4983,6 +4984,9 @@ const PAWN_CAPTURE_SOUND_FILES = [
 
 const PAWN_VS_ROOK_SOUND_FILE =
   "./Audio/pawnvsrook.wav";
+
+const PAWN_VS_KNIGHT_SOUND_FILE =
+  "./Audio/pawnvsknight.wav";
 
 const PAWN_MOVE_SOUND_FILES = [
   "./Audio/Non attacking pawn moves/pawnmove1.wav",
@@ -5435,6 +5439,12 @@ function reloadAudioBuffersForCurrentContext() {
   registerAudioBuffer(
     "pawnvsrook",
     PAWN_VS_ROOK_SOUND_FILE,
+    generation
+  );
+
+  registerAudioBuffer(
+    "pawnvsknight",
+    PAWN_VS_KNIGHT_SOUND_FILE,
     generation
   );
 
@@ -7434,6 +7444,21 @@ function playPawnCaptureSound(
     playBufferedSound(
       "pawnvsrook",
       PAWN_VS_ROOK_VOICE_VOLUME,
+      "pawnVoice"
+    );
+
+    return;
+
+  }
+
+
+  if (
+    capturedPiece === "n"
+  ) {
+
+    playBufferedSound(
+      "pawnvsknight",
+      PAWN_VS_KNIGHT_VOICE_VOLUME,
       "pawnVoice"
     );
 
