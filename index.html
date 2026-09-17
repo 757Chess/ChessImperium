@@ -4908,7 +4908,7 @@ const PAWN_VS_ROOK_VOICE_VOLUME = .16;
 const PAWN_MOVE_VOICE_VOLUME = .14;
 const PAWN_FIRST_MOVE_VOICE_VOLUME = .14;
 const SARCASTIC_PAWN_VOICE_VOLUME = .14;
-const PAWN_MOVE_VOICE_CHANCE = .5;
+const PAWN_MOVE_VOICE_CHANCE = .25;
 const CHAT_BEEP_VOLUME = .36;
 const ONLINE_NO_CLOCK_TURN_PULSE_DELAY_MS =
   180000;
@@ -7431,21 +7431,10 @@ function playPawnCaptureSound(
     capturedPiece === "r"
   ) {
 
-    showVoiceBubble(
-      squareName
-    );
-
     playBufferedSound(
       "pawnvsrook",
       PAWN_VS_ROOK_VOICE_VOLUME,
-      "pawnVoice",
-      buffer => {
-
-        updateVoiceBubbleDuration(
-          buffer.duration * 1000
-        );
-
-      }
+      "pawnVoice"
     );
 
     return;
@@ -7493,22 +7482,10 @@ function playPawnCaptureSound(
     nextIndex;
 
 
-  showVoiceBubble(
-    squareName
-  );
-
-
   playBufferedSound(
     "pawncapture" + nextIndex,
     PAWN_CAPTURE_VOICE_VOLUME,
-    "pawnVoice",
-    buffer => {
-
-      updateVoiceBubbleDuration(
-        buffer.duration * 1000
-      );
-
-    }
+    "pawnVoice"
   );
 
 }
