@@ -7642,8 +7642,7 @@ function playPawnMoveVoice(
     move.promotion ||
     moveHasCheckPriority(
       move
-    ) ||
-    Math.random() >= PAWN_MOVE_VOICE_CHANCE
+    )
   ) {
     return;
   }
@@ -7700,6 +7699,13 @@ function playPawnMoveVoice(
   }
 
   else {
+
+    if (
+      Math.random() >= PAWN_MOVE_VOICE_CHANCE
+    ) {
+      return;
+    }
+
 
     voiceOption =
       choosePawnMoveVoiceOption(
