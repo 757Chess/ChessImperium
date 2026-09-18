@@ -5194,6 +5194,62 @@ const PIECE_IMAGES = {
 };
 
 
+const GLADIATOR_PIECE_IMAGES = {
+
+  wp:"./Graphics/Gladiator/wP.png",
+  wr:"./Graphics/Gladiator/wR.png",
+  wn:"./Graphics/Gladiator/wN.png",
+  wb:"./Graphics/Gladiator/wB.png",
+  wq:"./Graphics/Gladiator/wQ.png",
+  wk:"./Graphics/Gladiator/wK.png",
+
+  bp:"./Graphics/Gladiator/bP.png",
+  br:"./Graphics/Gladiator/bR.png",
+  bn:"./Graphics/Gladiator/bN.png",
+  bb:"./Graphics/Gladiator/bB.png",
+  bq:"./Graphics/Gladiator/bQ.png",
+  bk:"./Graphics/Gladiator/bK.png"
+
+};
+
+
+function getPieceImageSource(
+  piece
+) {
+
+  if (
+    !piece
+  ) {
+    return "";
+  }
+
+  const pieceKey =
+    piece.color +
+    piece.type;
+
+  if (
+    gameMode === "campaign" &&
+    piece.color === playerColor
+  ) {
+
+    return (
+      GLADIATOR_PIECE_IMAGES[
+        pieceKey
+      ] ||
+      PIECE_IMAGES[
+        pieceKey
+      ]
+    );
+
+  }
+
+  return PIECE_IMAGES[
+    pieceKey
+  ];
+
+}
+
+
 const PROMOTION_NAMES = {
   q:"Queen",
   r:"Rook",
@@ -15848,10 +15904,10 @@ function showCaptureToast(
 
     "<img class='capture-toast-piece' " +
     "src='" +
-    PIECE_IMAGES[
-      capturedColor +
-      pieceType
-    ] +
+    getPieceImageSource({
+      color:capturedColor,
+      type:pieceType
+    }) +
     "' alt=''>" +
 
     "<span class='capture-toast-detail'>" +
@@ -17641,10 +17697,10 @@ function initializeControls() {
 
 
       image.src =
-        PIECE_IMAGES[
-          playerColor +
-          pieceType
-        ];
+        getPieceImageSource({
+          color:playerColor,
+          type:pieceType
+        });
 
 
       image.dataset.pieceImage =
@@ -19891,10 +19947,9 @@ function drawBoard() {
 
 
         image.src =
-          PIECE_IMAGES[
-            piece.color +
-            piece.type
-          ];
+          getPieceImageSource(
+            piece
+          );
 
 
         square.appendChild(
@@ -21689,10 +21744,10 @@ function openPromotion(
 
 
         image.src =
-          PIECE_IMAGES[
-            playerColor +
+          getPieceImageSource({
+            color:playerColor,
             type
-          ];
+          });
 
       }
     );
@@ -22731,10 +22786,9 @@ function renderCaptured(
 
 
       image.src =
-        PIECE_IMAGES[
-          piece.color +
-          piece.type
-        ];
+        getPieceImageSource(
+          piece
+        );
 
 
       element.appendChild(
@@ -25228,10 +25282,9 @@ function renderAnalysisReplayBoard(
             ? (
                 "<img class='analysis-replay-piece' " +
                 "src='" +
-                PIECE_IMAGES[
-                  piece.color +
-                  piece.type
-                ] +
+                getPieceImageSource(
+                  piece
+                ) +
                 "' alt=''>"
               )
             : ""
