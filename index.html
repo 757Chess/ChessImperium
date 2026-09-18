@@ -2015,6 +2015,10 @@ select {
   will-change:transform;
 }
 
+.piece.black-piece {
+  top:2.5%;
+}
+
 .piece.move-glide {
   z-index:30;
 }
@@ -19843,7 +19847,12 @@ function drawBoard() {
           );
 
         let pieceClassName =
-          "piece";
+          "piece " +
+          (
+            piece.color === "b"
+              ? "black-piece"
+              : "white-piece"
+          );
 
         if (
           isCaptureTarget
