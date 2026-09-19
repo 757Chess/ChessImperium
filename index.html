@@ -3149,6 +3149,83 @@ th {
   cursor:pointer;
 }
 
+.honor-resign-overlay {
+  position:fixed;
+  inset:0;
+  background:rgba(20,14,9,.46);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1120;
+  padding:18px;
+}
+
+.honor-resign-overlay.visible {
+  display:flex;
+}
+
+.honor-resign-card {
+  width:430px;
+  max-width:100%;
+  background:#fffaf0;
+  border:1px solid rgba(154,125,72,.36);
+  border-radius:14px;
+  box-shadow:0 24px 60px rgba(0,0,0,.28);
+  padding:22px;
+  text-align:center;
+}
+
+.honor-resign-kicker {
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.16em;
+  color:var(--gold);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+
+.honor-resign-card h2 {
+  margin:0 0 9px;
+  font-family:Georgia, "Times New Roman", serif;
+  font-size:26px;
+  color:var(--green);
+}
+
+.honor-resign-card p {
+  margin:0 auto 17px;
+  max-width:34em;
+  color:#5d554a;
+  font-size:14px;
+  line-height:1.45;
+}
+
+.honor-resign-actions {
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.honor-resign-actions button {
+  min-width:145px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:1px solid var(--button-border);
+  font-weight:800;
+  cursor:pointer;
+}
+
+.honor-resign-continue {
+  background:#fff;
+  color:var(--green);
+}
+
+.honor-resign-yield {
+  background:var(--green);
+  color:#fffaf0;
+  border-color:var(--green);
+}
+
 
 /* ===================================================== */
 /* FEEDBACK                                              */
@@ -4336,6 +4413,47 @@ if (
       type="button">
       Cancel
     </button>
+
+  </div>
+
+</div>
+
+
+<div id="honorResignOverlay" class="honor-resign-overlay">
+
+  <div
+    class="honor-resign-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="honorResignTitle">
+
+    <div class="honor-resign-kicker">Last Stand</div>
+
+    <h2 id="honorResignTitle">Honor Has Its Hour</h2>
+
+    <p>
+      Your king stands alone before Rome's advancing steel.
+      You may fight until the final square, or yield with dignity
+      and preserve your name for the next contest.
+    </p>
+
+    <div class="honor-resign-actions">
+
+      <button
+        id="honorResignContinue"
+        class="honor-resign-continue"
+        type="button">
+        Continue the Fight
+      </button>
+
+      <button
+        id="honorResignYield"
+        class="honor-resign-yield"
+        type="button">
+        Yield with Honor
+      </button>
+
+    </div>
 
   </div>
 
@@ -7082,6 +7200,15 @@ const captureToast =
 const ruleToast =
   document.getElementById("ruleToast");
 
+const honorResignOverlay =
+  document.getElementById("honorResignOverlay");
+
+const honorResignContinue =
+  document.getElementById("honorResignContinue");
+
+const honorResignYield =
+  document.getElementById("honorResignYield");
+
 const computerFormationSelect =
   document.getElementById("computerFormationSelect");
 
@@ -7511,6 +7638,12 @@ let formationAnimationTimers =
   [];
 
 let localResultReason =
+  null;
+
+let honorResignPromptShown =
+  false;
+
+let onlyKingPlyStart =
   null;
 
 const promotedQueenSquares =
@@ -17189,6 +17322,32 @@ function initializeControls() {
     }
   );
 
+  honorResignContinue.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      hideHonorResignPrompt();
+
+    }
+  );
+
+  honorResignYield.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      hideHonorResignPrompt();
+
+      resignComputerGame(
+        false
+      );
+
+    }
+  );
+
   campaignOpponentSelect.addEventListener(
     "change",
     function() {
@@ -19170,6 +19329,8 @@ function renderPreview() {
 
   hideRuleToast();
 
+  hideHonorResignPrompt();
+
 
   engine.postMessage(
     "stop"
@@ -19192,6 +19353,12 @@ function renderPreview() {
     false;
 
   localResultReason =
+    null;
+
+  honorResignPromptShown =
+    false;
+
+  onlyKingPlyStart =
     null;
 
 
@@ -19557,6 +19724,150 @@ function updateEndGameButton() {
 }
 
 
+function hideHonorResignPrompt() {
+
+  if (
+    honorResignOverlay
+  ) {
+
+    honorResignOverlay.classList.remove(
+      "visible"
+    );
+
+  }
+
+}
+
+
+function showHonorResignPrompt() {
+
+  if (
+    !honorResignOverlay ||
+    honorResignPromptShown
+  ) {
+    return;
+  }
+
+
+  honorResignPromptShown =
+    true;
+
+
+  honorResignOverlay.classList.add(
+    "visible"
+  );
+
+}
+
+
+function shouldOfferHonorResignation() {
+
+  if (
+    gameMode === "online" ||
+    !gameStarted ||
+    !game ||
+    game.isGameOver() ||
+    localGameFinished()
+  ) {
+
+    onlyKingPlyStart =
+      null;
+
+    return false;
+
+  }
+
+
+  if (
+    game.inCheck() ||
+    game.turn() !== playerColor
+  ) {
+    return false;
+  }
+
+
+  const counts =
+    countPieces();
+
+  const opponentColor =
+    playerColor === "w"
+      ? "b"
+      : "w";
+
+  const playerNonKingMaterial =
+    DISPLAY_ORDER.reduce(
+      (sum, type) =>
+        type === "k"
+          ? sum
+          : sum + counts[playerColor][type],
+      0
+    );
+
+  const opponentMaterial =
+    DISPLAY_ORDER.reduce(
+      (sum, type) =>
+        sum +
+        counts[opponentColor][type] *
+        PIECE_VALUES[type],
+      0
+    );
+
+
+  if (
+    counts[playerColor].k !== 1 ||
+    playerNonKingMaterial !== 0 ||
+    opponentMaterial < 5
+  ) {
+
+    onlyKingPlyStart =
+      null;
+
+    return false;
+
+  }
+
+
+  const currentPly =
+    game.history().length;
+
+
+  if (
+    onlyKingPlyStart === null
+  ) {
+
+    onlyKingPlyStart =
+      currentPly;
+
+  }
+
+
+  return (
+    currentPly - onlyKingPlyStart >= 8
+  );
+
+}
+
+
+function maybeShowHonorResignPrompt() {
+
+  if (
+    honorResignPromptShown
+  ) {
+    return;
+  }
+
+
+  if (
+    shouldOfferHonorResignation()
+  ) {
+
+    showHonorResignPrompt();
+
+  }
+
+}
+
+
 function updateCenterPostGameActions() {
 
   const onlineFinished =
@@ -19643,7 +19954,9 @@ function updateCenterPostGameActions() {
 }
 
 
-async function resignComputerGame() {
+async function resignComputerGame(
+  confirmFirst = true
+) {
 
   if (
     gameMode === "online" ||
@@ -19667,6 +19980,7 @@ async function resignComputerGame() {
 
 
   if (
+    confirmFirst &&
     !window.confirm(
       "Resign this game?"
     )
@@ -19692,6 +20006,8 @@ async function resignComputerGame() {
   clearEngineMoveTimer();
 
   hideRuleToast();
+
+  hideHonorResignPrompt();
 
 
   if (
@@ -19721,6 +20037,9 @@ async function resignComputerGame() {
 
   localResultReason =
     "resignation";
+
+  honorResignPromptShown =
+    true;
 
 
   drawBoard();
@@ -19783,6 +20102,8 @@ function endCurrentGame() {
   clearEngineMoveTimer();
 
   hideRuleToast();
+
+  hideHonorResignPrompt();
 
 
   engine.postMessage(
@@ -19870,6 +20191,8 @@ function beginGame(
 
   hideRuleToast();
 
+  hideHonorResignPrompt();
+
   hideGameOverSummary();
 
 
@@ -19893,6 +20216,12 @@ function beginGame(
     true;
 
   localResultReason =
+    null;
+
+  honorResignPromptShown =
+    false;
+
+  onlyKingPlyStart =
     null;
 
 
@@ -23120,6 +23449,8 @@ function afterMove(
   updatePawnCoronationStateAfterMove(
     move
   );
+
+  maybeShowHonorResignPrompt();
 
 }
 
