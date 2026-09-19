@@ -8083,22 +8083,32 @@ function playRandomKnightCommandCaptureSound(
     nextIndex;
 
 
-  showVoiceBubble(
+  const voiceToken =
+    showVoiceBubble(
     squareName
   );
 
 
-  playBufferedSound(
-    "knightcommandcapture" + nextIndex,
-    KNIGHT_COMMAND_CAPTURE_VOLUME,
-    "knightVoice",
-    buffer => {
+  trackVoicePlayback(
+    playBufferedSound(
+      "knightcommandcapture" + nextIndex,
+      KNIGHT_COMMAND_CAPTURE_VOLUME,
+      "knightVoice",
+      buffer => {
 
-      updateVoiceBubbleDuration(
-        buffer.duration * 1000
-      );
+        if (
+          voiceToken === activeVoiceToken
+        ) {
 
-    }
+          updateVoiceBubbleDuration(
+            buffer.duration * 1000
+          );
+
+        }
+
+      }
+    ),
+    voiceToken
   );
 
 }
@@ -8405,23 +8415,33 @@ function playPawnMoveVoice(
   }
 
 
-  showVoiceBubble(
+  const voiceToken =
+    showVoiceBubble(
     squareName ||
     move.from
   );
 
 
-  playBufferedSound(
-    voiceOption.key,
-    voiceOption.volume,
-    voiceOption.mixKey,
-    buffer => {
+  trackVoicePlayback(
+    playBufferedSound(
+      voiceOption.key,
+      voiceOption.volume,
+      voiceOption.mixKey,
+      buffer => {
 
-      updateVoiceBubbleDuration(
-        buffer.duration * 1000
-      );
+        if (
+          voiceToken === activeVoiceToken
+        ) {
 
-    }
+          updateVoiceBubbleDuration(
+            buffer.duration * 1000
+          );
+
+        }
+
+      }
+    ),
+    voiceToken
   );
 
 }
@@ -8586,22 +8606,32 @@ function playRandomKingCaptureSound(
     nextIndex;
 
 
-  showVoiceBubble(
+  const voiceToken =
+    showVoiceBubble(
     squareName
   );
 
 
-  playBufferedSound(
-    "kingcapture" + nextIndex,
-    0.15,
-    "kingVoice",
-    buffer => {
+  trackVoicePlayback(
+    playBufferedSound(
+      "kingcapture" + nextIndex,
+      0.15,
+      "kingVoice",
+      buffer => {
 
-      updateVoiceBubbleDuration(
-        buffer.duration * 1000
-      );
+        if (
+          voiceToken === activeVoiceToken
+        ) {
 
-    }
+          updateVoiceBubbleDuration(
+            buffer.duration * 1000
+          );
+
+        }
+
+      }
+    ),
+    voiceToken
   );
 
 }
@@ -8629,8 +8659,16 @@ let activeVoiceBubble =
 let activeVoiceBubbleSquare =
   null;
 
+let activeVoicePlayback =
+  null;
+
+let activeVoiceToken =
+  0;
+
 
 function clearVoiceBubble() {
+
+  activeVoiceToken++;
 
   if (
     voiceBubbleTimer
@@ -8652,6 +8690,27 @@ function clearVoiceBubble() {
   activeVoiceBubbleSquare =
     null;
 
+  if (
+    activeVoicePlayback &&
+    activeVoicePlayback.source
+  ) {
+
+    try {
+
+      activeVoicePlayback.source.stop();
+
+    }
+    catch(error) {
+
+      /* Already stopped. */
+
+    }
+
+  }
+
+  activeVoicePlayback =
+    null;
+
 
   if (
     voiceBubbleLayer
@@ -8661,6 +8720,33 @@ function clearVoiceBubble() {
       "";
 
   }
+
+}
+
+
+function trackVoicePlayback(
+  playbackPromise,
+  token
+) {
+
+  Promise.resolve(
+    playbackPromise
+  )
+    .then(
+      playback => {
+
+        if (
+          token !== activeVoiceToken ||
+          !playback
+        ) {
+          return;
+        }
+
+        activeVoicePlayback =
+          playback;
+
+      }
+    );
 
 }
 
@@ -8676,7 +8762,7 @@ function showVoiceBubble(
     !squareName
   ) {
 
-    return;
+    return null;
 
   }
 
@@ -8691,12 +8777,16 @@ function showVoiceBubble(
     !square
   ) {
 
-    return;
+    return null;
 
   }
 
 
   clearVoiceBubble();
+
+
+  const voiceToken =
+    ++activeVoiceToken;
 
 
   const boardRect =
@@ -8773,6 +8863,8 @@ function showVoiceBubble(
         durationMs + 220
       )
     );
+
+  return voiceToken;
 
 }
 
@@ -15642,6 +15734,16 @@ function animateSinglePiece(
               movingVoiceBubble.dataset.finalTop
             ) +
             "px";
+
+          if (
+            activeVoiceBubble === movingVoiceBubble &&
+            activeVoiceBubbleSquare === fromSquare
+          ) {
+
+            activeVoiceBubbleSquare =
+              toSquare;
+
+          }
 
         }
 
@@ -22892,6 +22994,14 @@ function afterMove(
   if (
     move.captured
   ) {
+
+    if (
+      move.to === activeVoiceBubbleSquare
+    ) {
+
+      clearVoiceBubble();
+
+    }
 
     showCaptureToast(
       move.captured,
