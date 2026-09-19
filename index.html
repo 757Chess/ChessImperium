@@ -16163,10 +16163,22 @@ function showCaptureToast(
     gameMode === "online"
   ) {
 
+    const capturerName =
+      getOnlineDisplayNameForColor(
+        onlineRoom,
+        capturerColor
+      );
+
     title =
-      capturerColor === playerColor
-        ? "You captured"
-        : "Opponent captured";
+      (
+        capturerName ||
+        (
+          capturerColor === playerColor
+            ? "You"
+            : "Opponent"
+        )
+      ) +
+      " captured";
 
   }
 
