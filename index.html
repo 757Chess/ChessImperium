@@ -5450,6 +5450,9 @@ const QUEEN_DEATH_SOUND_FILES = [
 const OPENING_THEME_FILE =
   "./Audio/openingtheme.mp3";
 
+const ANALYSIS_THEME_FILE =
+  "./Audio/AnalysisTheme.wav";
+
 
 const AUDIO_MIX_STORAGE_KEY =
   "chessImperiumAudioMix";
@@ -5462,6 +5465,7 @@ const AUDIO_MIX_DEFAULTS = {
   formation:1,
   themes:1,
   openingTheme:1,
+  analysisTheme:1,
   check:1,
   checkmate:1,
   stalemate:1,
@@ -5481,6 +5485,7 @@ const AUDIO_MIX_PARENTS = {
   capture:"board",
   formation:"board",
   openingTheme:"themes",
+  analysisTheme:"themes",
   check:"themes",
   checkmate:"themes",
   stalemate:"themes",
@@ -5515,6 +5520,7 @@ const AUDIO_MIX_GROUPS = [
     controls:[
       {key:"themes", label:"All Themes"},
       {key:"openingTheme", label:"Opening"},
+      {key:"analysisTheme", label:"Analysis"},
       {key:"check", label:"Check"},
       {key:"checkmate", label:"Checkmate"},
       {key:"stalemate", label:"Stalemate"},
@@ -5625,6 +5631,15 @@ let openingThemeSource =
 
 let openingThemeGain =
   null;
+
+let analysisThemeSource =
+  null;
+
+let analysisThemeGain =
+  null;
+
+let analysisThemePlaybackToken =
+  0;
 
 let pawnCoronationPlayback =
   null;
@@ -6141,6 +6156,29 @@ function updateOpeningThemeMix() {
 }
 
 
+function updateAnalysisThemeMix() {
+
+  if (
+    !audioContext ||
+    !analysisThemeGain
+  ) {
+
+    return;
+
+  }
+
+
+  analysisThemeGain.gain.setTargetAtTime(
+    getAudioMixValue(
+      "analysisTheme"
+    ),
+    audioContext.currentTime,
+    .03
+  );
+
+}
+
+
 function formatAudioMixValue(
   value
 ) {
@@ -6209,6 +6247,7 @@ function setAudioMixValue(
   saveAudioMix();
   updateMasterAudioGain();
   updateOpeningThemeMix();
+  updateAnalysisThemeMix();
   refreshAudioMixerLabels();
 
 }
@@ -6384,6 +6423,32 @@ async function getAudioBuffer(
 
 
   return await loadPromise;
+
+}
+
+
+function ensureAnalysisThemeLoadStarted() {
+
+  if (
+    !audioContext ||
+    audioBuffers.has(
+      "analysistheme"
+    ) ||
+    audioLoadPromises.has(
+      "analysistheme"
+    )
+  ) {
+
+    return;
+
+  }
+
+
+  registerAudioBuffer(
+    "analysistheme",
+    ANALYSIS_THEME_FILE,
+    audioBufferGeneration
+  );
 
 }
 
@@ -6714,6 +6779,254 @@ function fadeOutOpeningTheme(
           null;
 
         openingThemeGain =
+          null;
+
+      }
+
+    },
+    duration + 80
+  );
+
+}
+
+
+async function playAnalysisTheme() {
+
+  if (
+    !soundEnabled
+  ) {
+
+    return;
+
+  }
+
+
+  stopAnalysisTheme();
+
+
+  const playbackToken =
+    ++analysisThemePlaybackToken;
+
+
+  if (
+    audioNeedsHardReset
+  ) {
+
+    rebuildAudioContextFromGesture();
+
+  }
+
+
+  const ready =
+    await ensureAudioContextReady();
+
+
+  if (
+    !ready ||
+    playbackToken !== analysisThemePlaybackToken ||
+    !analysisOverlay.classList.contains(
+      "visible"
+    )
+  ) {
+
+    return;
+
+  }
+
+
+  ensureAnalysisThemeLoadStarted();
+
+
+  const buffer =
+    await getAudioBuffer(
+      "analysistheme"
+    );
+
+
+  if (
+    !buffer ||
+    playbackToken !== analysisThemePlaybackToken ||
+    !analysisOverlay.classList.contains(
+      "visible"
+    )
+  ) {
+
+    return;
+
+  }
+
+
+  analysisThemeSource =
+    audioContext.createBufferSource();
+
+
+  analysisThemeGain =
+    audioContext.createGain();
+
+
+  analysisThemeSource.buffer =
+    buffer;
+
+
+  analysisThemeGain.gain.setValueAtTime(
+    getAudioMixValue(
+      "analysisTheme"
+    ),
+    audioContext.currentTime
+  );
+
+
+  analysisThemeSource.connect(
+    analysisThemeGain
+  );
+
+
+  analysisThemeGain.connect(
+    masterAudioGain ||
+    audioContext.destination
+  );
+
+
+  const sourceAtStart =
+    analysisThemeSource;
+
+
+  analysisThemeSource.addEventListener(
+    "ended",
+    () => {
+
+      if (
+        analysisThemeSource ===
+        sourceAtStart
+      ) {
+
+        analysisThemeSource =
+          null;
+
+        analysisThemeGain =
+          null;
+
+      }
+
+    },
+    {once:true}
+  );
+
+
+  analysisThemeSource.start(
+    0
+  );
+
+}
+
+
+function stopAnalysisTheme() {
+
+  analysisThemePlaybackToken++;
+
+
+  if (
+    analysisThemeSource
+  ) {
+
+    try {
+
+      analysisThemeSource.stop();
+
+    }
+    catch(error) {
+
+      /* Already stopped. */
+
+    }
+
+  }
+
+
+  analysisThemeSource =
+    null;
+
+
+  analysisThemeGain =
+    null;
+
+}
+
+
+function fadeOutAnalysisTheme(
+  duration = 1200
+) {
+
+  analysisThemePlaybackToken++;
+
+
+  if (
+    !audioContext ||
+    !analysisThemeSource ||
+    !analysisThemeGain
+  ) {
+
+    return;
+
+  }
+
+
+  const now =
+    audioContext.currentTime;
+
+
+  const durationSeconds =
+    Math.max(
+      .05,
+      duration / 1000
+    );
+
+
+  analysisThemeGain.gain.cancelScheduledValues(
+    now
+  );
+
+
+  analysisThemeGain.gain.setValueAtTime(
+    analysisThemeGain.gain.value,
+    now
+  );
+
+
+  analysisThemeGain.gain.linearRampToValueAtTime(
+    0,
+    now + durationSeconds
+  );
+
+
+  const sourceToStop =
+    analysisThemeSource;
+
+
+  window.setTimeout(
+    () => {
+
+      if (
+        analysisThemeSource ===
+        sourceToStop
+      ) {
+
+        try {
+
+          sourceToStop.stop();
+
+        }
+        catch(error) {
+
+          /* Already ended naturally. */
+
+        }
+
+
+        analysisThemeSource =
+          null;
+
+        analysisThemeGain =
           null;
 
       }
@@ -17571,6 +17884,7 @@ function initializeControls() {
       else {
 
         stopOpeningTheme();
+        stopAnalysisTheme();
 
       }
 
@@ -25833,6 +26147,8 @@ async function runPostGameAnalysis() {
     "visible"
   );
 
+  playAnalysisTheme();
+
 
   try {
 
@@ -26061,6 +26377,8 @@ function closeAnalysis() {
   analysisOverlay.classList.remove(
     "visible"
   );
+
+  fadeOutAnalysisTheme();
 
 }
 
@@ -27538,6 +27856,14 @@ function rebuildAudioContextFromGesture() {
 
     openingThemeGain =
       null;
+
+    analysisThemeSource =
+      null;
+
+    analysisThemeGain =
+      null;
+
+    analysisThemePlaybackToken++;
 
     audioGesturePrimed =
       false;
