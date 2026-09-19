@@ -1434,10 +1434,25 @@ select {
 }
 
 .capture-toast-title {
+  display:flex;
+  align-items:center;
+  gap:3px;
+  min-width:0;
   color:var(--green);
   font-size:12px;
   font-weight:bold;
   margin-bottom:5px;
+}
+
+.capture-toast-name {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.capture-toast-action {
+  flex:0 0 auto;
 }
 
 .capture-toast-row {
@@ -2037,6 +2052,9 @@ select {
   font-size:13px;
   color:var(--muted);
   padding:0 4px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .preview-bar strong {
@@ -2059,6 +2077,9 @@ select {
   min-height:48px;
   line-height:1.35;
   font-size:14px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .status-box.victory {
@@ -2294,12 +2315,18 @@ th {
   font-size:13px;
   font-weight:800;
   line-height:1.3;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .match-line {
   margin-bottom:4px;
   font-size:12px;
   line-height:1.38;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .match-line:last-child {
@@ -16459,10 +16486,10 @@ function showCaptureToast(
   }
 
 
-  let title =
+  let capturerLabel =
     capturerColor === playerColor
-      ? getPlayerDisplayLabel() + " captured"
-      : "Stockfish captured";
+      ? getPlayerDisplayLabel()
+      : "Stockfish";
 
 
   if (
@@ -16475,16 +16502,13 @@ function showCaptureToast(
         capturerColor
       );
 
-    title =
+    capturerLabel =
+      capturerName ||
       (
-        capturerName ||
-        (
-          capturerColor === playerColor
-            ? getPlayerDisplayLabel()
-            : "Opponent"
-        )
-      ) +
-      " captured";
+        capturerColor === playerColor
+          ? getPlayerDisplayLabel()
+          : "Opponent"
+      );
 
   }
 
@@ -16494,11 +16518,14 @@ function showCaptureToast(
     activeCampaignOpponent
   ) {
 
-    title =
-      activeCampaignOpponent.rank +
-      " captured";
+    capturerLabel =
+      activeCampaignOpponent.rank;
 
   }
+
+  const title =
+    capturerLabel +
+    " captured";
 
   const capturedColor =
     capturerColor === "w"
@@ -16525,8 +16552,13 @@ function showCaptureToast(
 
   card.innerHTML =
 
-    "<div class='capture-toast-title'>" +
-    title +
+    "<div class='capture-toast-title' title='" +
+    escapeHtml(title) +
+    "'>" +
+      "<span class='capture-toast-name'>" +
+      escapeHtml(capturerLabel) +
+      "</span>" +
+      "<span class='capture-toast-action'>captured</span>" +
     "</div>" +
 
     "<div class='capture-toast-row'>" +
@@ -27382,6 +27414,9 @@ function setStatus(
 ) {
 
   statusBox.textContent =
+    text;
+
+  statusBox.title =
     text;
 
   statusBox.classList.remove(
