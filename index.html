@@ -2034,10 +2034,6 @@ select {
   top:2.5%;
 }
 
-.piece.sarcastic-pawn-piece {
-  transform:scaleX(-1);
-}
-
 .piece.move-glide {
   z-index:30;
 }
@@ -5361,9 +5357,19 @@ const GLADIATOR_PIECE_IMAGES = {
 
 };
 
+const SARCASTIC_PAWN_IMAGES = {
+
+  wp:"./Graphics/Sarcastic/wP.png",
+  bp:"./Graphics/Sarcastic/bP.png",
+  wpGladiator:"./Graphics/Sarcastic/wP-gladiator.png",
+  bpGladiator:"./Graphics/Sarcastic/bP-gladiator.png"
+
+};
+
 
 function getPieceImageSource(
-  piece
+  piece,
+  squareName = null
 ) {
 
   if (
@@ -5375,6 +5381,32 @@ function getPieceImageSource(
   const pieceKey =
     piece.color +
     piece.type;
+
+  if (
+    piece.type === "p" &&
+    squareName &&
+    squareName === sarcasticPawnSquare
+  ) {
+
+    const sarcasticKey =
+      gameMode === "campaign" &&
+      piece.color === playerColor
+        ? pieceKey + "Gladiator"
+        : pieceKey;
+
+    return (
+      SARCASTIC_PAWN_IMAGES[
+        sarcasticKey
+      ] ||
+      SARCASTIC_PAWN_IMAGES[
+        pieceKey
+      ] ||
+      PIECE_IMAGES[
+        pieceKey
+      ]
+    );
+
+  }
 
   if (
     gameMode === "campaign" &&
@@ -20798,14 +20830,6 @@ function drawBoard() {
             " checkmated-king-piece";
         }
 
-        if (
-          piece.type === "p" &&
-          squareName === sarcasticPawnSquare
-        ) {
-          pieceClassName +=
-            " sarcastic-pawn-piece";
-        }
-
         image.className =
           pieceClassName;
 
@@ -20816,7 +20840,8 @@ function drawBoard() {
 
         image.src =
           getPieceImageSource(
-            piece
+            piece,
+            squareName
           );
 
 
@@ -23496,6 +23521,10 @@ function afterMove(
 
   }
 
+  updateSarcasticPawnAfterMove(
+    move
+  );
+
 
   drawBoard();
 
@@ -23516,10 +23545,6 @@ function afterMove(
   updateSetupControlAvailability();
 
   playSoundForMove(
-    move
-  );
-
-  updateSarcasticPawnAfterMove(
     move
   );
 
