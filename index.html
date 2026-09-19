@@ -5469,7 +5469,7 @@ const AUDIO_MIX_DEFAULTS = {
   formation:1,
   themes:1,
   openingTheme:1,
-  analysisTheme:1,
+  analysisTheme:.5,
   check:1,
   checkmate:1,
   stalemate:1,
@@ -6827,10 +6827,7 @@ async function playAnalysisTheme() {
 
   if (
     !ready ||
-    playbackToken !== analysisThemePlaybackToken ||
-    !analysisOverlay.classList.contains(
-      "visible"
-    )
+    playbackToken !== analysisThemePlaybackToken
   ) {
 
     return;
@@ -6849,10 +6846,7 @@ async function playAnalysisTheme() {
 
   if (
     !buffer ||
-    playbackToken !== analysisThemePlaybackToken ||
-    !analysisOverlay.classList.contains(
-      "visible"
-    )
+    playbackToken !== analysisThemePlaybackToken
   ) {
 
     return;
@@ -26119,6 +26113,8 @@ async function runPostGameAnalysis() {
   analysisCancelled =
     false;
 
+  playAnalysisTheme();
+
   analyzeGameBtn.disabled =
     true;
 
@@ -26157,8 +26153,6 @@ async function runPostGameAnalysis() {
   analysisOverlay.classList.add(
     "visible"
   );
-
-  playAnalysisTheme();
 
 
   try {
