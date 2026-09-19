@@ -8039,7 +8039,8 @@ function playRandomQueenDeathSound() {
 
 
 function playRandomKnightCommandCaptureSound(
-  squareName = null
+  squareName = null,
+  pieceColor = null
 ) {
 
   if (
@@ -8085,8 +8086,13 @@ function playRandomKnightCommandCaptureSound(
 
   const voiceToken =
     showVoiceBubble(
-    squareName
-  );
+      squareName,
+      1600,
+      {
+        color:pieceColor,
+        type:"n"
+      }
+    );
 
 
   trackVoicePlayback(
@@ -8417,8 +8423,13 @@ function playPawnMoveVoice(
 
   const voiceToken =
     showVoiceBubble(
-    squareName ||
-    move.from
+      squareName ||
+      move.from,
+      1600,
+      {
+        color:move.color,
+        type:"p"
+      }
   );
 
 
@@ -8562,7 +8573,8 @@ function updateSarcasticPawnAfterMove(
 
 
 function playRandomKingCaptureSound(
-  squareName = null
+  squareName = null,
+  pieceColor = null
 ) {
 
   if (
@@ -8608,8 +8620,13 @@ function playRandomKingCaptureSound(
 
   const voiceToken =
     showVoiceBubble(
-    squareName
-  );
+      squareName,
+      1600,
+      {
+        color:pieceColor,
+        type:"k"
+      }
+    );
 
 
   trackVoicePlayback(
@@ -8659,6 +8676,9 @@ let activeVoiceBubble =
 let activeVoiceBubbleSquare =
   null;
 
+let activeVoiceBubblePiece =
+  null;
+
 let activeVoicePlayback =
   null;
 
@@ -8688,6 +8708,9 @@ function clearVoiceBubble() {
     null;
 
   activeVoiceBubbleSquare =
+    null;
+
+  activeVoiceBubblePiece =
     null;
 
   if (
@@ -8753,7 +8776,8 @@ function trackVoicePlayback(
 
 function showVoiceBubble(
   squareName,
-  durationMs = 1600
+  durationMs = 1600,
+  piece = null
 ) {
 
   if (
@@ -8842,6 +8866,9 @@ function showVoiceBubble(
 
   activeVoiceBubbleSquare =
     squareName;
+
+  activeVoiceBubblePiece =
+    piece;
 
 
   requestAnimationFrame(
@@ -15876,7 +15903,8 @@ async function animateLegalMove(
   ) {
 
     playRandomKingCaptureSound(
-      from
+      from,
+      plannedMove.color
     );
 
   }
@@ -22347,7 +22375,8 @@ async function completePlayerMove(
   ) {
 
     playRandomKingCaptureSound(
-      to
+      to,
+      plannedMove.color
     );
 
   }
@@ -22396,7 +22425,8 @@ async function completePlayerMove(
   ) {
 
     playRandomKnightCommandCaptureSound(
-      from
+      from,
+      plannedMove.color
     );
 
   }
@@ -22988,6 +23018,34 @@ async function playEngineMove(
 /* AFTER MOVE                                            */
 /* ===================================================== */
 
+function activeVoiceBelongsToCapturedPiece(
+  move
+) {
+
+  if (
+    !move ||
+    !move.captured ||
+    !activeVoiceBubblePiece ||
+    activeVoiceBubbleSquare !== move.to
+  ) {
+    return false;
+  }
+
+
+  const capturedColor =
+    move.color === "w"
+      ? "b"
+      : "w";
+
+
+  return (
+    activeVoiceBubblePiece.color === capturedColor &&
+    activeVoiceBubblePiece.type === move.captured
+  );
+
+}
+
+
 function afterMove(
   move
 ) {
@@ -23005,7 +23063,9 @@ function afterMove(
   ) {
 
     if (
-      move.to === activeVoiceBubbleSquare
+      activeVoiceBelongsToCapturedPiece(
+        move
+      )
     ) {
 
       clearVoiceBubble();
