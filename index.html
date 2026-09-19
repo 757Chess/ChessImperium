@@ -16285,7 +16285,7 @@ function showCaptureToast(
 
   let title =
     capturerColor === playerColor
-      ? "You captured"
+      ? getPlayerDisplayLabel() + " captured"
       : "Stockfish captured";
 
 
@@ -16304,7 +16304,7 @@ function showCaptureToast(
         capturerName ||
         (
           capturerColor === playerColor
-            ? "You"
+            ? getPlayerDisplayLabel()
             : "Opponent"
         )
       ) +
