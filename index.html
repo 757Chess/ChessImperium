@@ -19701,7 +19701,7 @@ function resolveCampaignPlayerColor() {
 }
 
 
-function startNewGame() {
+async function startNewGame() {
 
   if (
     !engineReady
@@ -19781,7 +19781,7 @@ function startNewGame() {
       : resolvePlayerColor();
 
 
-  beginGame(
+  await beginGame(
     true
   );
 
@@ -20170,7 +20170,7 @@ async function resignComputerGame(
 }
 
 
-function rematchCurrentGame() {
+async function rematchCurrentGame() {
 
   rematchBtn.textContent =
     "↻ Rematch";
@@ -20190,7 +20190,7 @@ function rematchCurrentGame() {
   }
 
 
-  beginGame(
+  await beginGame(
     true
   );
 
@@ -20276,7 +20276,7 @@ function endCurrentGame() {
 }
 
 
-function beginGame(
+async function beginGame(
   playTheme = false
 ) {
 
@@ -20284,7 +20284,7 @@ function beginGame(
     playTheme
   ) {
 
-    playOpeningTheme();
+    await playOpeningTheme();
 
   }
 
