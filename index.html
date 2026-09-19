@@ -2019,6 +2019,10 @@ select {
   top:2.5%;
 }
 
+.piece.sarcastic-pawn-piece {
+  transform:scaleX(-1);
+}
+
 .piece.move-glide {
   z-index:30;
 }
@@ -20250,6 +20254,13 @@ function drawBoard() {
         ) {
           pieceClassName +=
             " checkmated-king-piece";
+        }
+
+        if (
+          squareName === sarcasticPawnSquare
+        ) {
+          pieceClassName +=
+            " sarcastic-pawn-piece";
         }
 
         image.className =
