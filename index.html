@@ -20365,6 +20365,7 @@ function drawBoard() {
         }
 
         if (
+          piece.type === "p" &&
           squareName === sarcasticPawnSquare
         ) {
           pieceClassName +=
@@ -22991,6 +22992,14 @@ function afterMove(
   move
 ) {
 
+  const capturedSarcasticPawn =
+    Boolean(
+      move &&
+      move.captured &&
+      move.to === sarcasticPawnSquare
+    );
+
+
   if (
     move.captured
   ) {
@@ -23008,6 +23017,16 @@ function afterMove(
       move.color,
       move.san
     );
+
+  }
+
+
+  if (
+    capturedSarcasticPawn
+  ) {
+
+    sarcasticPawnSquare =
+      null;
 
   }
 
