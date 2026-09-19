@@ -7103,15 +7103,58 @@ function fadeOutAnalysisTheme(
   );
 
 
+  const startGain =
+    Math.max(
+      analysisThemeGain.gain.value,
+      .0001
+    );
+
+  const fadeSteps =
+    64;
+
+  const fadeCurve =
+    new Float32Array(
+      fadeSteps
+    );
+
+
+  for (
+    let i=0;
+    i<fadeSteps;
+    i++
+  ) {
+
+    const t =
+      i / (
+        fadeSteps - 1
+      );
+
+    const smooth =
+      t * t *
+      (
+        3 - 2 * t
+      );
+
+    fadeCurve[i] =
+      startGain *
+      Math.pow(
+        1 - smooth,
+        1.35
+      );
+
+  }
+
+
   analysisThemeGain.gain.setValueAtTime(
-    analysisThemeGain.gain.value,
+    startGain,
     now
   );
 
 
-  analysisThemeGain.gain.linearRampToValueAtTime(
-    0,
-    now + durationSeconds
+  analysisThemeGain.gain.setValueCurveAtTime(
+    fadeCurve,
+    now,
+    durationSeconds
   );
 
 
