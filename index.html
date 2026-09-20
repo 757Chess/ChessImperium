@@ -5357,15 +5357,6 @@ const GLADIATOR_PIECE_IMAGES = {
 
 };
 
-const SARCASTIC_PAWN_IMAGES = {
-
-  wp:"./Graphics/Sarcastic/wP.png",
-  bp:"./Graphics/Sarcastic/bP.png",
-  wpGladiator:"./Graphics/Sarcastic/wP-gladiator.png",
-  bpGladiator:"./Graphics/Sarcastic/bP-gladiator.png"
-
-};
-
 
 function getPieceImageSource(
   piece,
@@ -5381,32 +5372,6 @@ function getPieceImageSource(
   const pieceKey =
     piece.color +
     piece.type;
-
-  if (
-    piece.type === "p" &&
-    squareName &&
-    squareName === sarcasticPawnSquare
-  ) {
-
-    const sarcasticKey =
-      gameMode === "campaign" &&
-      piece.color === playerColor
-        ? pieceKey + "Gladiator"
-        : pieceKey;
-
-    return (
-      SARCASTIC_PAWN_IMAGES[
-        sarcasticKey
-      ] ||
-      SARCASTIC_PAWN_IMAGES[
-        pieceKey
-      ] ||
-      PIECE_IMAGES[
-        pieceKey
-      ]
-    );
-
-  }
 
   if (
     gameMode === "campaign" &&
