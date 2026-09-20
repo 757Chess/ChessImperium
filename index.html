@@ -22,6 +22,7 @@
   --button:#f7f4ee;
   --button-border:#d5cdc0;
   --shadow:0 8px 24px rgba(0,0,0,.07);
+  --play-area-size:clamp(576px, 42vw, 720px);
 }
 
 * {
@@ -91,7 +92,7 @@ h1 {
 
 .app {
   display:grid;
-  grid-template-columns:290px 620px 320px;
+  grid-template-columns:290px minmax(620px, calc(var(--play-area-size) + 22px)) 320px;
   gap:16px;
   justify-content:center;
   align-items:start;
@@ -117,7 +118,7 @@ h1 {
 
 .chess-imperium-banner-wrap {
   width:100%;
-  max-width:576px;
+  max-width:var(--play-area-size);
   margin:0 auto 1px;
   display:block;
   position:relative;
@@ -1586,14 +1587,14 @@ select {
 
 .board-wrap {
   width:100%;
-  max-width:576px;
+  max-width:var(--play-area-size);
   margin:0 auto;
 }
 
 .board-coordinate-frame {
   position:relative;
   width:100%;
-  max-width:576px;
+  max-width:var(--play-area-size);
   margin:0 auto;
 }
 
@@ -1668,7 +1669,7 @@ select {
   grid-template-columns:repeat(8,1fr);
   grid-template-rows:repeat(8,1fr);
   width:100%;
-  max-width:576px;
+  max-width:var(--play-area-size);
   aspect-ratio:1 / 1;
   background-image:url("./Graphics/boardtexture.png");
   background-size:100% 100%;
@@ -3425,6 +3426,10 @@ th {
 
 @media (max-width:1240px) {
 
+  :root {
+    --play-area-size:580px;
+  }
+
   .app {
     grid-template-columns:270px minmax(0,580px) 290px;
   }
@@ -3432,6 +3437,10 @@ th {
 }
 
 @media (max-width:1120px) {
+
+  :root {
+    --play-area-size:700px;
+  }
 
   .app {
     grid-template-columns:minmax(0,700px);
@@ -3458,6 +3467,10 @@ th {
 }
 
 @media (max-width:700px) {
+
+  :root {
+    --play-area-size:100%;
+  }
 
   .page {
     width:calc(100% - 16px);
