@@ -309,7 +309,6 @@ select {
 .side-btn,
 .difficulty-btn,
 .action-btn,
-.sound-btn,
 .feedback-btn,
 .summary-btn {
   border:1px solid var(--button-border);
@@ -500,7 +499,6 @@ button:disabled {
 .side-btn,
 .difficulty-btn,
 .action-btn,
-.sound-btn,
 .feedback-btn,
 .summary-btn {
   padding:8px 7px;
@@ -612,7 +610,7 @@ select {
 }
 
 .audio-mixer-wrap {
-  margin-top:10px;
+  margin-top:0;
 }
 
 .audio-mixer-toggle {
@@ -654,15 +652,63 @@ select {
   background:#fffdf8;
 }
 
+.audio-toggle-grid {
+  display:grid;
+  grid-template-columns:1fr;
+  gap:6px;
+}
+
+.audio-toggle-btn {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:31px;
+  padding:7px 9px;
+  border:1px solid #d8cfbf;
+  border-radius:8px;
+  background:#fff;
+  color:#716a5f;
+  cursor:pointer;
+  font-size:11px;
+  font-weight:800;
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    color .15s ease;
+}
+
+.audio-toggle-btn::after {
+  content:"Off";
+  padding:2px 6px;
+  border-radius:999px;
+  background:#eee7dd;
+  color:#7d7468;
+  font-size:9px;
+  line-height:1.2;
+  text-transform:uppercase;
+}
+
+.audio-toggle-btn.active {
+  border-color:rgba(53,92,77,.35);
+  background:#f7fbf7;
+  color:var(--green);
+}
+
+.audio-toggle-btn.active::after {
+  content:"On";
+  background:rgba(53,92,77,.13);
+  color:var(--green);
+}
+
 .audio-mixer-group {
   padding-top:9px;
   margin-top:9px;
   border-top:1px solid #ece5db;
 }
 
-.audio-mixer-group:first-child {
+.audio-toggle-grid + .audio-mixer-group {
   padding-top:0;
-  margin-top:0;
+  margin-top:10px;
   border-top:none;
 }
 
@@ -676,7 +722,7 @@ select {
 
 .audio-mixer-row {
   display:grid;
-  grid-template-columns:76px minmax(0,1fr) 36px;
+  grid-template-columns:62px minmax(0,1fr) 36px;
   gap:7px;
   align-items:center;
   min-height:24px;
@@ -3582,7 +3628,6 @@ th {
   .side-btn,
   .difficulty-btn,
   .action-btn,
-  .sound-btn,
   .feedback-btn,
   .summary-btn {
     min-height:40px;
@@ -4035,23 +4080,34 @@ if (
 
       <div class="section">
 
-        <div class="label">Sound</div>
-
-        <button
-          id="soundButton"
-          class="sound-btn active"
-          type="button"
-          style="width:100%;">
-          🔊 Sound On
-        </button>
-
         <details class="audio-mixer-wrap">
 
           <summary class="audio-mixer-toggle">
-            Audio Mixer
+            Audio
           </summary>
 
           <div id="audioMixer" class="audio-mixer">
+
+            <div class="audio-toggle-grid">
+              <button
+                id="soundButton"
+                class="audio-toggle-btn active"
+                type="button">
+                All Sound
+              </button>
+              <button
+                id="voiceMuteButton"
+                class="audio-toggle-btn active"
+                type="button">
+                Voices
+              </button>
+              <button
+                id="captureMuteButton"
+                class="audio-toggle-btn active"
+                type="button">
+                Capture FX
+              </button>
+            </div>
 
             <div class="audio-mixer-group">
               <div class="audio-mixer-title">Master</div>
@@ -4059,17 +4115,17 @@ if (
             </div>
 
             <div class="audio-mixer-group">
-              <div class="audio-mixer-title">Move Sounds</div>
+              <div class="audio-mixer-title">Game FX</div>
               <div id="audioMixerBoard"></div>
             </div>
 
             <div class="audio-mixer-group">
-              <div class="audio-mixer-title">Themes & Alerts</div>
+              <div class="audio-mixer-title">Music</div>
               <div id="audioMixerThemes"></div>
             </div>
 
             <div class="audio-mixer-group">
-              <div class="audio-mixer-title">Vocal Lines</div>
+              <div class="audio-mixer-title">Voices</div>
               <div id="audioMixerVocals"></div>
             </div>
 
@@ -5620,6 +5676,9 @@ const CAMPAIGN_THEME_FILE =
 const AUDIO_MIX_STORAGE_KEY =
   "chessImperiumAudioMix";
 
+const AUDIO_MUTE_STORAGE_KEY =
+  "chessImperiumAudioMutes";
+
 const AUDIO_MIX_DEFAULTS = {
   master:1,
   board:1,
@@ -5674,43 +5733,34 @@ const AUDIO_MIX_GROUPS = [
   {
     targetId:"audioMixerBoard",
     controls:[
-      {key:"board", label:"Board FX"},
-      {key:"move", label:"Moves"},
-      {key:"capture", label:"Capture"},
-      {key:"formation", label:"Formation"}
+      {key:"board", label:"Game FX"}
     ]
   },
   {
     targetId:"audioMixerThemes",
     controls:[
-      {key:"themes", label:"All Themes"},
-      {key:"openingTheme", label:"Opening"},
-      {key:"analysisTheme", label:"Analysis"},
-      {key:"campaignTheme", label:"Campaign"},
-      {key:"check", label:"Check"},
-      {key:"checkmate", label:"Checkmate"},
-      {key:"stalemate", label:"Stalemate"},
-      {key:"coronation", label:"Coronation"}
+      {key:"themes", label:"Music"}
     ]
   },
   {
     targetId:"audioMixerVocals",
     controls:[
-      {key:"vocals", label:"All Voices"},
-      {key:"knightVoice", label:"Knight"},
-      {key:"pawnVoice", label:"Pawn"},
-      {key:"pawnMoveVoice", label:"Pawn Moves"},
-      {key:"pawnFirstMoveVoice", label:"Pawn First Move"},
-      {key:"sarcasticPawnVoice", label:"Sarcastic Pawn"},
-      {key:"kingVoice", label:"King"},
-      {key:"queenVoice", label:"Queen"}
+      {key:"vocals", label:"Voices"}
     ]
   }
 ];
 
+const AUDIO_MUTE_DEFAULTS = {
+  voices:false,
+  capture:false
+};
+
 
 const audioMix =
   loadAudioMix();
+
+const audioMutes =
+  loadAudioMutes();
 
 
 const AudioContextClass =
@@ -6195,6 +6245,154 @@ function saveAudioMix() {
 }
 
 
+function loadAudioMutes() {
+
+  const mutes = {
+    ...AUDIO_MUTE_DEFAULTS
+  };
+
+
+  try {
+
+    const saved =
+      JSON.parse(
+        localStorage.getItem(
+          AUDIO_MUTE_STORAGE_KEY
+        ) ||
+        "{}"
+      );
+
+
+    Object.keys(
+      AUDIO_MUTE_DEFAULTS
+    ).forEach(
+      key => {
+
+        if (
+          typeof saved[key] === "boolean"
+        ) {
+
+          mutes[key] =
+            saved[key];
+
+        }
+
+      }
+    );
+
+  }
+  catch(error) {
+
+    /* Keep defaults if saved mutes are unavailable or malformed. */
+
+  }
+
+
+  return mutes;
+
+}
+
+
+function saveAudioMutes() {
+
+  try {
+
+    localStorage.setItem(
+      AUDIO_MUTE_STORAGE_KEY,
+      JSON.stringify(
+        audioMutes
+      )
+    );
+
+  }
+  catch(error) {
+
+    /* Mute toggles should still work for this session. */
+
+  }
+
+}
+
+
+function isVoiceMixKey(
+  key
+) {
+
+  let currentKey =
+    key;
+
+
+  while (
+    currentKey
+  ) {
+
+    if (
+      currentKey === "vocals"
+    ) {
+
+      return true;
+
+    }
+
+
+    currentKey =
+      AUDIO_MIX_PARENTS[
+        currentKey
+      ];
+
+  }
+
+
+  return false;
+
+}
+
+
+function isCaptureMixKey(
+  key
+) {
+
+  return (
+    key === "capture" ||
+    key === "pawnVoice"
+  );
+
+}
+
+
+function isAudioMixMuted(
+  key
+) {
+
+  if (
+    audioMutes.voices &&
+    isVoiceMixKey(
+      key
+    )
+  ) {
+
+    return true;
+
+  }
+
+
+  if (
+    audioMutes.capture &&
+    isCaptureMixKey(
+      key
+    )
+  ) {
+
+    return true;
+
+  }
+
+
+  return false;
+
+}
+
+
 function getAudioMixValue(
   key
 ) {
@@ -6452,6 +6650,67 @@ function setAudioMixValue(
 }
 
 
+function refreshAudioToggleButtons() {
+
+  if (
+    soundButton
+  ) {
+
+    soundButton.classList.toggle(
+      "active",
+      soundEnabled
+    );
+
+    soundButton.setAttribute(
+      "aria-pressed",
+      soundEnabled
+        ? "true"
+        : "false"
+    );
+
+  }
+
+
+  if (
+    voiceMuteButton
+  ) {
+
+    voiceMuteButton.classList.toggle(
+      "active",
+      !audioMutes.voices
+    );
+
+    voiceMuteButton.setAttribute(
+      "aria-pressed",
+      audioMutes.voices
+        ? "false"
+        : "true"
+    );
+
+  }
+
+
+  if (
+    captureMuteButton
+  ) {
+
+    captureMuteButton.classList.toggle(
+      "active",
+      !audioMutes.capture
+    );
+
+    captureMuteButton.setAttribute(
+      "aria-pressed",
+      audioMutes.capture
+        ? "false"
+        : "true"
+    );
+
+  }
+
+}
+
+
 function initializeAudioMixer() {
 
   if (
@@ -6538,6 +6797,7 @@ function initializeAudioMixer() {
 
 
   refreshAudioMixerLabels();
+  refreshAudioToggleButtons();
 
 }
 
@@ -6687,6 +6947,17 @@ async function playBufferedSound(
 
   if (
     !soundEnabled
+  ) {
+
+    return null;
+
+  }
+
+
+  if (
+    isAudioMixMuted(
+      mixKey
+    )
   ) {
 
     return null;
@@ -7518,6 +7789,12 @@ const undoBtn =
 
 const soundButton =
   document.getElementById("soundButton");
+
+const voiceMuteButton =
+  document.getElementById("voiceMuteButton");
+
+const captureMuteButton =
+  document.getElementById("captureMuteButton");
 
 const audioMixer =
   document.getElementById("audioMixer");
@@ -18778,19 +19055,7 @@ function initializeControls() {
         !soundEnabled;
 
 
-      soundButton.classList.toggle(
-        "active",
-        soundEnabled
-      );
-
-
-      soundButton.textContent =
-
-        soundEnabled
-
-          ? "🔊 Sound On"
-
-          : "🔇 Sound Off";
+      refreshAudioToggleButtons();
 
 
       if (
@@ -18806,8 +19071,50 @@ function initializeControls() {
         stopOpeningTheme();
         stopAnalysisTheme();
         stopCampaignTheme();
+        stopPawnCoronationSound();
+        clearVoiceBubble();
 
       }
+
+    }
+  );
+
+  voiceMuteButton.addEventListener(
+    "click",
+    function() {
+
+      audioMutes.voices =
+        !audioMutes.voices;
+
+      saveAudioMutes();
+      refreshAudioToggleButtons();
+
+
+      if (
+        audioMutes.voices
+      ) {
+
+        clearVoiceBubble();
+
+      }
+
+
+      playMenuClick();
+
+    }
+  );
+
+
+  captureMuteButton.addEventListener(
+    "click",
+    function() {
+
+      audioMutes.capture =
+        !audioMutes.capture;
+
+      saveAudioMutes();
+      refreshAudioToggleButtons();
+      playMenuClick();
 
     }
   );
