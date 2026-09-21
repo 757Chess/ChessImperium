@@ -5434,6 +5434,7 @@ const PAWN_MOVE_VOICE_VOLUME = .14;
 const PAWN_FIRST_MOVE_VOICE_VOLUME = .14;
 const SARCASTIC_PAWN_VOICE_VOLUME = .14;
 const PAWN_MOVE_VOICE_CHANCE = .33;
+const MAX_PAWN_MOVE_VOICE_USES_PER_PAWN = 2;
 const CHAT_BEEP_VOLUME = .36;
 const ONLINE_NO_CLOCK_TURN_PULSE_DELAY_MS =
   180000;
@@ -7738,6 +7739,9 @@ let sarcasticPawnAssignedThisGame =
 let sarcasticPawnGameKey =
   null;
 
+const pawnMoveVoiceAssignments =
+  new Map();
+
 
 /* ===================================================== */
 /* ONLINE MULTIPLAYER STATE                              */
@@ -8539,6 +8543,169 @@ function choosePawnMoveVoiceOption(
 }
 
 
+function getPawnMoveVoiceOption(
+  index
+) {
+
+  if (
+    PAWN_MOVE_SOUND_FILES.length === 0
+  ) {
+    return null;
+  }
+
+
+  const normalizedIndex =
+    index %
+    PAWN_MOVE_SOUND_FILES.length;
+
+
+  return {
+    key:"pawnmove" + normalizedIndex,
+    volume:PAWN_MOVE_VOICE_VOLUME,
+    mixKey:"pawnMoveVoice",
+    uses:0
+  };
+
+}
+
+
+function assignPawnMoveVoices() {
+
+  pawnMoveVoiceAssignments.clear();
+
+  if (
+    !game ||
+    PAWN_MOVE_SOUND_FILES.length === 0
+  ) {
+    return;
+  }
+
+
+  let voiceIndex =
+    0;
+
+
+  "abcdefgh"
+    .split("")
+    .forEach(
+      file => {
+
+        "12345678"
+          .split("")
+          .forEach(
+            rank => {
+
+              const square =
+                file + rank;
+
+              if (
+                square === sarcasticPawnSquare
+              ) {
+                return;
+              }
+
+
+              const piece =
+                typeof game.get === "function"
+                  ? game.get(
+                      square
+                    )
+                  : null;
+
+
+              if (
+                !piece ||
+                piece.type !== "p"
+              ) {
+                return;
+              }
+
+
+              const voiceOption =
+                getPawnMoveVoiceOption(
+                  voiceIndex
+                );
+
+
+              if (
+                voiceOption
+              ) {
+
+                pawnMoveVoiceAssignments.set(
+                  square,
+                  voiceOption
+                );
+
+                voiceIndex +=
+                  1;
+
+              }
+
+            }
+          );
+
+      }
+    );
+
+}
+
+
+function updatePawnMoveVoiceAssignmentsAfterMove(
+  move
+) {
+
+  if (
+    !move
+  ) {
+    return;
+  }
+
+
+  if (
+    move.captured
+  ) {
+
+    pawnMoveVoiceAssignments.delete(
+      move.to
+    );
+
+  }
+
+
+  if (
+    move.piece !== "p"
+  ) {
+    return;
+  }
+
+
+  const voiceOption =
+    pawnMoveVoiceAssignments.get(
+      move.from
+    );
+
+
+  pawnMoveVoiceAssignments.delete(
+    move.from
+  );
+
+
+  if (
+    !voiceOption ||
+    move.promotion
+  ) {
+    return;
+  }
+
+
+  pawnMoveVoiceAssignments.set(
+    move.to,
+    voiceOption
+  );
+
+}
+
+
 function playPawnMoveVoice(
   move,
   squareName = null
@@ -8618,11 +8785,20 @@ function playPawnMoveVoice(
 
 
     voiceOption =
-      choosePawnMoveVoiceOption(
-        isPawnFirstMove(
-          move
-        )
+      pawnMoveVoiceAssignments.get(
+        move.from
       );
+
+    if (
+      !voiceOption ||
+      voiceOption.uses >= MAX_PAWN_MOVE_VOICE_USES_PER_PAWN
+    ) {
+      return;
+    }
+
+
+    voiceOption.uses +=
+      1;
 
   }
 
@@ -12629,6 +12805,8 @@ function setupOnlineGameFromRoom(
     sarcasticPawnAssignedThisGame =
       false;
 
+    pawnMoveVoiceAssignments.clear();
+
   }
 
 
@@ -12637,6 +12815,8 @@ function setupOnlineGameFromRoom(
   ) {
 
     assignRandomSarcasticPawn();
+
+    assignPawnMoveVoices();
 
   }
 
@@ -20409,6 +20589,8 @@ async function beginGame(
 
   assignRandomSarcasticPawn();
 
+  assignPawnMoveVoices();
+
 
   engine.postMessage(
     "ucinewgame"
@@ -23500,6 +23682,10 @@ function afterMove(
   }
 
   updateSarcasticPawnAfterMove(
+    move
+  );
+
+  updatePawnMoveVoiceAssignmentsAfterMove(
     move
   );
 
