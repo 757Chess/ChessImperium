@@ -4451,8 +4451,8 @@ if (
         After setup, standard chess rules apply.
       </li>
       <li>
-        Castling is available only when both players choose
-        <strong>The Bastion (RNB)</strong>.
+        Castling is available only for sides whose formation starts
+        with rooks on the corner squares.
       </li>
     </ol>
 
@@ -4814,13 +4814,13 @@ const FORMATION_GUIDES = {
 
   RNB: {
     description:"The classical formation: familiar, balanced, and flexible.",
-    strength:"Natural development and the only formation that can castle.",
+    strength:"Natural development with rooks on both castling corners.",
     tip:"Best when you want traditional chess structure with Imperium rules."
   },
 
   RBN: {
     description:"Bishops move outward while the knights sit closer to the center.",
-    strength:"Quick knight activity with unusual bishop lanes.",
+    strength:"Quick knight activity while preserving both castling corners.",
     tip:"Open paths for the bishops early so they do not become boxed in."
   },
 
@@ -4934,6 +4934,70 @@ const FORMATION_MAP =
       ]
     )
   );
+
+
+function formationHasCornerRooks(
+  code
+) {
+
+  if (
+    !FORMATION_MAP[code]
+  ) {
+    return false;
+  }
+
+
+  const backRow =
+    buildBackRow(
+      code
+    );
+
+  return (
+    backRow[0] === "R" &&
+    backRow[7] === "R"
+  );
+
+}
+
+
+function getCastlingMatchupText(
+  playerFormation,
+  opponentFormation,
+  opponentLabel = "Opponent"
+) {
+
+  const playerCanCastle =
+    formationHasCornerRooks(
+      playerFormation
+    );
+
+  const opponentCanCastle =
+    formationHasCornerRooks(
+      opponentFormation
+    );
+
+  if (
+    playerCanCastle &&
+    opponentCanCastle
+  ) {
+    return "Enabled for both sides";
+  }
+
+  if (
+    playerCanCastle
+  ) {
+    return "You only";
+  }
+
+  if (
+    opponentCanCastle
+  ) {
+    return opponentLabel + " only";
+  }
+
+  return "Disabled";
+
+}
 
 
 function getFormationDisplayText(
@@ -12461,16 +12525,10 @@ function buildOnlineGameFromHistory(
   }
 
 
-  const allowCastling =
-    room.white_formation === "RNB" &&
-    room.black_formation === "RNB";
-
-
   const initialFen =
     buildFen(
       room.white_formation,
-      room.black_formation,
-      allowCastling
+      room.black_formation
     );
 
 
@@ -13335,16 +13393,10 @@ function setupOnlineGameFromRoom(
       : room.white_formation;
 
 
-  const allowCastling =
-    room.white_formation === "RNB" &&
-    room.black_formation === "RNB";
-
-
   const initialFen =
     buildFen(
       room.white_formation,
-      room.black_formation,
-      allowCastling
+      room.black_formation
     );
 
 
@@ -13606,16 +13658,10 @@ async function initializeOnlineFenIfNeeded(
   }
 
 
-  const allowCastling =
-    room.white_formation === "RNB" &&
-    room.black_formation === "RNB";
-
-
   const initialFen =
     buildFen(
       room.white_formation,
-      room.black_formation,
-      allowCastling
+      room.black_formation
     );
 
 
@@ -16426,8 +16472,25 @@ async function reconnectOnlineRoomIfAvailable() {
 function castlingEnabledForCurrentGame() {
 
   return (
-    actualPlayerFormation === "RNB" &&
-    actualComputerFormation === "RNB"
+    formationHasCornerRooks(
+      actualPlayerFormation
+    ) ||
+    formationHasCornerRooks(
+      actualComputerFormation
+    )
+  );
+
+}
+
+
+function getCurrentCastlingText(
+  opponentLabel = "Opponent"
+) {
+
+  return getCastlingMatchupText(
+    actualPlayerFormation,
+    actualComputerFormation,
+    opponentLabel
   );
 
 }
@@ -16446,8 +16509,15 @@ function showRuleToast() {
   }
 
 
+  const castlingText =
+    getCurrentCastlingText(
+      gameMode === "online"
+        ? "Opponent"
+        : "Computer"
+    );
+
   const castlingEnabled =
-    castlingEnabledForCurrentGame();
+    castlingText !== "Disabled";
 
 
   ruleToast.classList.remove(
@@ -16461,9 +16531,9 @@ function showRuleToast() {
 
     castlingEnabled
 
-      ? "♜ Castling enabled — Bastion vs Bastion"
+      ? "♜ Castling: " + castlingText
 
-      : "Castling disabled — Chess Imperium formation rules";
+      : "Castling disabled — corner rooks required";
 
 
   ruleToast.innerHTML =
@@ -17649,9 +17719,11 @@ function getFormationTooltipHTML(code) {
     "</div>" +
 
     (
-      code === "RNB"
+      formationHasCornerRooks(
+        code
+      )
 
-        ? "<div class='tooltip-note'>Castling is available when both players choose The Bastion.</div>"
+        ? "<div class='tooltip-note'>This formation can castle because both rooks begin on the corners.</div>"
 
         : ""
     )
@@ -18095,8 +18167,7 @@ function buildBackRow(setup) {
 
 function buildFen(
   whiteSetup,
-  blackSetup,
-  allowCastling = false
+  blackSetup
 ) {
 
   const whiteBack =
@@ -18111,13 +18182,41 @@ function buildFen(
     ).toLowerCase();
 
 
-  const castlingRights =
+  let castlingRights = "";
 
-    allowCastling
+  if (
+    whiteBack[4] === "K" &&
+    whiteBack[7] === "R"
+  ) {
+    castlingRights += "K";
+  }
 
-      ? "KQkq"
+  if (
+    whiteBack[4] === "K" &&
+    whiteBack[0] === "R"
+  ) {
+    castlingRights += "Q";
+  }
 
-      : "-";
+  if (
+    blackBack[4] === "k" &&
+    blackBack[7] === "r"
+  ) {
+    castlingRights += "k";
+  }
+
+  if (
+    blackBack[4] === "k" &&
+    blackBack[0] === "r"
+  ) {
+    castlingRights += "q";
+  }
+
+  if (
+    !castlingRights
+  ) {
+    castlingRights = "-";
+  }
 
 
   return (
@@ -20401,8 +20500,7 @@ function renderPreview() {
     new Chess(
       buildFen(
         whiteSetup,
-        blackSetup,
-        false
+        blackSetup
       )
     );
 
@@ -21264,16 +21362,11 @@ async function beginGame(
       : actualComputerFormation;
 
 
-  const allowCastling =
-    castlingEnabledForCurrentGame();
-
-
   game =
     new Chess(
       buildFen(
         whiteSetup,
-        blackSetup,
-        allowCastling
+        blackSetup
       )
     );
 
@@ -25283,9 +25376,11 @@ function buildGameSummaryText() {
     ) +
     opponentFormationText,
     "Castling: " + (
-      castlingEnabledForCurrentGame()
-        ? "Enabled"
-        : "Disabled"
+      getCurrentCastlingText(
+        gameMode === "online"
+          ? "Opponent"
+          : "Computer"
+      )
     ),
     "Moves: " + Math.ceil(
       history.length / 2
@@ -25683,11 +25778,11 @@ function updateGameOverSummary() {
 
   const castlingText =
 
-    castlingEnabledForCurrentGame()
-
-      ? "Enabled"
-
-      : "Disabled";
+    getCurrentCastlingText(
+      gameMode === "online"
+        ? "Opponent"
+        : "Computer"
+    );
 
   const campaignOpponent =
     gameMode === "campaign"
@@ -25822,8 +25917,7 @@ function getAnalysisInitialFen() {
 
   return buildFen(
     whiteSetup,
-    blackSetup,
-    castlingEnabledForCurrentGame()
+    blackSetup
   );
 
 }
@@ -28377,10 +28471,9 @@ function updateInfoPanel() {
         "</div>" +
 
         "<div class='match-line'><strong>Castling:</strong> " +
-        (
-          castlingEnabledForCurrentGame()
-            ? "Enabled"
-            : "Disabled"
+        getCurrentCastlingText(
+          getOpponentOnlineDisplayName() ||
+          "Opponent"
         ) +
         "</div>";
 
@@ -28473,15 +28566,23 @@ function updateInfoPanel() {
   const castlingText =
     gameStarted
       ? (
-          castlingEnabledForCurrentGame()
-            ? "Enabled"
-            : "Disabled"
+          getCurrentCastlingText(
+            campaignOpponent
+              ? campaignOpponent.name
+              : "Computer"
+          )
         )
       : (
-          playerFormationChoice === "RNB" &&
-          computerFormationChoice === "RNB"
-            ? "Available if this matchup begins"
-            : "Disabled"
+          playerFormationChoice === "RANDOM" ||
+          computerFormationChoice === "RANDOM"
+            ? "Determined when formations are set"
+            : getCastlingMatchupText(
+                playerFormationChoice,
+                computerFormationChoice,
+                campaignOpponent
+                  ? campaignOpponent.name
+                  : "Computer"
+              )
         );
 
 
@@ -28813,11 +28914,11 @@ feedbackForm.addEventListener(
 
       formData.append(
         "castling",
-        castlingEnabledForCurrentGame()
-
-          ? "Enabled"
-
-          : "Disabled"
+        getCurrentCastlingText(
+          gameMode === "online"
+            ? "Opponent"
+            : "Computer"
+        )
       );
 
     }
