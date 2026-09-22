@@ -11960,6 +11960,48 @@ function normalizeCampaignName(
 }
 
 
+const CAMPAIGN_BACKDOOR_TITLE_WORDS =
+  new Set([
+    "dominus",
+    "centurion",
+    "tribune",
+    "praetor",
+    "consul"
+  ]);
+
+
+function getCampaignBackdoorAliases(
+  opponent
+) {
+
+  const normalizedFullName =
+    normalizeCampaignName(
+      opponent.name
+    );
+
+  const personalName =
+    normalizedFullName
+      .split(
+        " "
+      )
+      .find(
+        word =>
+          !CAMPAIGN_BACKDOOR_TITLE_WORDS.has(
+            word
+          )
+      );
+
+
+  return [
+    normalizedFullName,
+    personalName
+  ].filter(
+    Boolean
+  );
+
+}
+
+
 function isCampaignOpponentAvailable(
   opponent
 ) {
@@ -12079,9 +12121,11 @@ function getCampaignBackdoorOpponent(
 
   return CAMPAIGN_OPPONENTS.find(
     opponent =>
-      normalizeCampaignName(
-        opponent.name
-      ) === normalizedName
+      getCampaignBackdoorAliases(
+        opponent
+      ).includes(
+        normalizedName
+      )
   ) ||
   null;
 
