@@ -8423,7 +8423,7 @@ function playSound(
   volume = 1
 ) {
 
-  playBufferedSound(
+  return playBufferedSound(
     name,
     volume,
     getSoundMixKey(
@@ -8446,7 +8446,7 @@ function playMenuClick() {
 
 function playResignationTheme() {
 
-  playSound(
+  return playSound(
     "draw"
   );
 
@@ -14715,6 +14715,9 @@ async function resignOnlineGame(
   if (
     confirmFirst
   ) {
+
+    unlockAudioFromGesture();
+
 
     const confirmed =
       window.confirm(
@@ -21690,12 +21693,20 @@ async function resignComputerGame(
 
 
   if (
-    confirmFirst &&
-    !window.confirm(
-      "Resign this game?"
-    )
+    confirmFirst
   ) {
-    return;
+
+    unlockAudioFromGesture();
+
+
+    if (
+      !window.confirm(
+        "Resign this game?"
+      )
+    ) {
+      return;
+    }
+
   }
 
 
@@ -21704,9 +21715,7 @@ async function resignComputerGame(
   );
 
 
-  playSound(
-    "draw"
-  );
+  await playResignationTheme();
 
 
   cancelPieceDrag();
