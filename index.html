@@ -18418,6 +18418,49 @@ function getImperialStepTooltipHTML() {
 }
 
 
+function attachImperialStepTooltip(
+  element
+) {
+
+  element.addEventListener(
+    "mouseenter",
+    function() {
+
+      showTooltip(
+        element,
+        getImperialStepTooltipHTML(),
+        true
+      );
+
+    }
+  );
+
+  element.addEventListener(
+    "mouseleave",
+    hideTooltip
+  );
+
+  element.addEventListener(
+    "focus",
+    function() {
+
+      showTooltip(
+        element,
+        getImperialStepTooltipHTML(),
+        true
+      );
+
+    }
+  );
+
+  element.addEventListener(
+    "blur",
+    hideTooltip
+  );
+
+}
+
+
 
 /* ===================================================== */
 /* DIFFICULTY HELP                                       */
@@ -18452,11 +18495,17 @@ function getDifficultyTooltipHTML(key) {
 /* TOOLTIP POSITIONING                                   */
 /* ===================================================== */
 
-function positionTooltip(button) {
+function positionTooltip(
+  button,
+  force = false
+) {
 
   if (
-    isTouchStyleDevice() ||
-    window.innerWidth <= 700
+    !force &&
+    (
+      isTouchStyleDevice() ||
+      window.innerWidth <= 700
+    )
   ) {
 
     return;
@@ -18588,7 +18637,8 @@ function positionTooltip(button) {
 
 function showTooltip(
   button,
-  html
+  html,
+  forcePosition = false
 ) {
 
   hoverTooltip.innerHTML =
@@ -18601,7 +18651,8 @@ function showTooltip(
 
 
   positionTooltip(
-    button
+    button,
+    forcePosition
   );
 
 }
@@ -22454,6 +22505,54 @@ function drawBoard() {
         );
 
 
+      const showImperialStepHint =
+        shouldShowImperialStepHint(
+          squareName,
+          piece
+        );
+
+
+      if (
+        showImperialStepHint
+      ) {
+
+        square.tabIndex =
+          0;
+
+        attachImperialStepTooltip(
+          square
+        );
+
+        if (
+          selectedSquare === squareName
+        ) {
+
+          requestAnimationFrame(
+            () => {
+
+              if (
+                selectedSquare === squareName &&
+                document.body.contains(
+                  square
+                )
+              ) {
+
+                showTooltip(
+                  square,
+                  getImperialStepTooltipHTML(),
+                  true
+                );
+
+              }
+
+            }
+          );
+
+        }
+
+      }
+
+
       if (
         piece
       ) {
@@ -22512,81 +22611,6 @@ function drawBoard() {
             piece,
             squareName
           );
-
-        if (
-          shouldShowImperialStepHint(
-            squareName,
-            piece
-          )
-        ) {
-
-          image.addEventListener(
-            "mouseenter",
-            function() {
-
-              if (
-                !isTouchStyleDevice()
-              ) {
-
-                showTooltip(
-                  image,
-                  getImperialStepTooltipHTML()
-                );
-
-              }
-
-            }
-          );
-
-          image.addEventListener(
-            "mouseleave",
-            function() {
-
-              if (
-                !isTouchStyleDevice()
-              ) {
-
-                hideTooltip();
-
-              }
-
-            }
-          );
-
-          image.addEventListener(
-            "focus",
-            function() {
-
-              if (
-                !isTouchStyleDevice()
-              ) {
-
-                showTooltip(
-                  image,
-                  getImperialStepTooltipHTML()
-                );
-
-              }
-
-            }
-          );
-
-          image.addEventListener(
-            "blur",
-            function() {
-
-              if (
-                !isTouchStyleDevice()
-              ) {
-
-                hideTooltip();
-
-              }
-
-            }
-          );
-
-        }
 
 
         square.appendChild(
