@@ -5599,6 +5599,7 @@ const SOUND_FILES = {
   menuclick:"./Audio/menuclick.wav",
   checkmate:"./Audio/Checkmate.wav",
   draw:"./Audio/Stalemate.wav",
+  stalemate:"./Audio/Stalemate.wav",
   pawncoronation:"./Audio/pawncoronation.wav",
   invalid:"./Audio/Invalidmove.wav",
   stacking:"./Audio/stackingpieces.wav",
@@ -6555,7 +6556,8 @@ function getSoundMixKey(
   }
 
   if (
-    name === "draw"
+    name === "draw" ||
+    name === "stalemate"
   ) {
     return "stalemate";
   }
@@ -8447,7 +8449,7 @@ function playMenuClick() {
 function playResignationTheme() {
 
   return playSound(
-    "draw"
+    "stalemate"
   );
 
 }
