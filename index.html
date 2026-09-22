@@ -17097,6 +17097,33 @@ function getImperialStepMovesForSquare(
 }
 
 
+function shouldShowImperialStepHint(
+  squareName,
+  piece
+) {
+
+  return Boolean(
+    gameStarted &&
+    game &&
+    piece &&
+    piece.type === "k" &&
+    piece.color === playerColor &&
+    isImperialStepFormation(
+      piece.color
+    ) &&
+    !imperialStepUsed[piece.color] &&
+    !kingHasBeenChecked[piece.color] &&
+    !hasKingMoved(
+      piece.color
+    ) &&
+    !localGameFinished() &&
+    !game.isGameOver() &&
+    squareName
+  );
+
+}
+
+
 function replaceFenBoardSquare(
   boardRows,
   squareName,
@@ -18354,6 +18381,37 @@ function getFormationTooltipHTML(code) {
 
         : "<div class='tooltip-note'>This formation cannot castle, but its king may use one Imperial Step.</div>"
     )
+
+  );
+
+}
+
+
+function getImperialStepTooltipHTML() {
+
+  return (
+
+    "<div class='tooltip-title'>" +
+    "Imperial Step" +
+    "</div>" +
+
+    "<div class='tooltip-description'>" +
+    "This king still has one Imperial Step available." +
+    "</div>" +
+
+    "<div class='tooltip-line'>" +
+    "<strong>Rule:</strong> " +
+    "Move exactly two horizontal squares once per game." +
+    "</div>" +
+
+    "<div class='tooltip-line'>" +
+    "<strong>Limits:</strong> " +
+    "The king must be unmoved, unchecked, and may not pass through pieces or danger." +
+    "</div>" +
+
+    "<div class='tooltip-note'>" +
+    "Select the king to see eligible Imperial Step squares." +
+    "</div>"
 
   );
 
@@ -22454,6 +22512,81 @@ function drawBoard() {
             piece,
             squareName
           );
+
+        if (
+          shouldShowImperialStepHint(
+            squareName,
+            piece
+          )
+        ) {
+
+          image.addEventListener(
+            "mouseenter",
+            function() {
+
+              if (
+                !isTouchStyleDevice()
+              ) {
+
+                showTooltip(
+                  image,
+                  getImperialStepTooltipHTML()
+                );
+
+              }
+
+            }
+          );
+
+          image.addEventListener(
+            "mouseleave",
+            function() {
+
+              if (
+                !isTouchStyleDevice()
+              ) {
+
+                hideTooltip();
+
+              }
+
+            }
+          );
+
+          image.addEventListener(
+            "focus",
+            function() {
+
+              if (
+                !isTouchStyleDevice()
+              ) {
+
+                showTooltip(
+                  image,
+                  getImperialStepTooltipHTML()
+                );
+
+              }
+
+            }
+          );
+
+          image.addEventListener(
+            "blur",
+            function() {
+
+              if (
+                !isTouchStyleDevice()
+              ) {
+
+                hideTooltip();
+
+              }
+
+            }
+          );
+
+        }
 
 
         square.appendChild(
