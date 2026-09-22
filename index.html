@@ -4454,6 +4454,11 @@ if (
         Castling is available only for sides whose formation starts
         with rooks on the corner squares.
       </li>
+      <li>
+        Non-corner-rook formations may use one <strong>Imperial Step</strong>:
+        an unmoved, unchecked king may move two clear horizontal squares
+        without passing through danger.
+      </li>
     </ol>
 
     <div class="how-to-play-note">
@@ -4996,6 +5001,21 @@ function getCastlingMatchupText(
   }
 
   return "Disabled";
+
+}
+
+
+function getFormationForColor(
+  color
+) {
+
+  if (
+    color === playerColor
+  ) {
+    return actualPlayerFormation;
+  }
+
+  return actualComputerFormation;
 
 }
 
@@ -8106,6 +8126,19 @@ let legalMoves =
 
 let lastMove =
   null;
+
+let appMoveHistory =
+  [];
+
+let imperialStepUsed = {
+  w:false,
+  b:false
+};
+
+let kingHasBeenChecked = {
+  w:false,
+  b:false
+};
 
 let promotionPending =
   null;
@@ -12497,25 +12530,11 @@ function onlineHistoryFromGame() {
   }
 
 
-  return game
-    .history({
-      verbose:true
-    })
-    .map(
-      move => ({
-        from:move.from,
-        to:move.to,
-        promotion:
-          move.promotion ||
-          null,
-        san:move.san,
-        color:move.color,
-        piece:move.piece,
-        captured:
-          move.captured ||
-          null
-      })
-    );
+  return getAppMoveHistory({
+    verbose:true
+  }).map(
+    toAppMoveRecord
+  );
 
 }
 
@@ -12562,13 +12581,18 @@ function buildOnlineGameFromHistory(
     try {
 
       const replayed =
-        rebuilt.move({
-          from:record.from,
-          to:record.to,
-          promotion:
-            record.promotion ||
-            undefined
-        });
+        record.imperialStep
+          ? applyImperialStepMove(
+              rebuilt,
+              record
+            )
+          : rebuilt.move({
+              from:record.from,
+              to:record.to,
+              promotion:
+                record.promotion ||
+                undefined
+            });
 
 
       if (
@@ -12605,14 +12629,18 @@ function canRequestOnlineUndo() {
     promotionPending ||
     onlineMoveSyncInFlight ||
     onlineUndoDecisionInFlight ||
-    onlineRoom.undo_request_id
+    onlineRoom.undo_request_id ||
+    appMoveHistory.some(
+      move =>
+        move.imperialStep
+    )
   ) {
     return false;
   }
 
 
   const history =
-    game.history({
+    getAppMoveHistory({
       verbose:true
     });
 
@@ -12658,7 +12686,7 @@ async function requestOnlineUndo() {
 
 
   const historyLength =
-    game.history().length;
+    getAppMoveHistory().length;
 
 
   const {
@@ -13114,7 +13142,7 @@ function refreshOnlineTurnPulse() {
       onlineRoom.move_history
     )
       ? onlineRoom.move_history.length
-      : game.history().length;
+      : getAppMoveHistory().length;
 
   const pulseKey =
     onlineRoom.id +
@@ -13408,6 +13436,19 @@ function setupOnlineGameFromRoom(
   let replayWorked =
     true;
 
+  appMoveHistory =
+    [];
+
+  imperialStepUsed = {
+    w:false,
+    b:false
+  };
+
+  kingHasBeenChecked = {
+    w:false,
+    b:false
+  };
+
 
   for (
     const record of storedHistory
@@ -13415,14 +13456,42 @@ function setupOnlineGameFromRoom(
 
     try {
 
-      const replayed =
-        rebuiltGame.move({
-          from:record.from,
-          to:record.to,
-          promotion:
-            record.promotion ||
-            undefined
-        });
+      let replayed = null;
+
+      if (
+        record.imperialStep
+      ) {
+
+        replayed =
+          applyImperialStepMove(
+            rebuiltGame,
+            record
+          )
+            ? record
+            : null;
+
+        if (
+          replayed
+        ) {
+          imperialStepUsed[
+            record.color
+          ] = true;
+        }
+
+      }
+
+      else {
+
+        replayed =
+          rebuiltGame.move({
+            from:record.from,
+            to:record.to,
+            promotion:
+              record.promotion ||
+              undefined
+          });
+
+      }
 
 
       if (
@@ -13434,6 +13503,22 @@ function setupOnlineGameFromRoom(
 
         break;
 
+      }
+
+      appMoveHistory.push(
+        toAppMoveRecord(
+          record.imperialStep
+            ? record
+            : replayed
+        )
+      );
+
+      if (
+        rebuiltGame.inCheck()
+      ) {
+        kingHasBeenChecked[
+          rebuiltGame.turn()
+        ] = true;
       }
 
     }
@@ -15081,7 +15166,7 @@ async function applyOnlineRoomUpdate(
   const localHistoryLength =
     gameStarted &&
     game
-      ? game.history().length
+      ? getAppMoveHistory().length
       : 0;
 
 
@@ -15218,10 +15303,9 @@ async function applyOnlineRoomUpdate(
     ) {
 
       const plannedMove =
-        game.moves({
-          square:record.from,
-          verbose:true
-        }).find(
+        getLegalMovesForSquare(
+          record.from
+        ).find(
           move =>
             move.to === record.to &&
             (
@@ -15256,14 +15340,42 @@ async function applyOnlineRoomUpdate(
 
       try {
 
-        const move =
-          game.move({
-            from:record.from,
-            to:record.to,
-            promotion:
-              record.promotion ||
-              undefined
-          });
+        let move = null;
+
+        if (
+          record.imperialStep
+        ) {
+
+          if (
+            applyImperialStepMove(
+              game,
+              record
+            )
+          ) {
+
+            imperialStepUsed[
+              record.color
+            ] = true;
+
+            move =
+              record;
+
+          }
+
+        }
+
+        else {
+
+          move =
+            game.move({
+              from:record.from,
+              to:record.to,
+              promotion:
+                record.promotion ||
+                undefined
+            });
+
+        }
 
 
         moveAnimating =
@@ -16645,10 +16757,9 @@ function findPlannedMove(
 
 
   const moves =
-    game.moves({
-      square:from,
-      verbose:true
-    });
+    getLegalMovesForSquare(
+      from
+    );
 
 
   let matches =
@@ -16675,6 +16786,526 @@ function findPlannedMove(
     matches[0] ||
     null
   );
+
+}
+
+
+function getAppMoveHistory(
+  options = {}
+) {
+
+  const verbose =
+    Boolean(
+      options.verbose
+    );
+
+  if (
+    appMoveHistory.length > 0
+  ) {
+
+    return appMoveHistory.map(
+      move =>
+        verbose
+          ? {
+              ...move
+            }
+          : move.san
+    );
+
+  }
+
+
+  if (
+    !game
+  ) {
+    return [];
+  }
+
+
+  return game.history(
+    options
+  );
+
+}
+
+
+function toAppMoveRecord(
+  move
+) {
+
+  return {
+    from:move.from,
+    to:move.to,
+    promotion:
+      move.promotion ||
+      null,
+    san:
+      move.san ||
+      "",
+    color:move.color,
+    piece:move.piece,
+    captured:
+      move.captured ||
+      null,
+    imperialStep:
+      Boolean(
+        move.imperialStep
+      )
+  };
+
+}
+
+
+function recordAppMove(
+  move
+) {
+
+  if (
+    !move
+  ) {
+    return;
+  }
+
+  appMoveHistory.push(
+    toAppMoveRecord(
+      move
+    )
+  );
+
+}
+
+
+function markCheckedKingIfNeeded() {
+
+  if (
+    game &&
+    game.inCheck()
+  ) {
+
+    kingHasBeenChecked[
+      game.turn()
+    ] = true;
+
+  }
+
+}
+
+
+function getLegalMovesForSquare(
+  squareName
+) {
+
+  if (
+    !game
+  ) {
+    return [];
+  }
+
+  return game.moves({
+    square:squareName,
+    verbose:true
+  }).concat(
+    getImperialStepMovesForSquare(
+      squareName
+    )
+  );
+
+}
+
+
+function isImperialStepFormation(
+  color
+) {
+
+  const formation =
+    getFormationForColor(
+      color
+    );
+
+  return (
+    Boolean(
+      formation
+    ) &&
+    !formationHasCornerRooks(
+      formation
+    )
+  );
+
+}
+
+
+function hasKingMoved(
+  color
+) {
+
+  return getAppMoveHistory({
+    verbose:true
+  }).some(
+    move =>
+      move.color === color &&
+      move.piece === "k"
+  );
+
+}
+
+
+function isSquareAttackedBy(
+  squareName,
+  color
+) {
+
+  return Boolean(
+    game &&
+    typeof game.isAttacked === "function" &&
+    game.isAttacked(
+      squareName,
+      color
+    )
+  );
+
+}
+
+
+function getImperialStepMovesForSquare(
+  squareName
+) {
+
+  if (
+    !game ||
+    !squareName
+  ) {
+    return [];
+  }
+
+
+  const piece =
+    game.get(
+      squareName
+    );
+
+  if (
+    !piece ||
+    piece.type !== "k" ||
+    piece.color !== game.turn() ||
+    !isImperialStepFormation(
+      piece.color
+    ) ||
+    imperialStepUsed[piece.color] ||
+    kingHasBeenChecked[piece.color] ||
+    game.inCheck() ||
+    hasKingMoved(
+      piece.color
+    )
+  ) {
+    return [];
+  }
+
+
+  const rank =
+    squareName[1];
+
+  const fileIndex =
+    "abcdefgh".indexOf(
+      squareName[0]
+    );
+
+  const enemyColor =
+    piece.color === "w"
+      ? "b"
+      : "w";
+
+  const moves =
+    [];
+
+
+  [
+    -2,
+    2
+  ].forEach(
+    offset => {
+
+      const middleIndex =
+        fileIndex + offset / 2;
+
+      const destinationIndex =
+        fileIndex + offset;
+
+      if (
+        middleIndex < 0 ||
+        middleIndex > 7 ||
+        destinationIndex < 0 ||
+        destinationIndex > 7
+      ) {
+        return;
+      }
+
+
+      const middleSquare =
+        "abcdefgh"[middleIndex] +
+        rank;
+
+      const destinationSquare =
+        "abcdefgh"[destinationIndex] +
+        rank;
+
+      if (
+        game.get(
+          middleSquare
+        ) ||
+        game.get(
+          destinationSquare
+        ) ||
+        isSquareAttackedBy(
+          middleSquare,
+          enemyColor
+        ) ||
+        isSquareAttackedBy(
+          destinationSquare,
+          enemyColor
+        )
+      ) {
+        return;
+      }
+
+
+      moves.push({
+        color:piece.color,
+        from:squareName,
+        to:destinationSquare,
+        piece:"k",
+        captured:null,
+        promotion:null,
+        flags:"i",
+        san:
+          "K" +
+          destinationSquare +
+          " (Imperial Step)",
+        imperialStep:true
+      });
+
+    }
+  );
+
+
+  return moves;
+
+}
+
+
+function replaceFenBoardSquare(
+  boardRows,
+  squareName,
+  pieceChar
+) {
+
+  const fileIndex =
+    "abcdefgh".indexOf(
+      squareName[0]
+    );
+
+  const rowIndex =
+    8 - Number(
+      squareName[1]
+    );
+
+  boardRows[rowIndex][fileIndex] =
+    pieceChar;
+
+}
+
+
+function expandFenRow(
+  row
+) {
+
+  const squares =
+    [];
+
+  for (
+    const char of row
+  ) {
+
+    if (
+      /\d/.test(
+        char
+      )
+    ) {
+
+      for (
+        let i=0;
+        i<Number(char);
+        i++
+      ) {
+        squares.push(
+          null
+        );
+      }
+
+    }
+
+    else {
+      squares.push(
+        char
+      );
+    }
+
+  }
+
+  return squares;
+
+}
+
+
+function collapseFenRow(
+  squares
+) {
+
+  let row = "";
+  let empty = 0;
+
+  squares.forEach(
+    square => {
+
+      if (
+        square
+      ) {
+
+        if (
+          empty > 0
+        ) {
+          row += empty;
+          empty = 0;
+        }
+
+        row += square;
+
+      }
+
+      else {
+        empty++;
+      }
+
+    }
+  );
+
+  if (
+    empty > 0
+  ) {
+    row += empty;
+  }
+
+  return row;
+
+}
+
+
+function applyImperialStepToFen(
+  fen,
+  move
+) {
+
+  const parts =
+    fen.split(
+      " "
+    );
+
+  const rows =
+    parts[0]
+      .split(
+        "/"
+      )
+      .map(
+        expandFenRow
+      );
+
+  const pieceChar =
+    move.color === "w"
+      ? "K"
+      : "k";
+
+  replaceFenBoardSquare(
+    rows,
+    move.from,
+    null
+  );
+
+  replaceFenBoardSquare(
+    rows,
+    move.to,
+    pieceChar
+  );
+
+  parts[0] =
+    rows.map(
+      collapseFenRow
+    ).join(
+      "/"
+    );
+
+  parts[1] =
+    move.color === "w"
+      ? "b"
+      : "w";
+
+  parts[2] =
+    (
+      parts[2] || "-"
+    ).replace(
+      move.color === "w"
+        ? /[KQ]/g
+        : /[kq]/g,
+      ""
+    ) || "-";
+
+  parts[3] =
+    "-";
+
+  parts[4] =
+    String(
+      Number(
+        parts[4] || 0
+      ) + 1
+    );
+
+  if (
+    move.color === "b"
+  ) {
+    parts[5] =
+      String(
+        Number(
+          parts[5] || 1
+        ) + 1
+      );
+  }
+
+  return parts.join(
+    " "
+  );
+
+}
+
+
+function applyImperialStepMove(
+  targetGame,
+  move
+) {
+
+  if (
+    !targetGame ||
+    !move ||
+    !move.imperialStep
+  ) {
+    return false;
+  }
+
+  targetGame.load(
+    applyImperialStepToFen(
+      targetGame.fen(),
+      move
+    )
+  );
+
+  return true;
 
 }
 
@@ -17716,7 +18347,7 @@ function getFormationTooltipHTML(code) {
 
         ? "<div class='tooltip-note'>This formation can castle because both rooks begin on the corners.</div>"
 
-        : ""
+        : "<div class='tooltip-note'>This formation cannot castle, but its king may use one Imperial Step.</div>"
     )
 
   );
@@ -19253,7 +19884,7 @@ function initializeControls() {
         gameStarted &&
         !game.isGameOver() &&
         !localGameFinished() &&
-        game.history().length >= 2
+        getAppMoveHistory().length >= 2
       ) {
 
         resignComputerGame();
@@ -19278,7 +19909,7 @@ function initializeControls() {
       if (
         game &&
         gameStarted &&
-        game.history().length >= 2
+        getAppMoveHistory().length >= 2
       ) {
 
         resignComputerGame();
@@ -19615,7 +20246,7 @@ function getLatestPlayerMoveIndex() {
 
 
   const history =
-    game.history({
+    getAppMoveHistory({
       verbose:true
     });
 
@@ -19761,6 +20392,10 @@ function updateUndoButton() {
     !localGameFinished() &&
     !game.isGameOver() &&
     hasPlayerMove &&
+    !appMoveHistory.some(
+      move =>
+        move.imperialStep
+    ) &&
     undosRemaining > 0 &&
     !moveAnimating &&
     !promotionPending;
@@ -19793,7 +20428,7 @@ function restoreLastMoveHighlight() {
 
 
   const history =
-    game.history({
+    getAppMoveHistory({
       verbose:true
     });
 
@@ -19838,7 +20473,11 @@ function undoPlayerTurn() {
     game.isGameOver() ||
     undosRemaining <= 0 ||
     moveAnimating ||
-    promotionPending
+    promotionPending ||
+    appMoveHistory.some(
+      move =>
+        move.imperialStep
+    )
   ) {
 
     return;
@@ -19847,7 +20486,7 @@ function undoPlayerTurn() {
 
 
   const history =
-    game.history({
+    getAppMoveHistory({
       verbose:true
     });
 
@@ -19961,6 +20600,13 @@ function undoPlayerTurn() {
     game.undo();
 
   }
+
+
+  appMoveHistory =
+    appMoveHistory.slice(
+      0,
+      latestPlayerMoveIndex
+    );
 
 
   undosRemaining--;
@@ -20431,6 +21077,19 @@ function renderPreview() {
   lastMove =
     null;
 
+  appMoveHistory =
+    [];
+
+  imperialStepUsed = {
+    w:false,
+    b:false
+  };
+
+  kingHasBeenChecked = {
+    w:false,
+    b:false
+  };
+
 
   promotionPending =
     null;
@@ -20768,7 +21427,7 @@ function updateEndGameButton() {
   endGameBtn.disabled = false;
 
   endGameBtn.textContent =
-    game.history().length >= 2
+    getAppMoveHistory().length >= 2
       ? "Resign Game"
       : "End Game";
 
@@ -20879,7 +21538,7 @@ function shouldOfferHonorResignation() {
 
 
   const currentPly =
-    game.history().length;
+    getAppMoveHistory().length;
 
 
   if (
@@ -21021,7 +21680,7 @@ async function resignComputerGame(
 
 
   if (
-    game.history().length < 2
+    getAppMoveHistory().length < 2
   ) {
 
     endCurrentGame();
@@ -22604,10 +23263,9 @@ function startActiveDrag(
 
 
   legalMoves =
-    game.moves({
-      square:dragState.from,
-      verbose:true
-    });
+    getLegalMovesForSquare(
+      dragState.from
+    );
 
 
   const useGhost =
@@ -23184,10 +23842,9 @@ function finishPieceDrag(
     state.from;
 
   legalMoves =
-    game.moves({
-      square:state.from,
-      verbose:true
-    });
+    getLegalMovesForSquare(
+      state.from
+    );
 
   drawBoard();
 
@@ -23514,10 +24171,9 @@ function selectSquare(
 
 
   legalMoves =
-    game.moves({
-      square:squareName,
-      verbose:true
-    });
+    getLegalMovesForSquare(
+      squareName
+    );
 
 
   drawBoard();
@@ -23814,6 +24470,96 @@ async function completePlayerMove(
       plannedMove,
       animationDuration
     );
+
+  }
+
+
+  if (
+    plannedMove.imperialStep
+  ) {
+
+    try {
+
+      applyImperialStepMove(
+        game,
+        plannedMove
+      );
+
+      imperialStepUsed[
+        plannedMove.color
+      ] = true;
+
+      lastMove = {
+        from:plannedMove.from,
+        to:plannedMove.to
+      };
+
+      selectedSquare =
+        null;
+
+      legalMoves =
+        [];
+
+      moveAnimating =
+        false;
+
+      afterMove(
+        plannedMove
+      );
+
+      removeCommitGhostAfterPaint(
+        commitGhost
+      );
+
+      if (
+        gameMode === "online"
+      ) {
+
+        await syncOnlineMove(
+          previousFenForOnline
+        );
+
+      }
+
+      else if (
+        !game.isGameOver()
+      ) {
+
+        scheduleEngineMove();
+
+      }
+
+    }
+
+    catch(
+      error
+    ) {
+
+      moveAnimating =
+        false;
+
+      if (
+        commitGhost &&
+        commitGhost.isConnected
+      ) {
+        commitGhost.remove();
+      }
+
+      playSound(
+        "invalid"
+      );
+
+      drawBoard();
+
+      updateUndoButton();
+
+      console.error(
+        error
+      );
+
+    }
+
+    return;
 
   }
 
@@ -24422,6 +25168,12 @@ function afterMove(
   move
 ) {
 
+  recordAppMove(
+    move
+  );
+
+  markCheckedKingIfNeeded();
+
   const capturedSarcasticPawn =
     Boolean(
       move &&
@@ -24979,7 +25731,7 @@ function renderMoveList() {
 
 
   const history =
-    game.history();
+    getAppMoveHistory();
 
 
   if (
@@ -25302,7 +26054,7 @@ function buildGameSummaryText() {
 
   const history =
     game
-      ? game.history()
+      ? getAppMoveHistory()
       : [];
 
 
@@ -25749,7 +26501,7 @@ function updateGameOverSummary() {
 
 
   const history =
-    game.history();
+    getAppMoveHistory();
 
 
   const moveCount =
@@ -25917,7 +26669,7 @@ function getAnalysisInitialFen() {
 function buildAnalysisPositions() {
 
   const verboseHistory =
-    game.history({
+    getAppMoveHistory({
       verbose:true
     });
 
@@ -25944,11 +26696,20 @@ function buildAnalysisPositions() {
 
 
       const played =
-        replay.move({
-          from:move.from,
-          to:move.to,
-          promotion:move.promotion
-        });
+        move.imperialStep
+          ? (
+              applyImperialStepMove(
+                replay,
+                move
+              )
+                ? move
+                : null
+            )
+          : replay.move({
+              from:move.from,
+              to:move.to,
+              promotion:move.promotion
+            });
 
 
       if (
