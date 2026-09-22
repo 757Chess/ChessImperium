@@ -8410,6 +8410,15 @@ function playMenuClick() {
 
 }
 
+
+function playResignationTheme() {
+
+  playSound(
+    "draw"
+  );
+
+}
+
 async function playPawnCoronationSound() {
 
   const playbackToken =
@@ -13301,25 +13310,7 @@ function playOnlineFinishedSound(
     room.result_reason === "resignation"
   ) {
 
-    const myColor =
-      onlineRole === "white"
-        ? "w"
-        : onlineRole === "black"
-          ? "b"
-          : null;
-
-
-    if (
-      myColor
-    ) {
-
-      playSound(
-        room.winner_color === myColor
-          ? "checkmate"
-          : "draw"
-      );
-
-    }
+    playResignationTheme();
 
 
     return;
