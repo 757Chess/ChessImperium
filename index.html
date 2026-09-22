@@ -5483,9 +5483,9 @@ const MOVE_SOUND_VOLUME = .68;
 const CAPTURE_SOUND_VOLUME = .68;
 const STACKING_SOUND_VOLUME = .05;
 const KNIGHT_COMMAND_CAPTURE_VOLUME = .20;
-const PAWN_CAPTURE_VOICE_VOLUME = .055;
-const PAWN_VS_ROOK_VOICE_VOLUME = .055;
-const PAWN_VS_KNIGHT_VOICE_VOLUME = .055;
+const PAWN_CAPTURE_VOICE_VOLUME = .035;
+const PAWN_VS_ROOK_VOICE_VOLUME = .035;
+const PAWN_VS_KNIGHT_VOICE_VOLUME = .035;
 const PAWN_MOVE_VOICE_VOLUME = .14;
 const PAWN_FIRST_MOVE_VOICE_VOLUME = .14;
 const SARCASTIC_PAWN_VOICE_VOLUME = .14;
@@ -5687,7 +5687,7 @@ const AUDIO_MIX_DEFAULTS = {
   formation:1,
   themes:1,
   openingTheme:1,
-  analysisTheme:.15,
+  analysisTheme:.10,
   campaignTheme:.15,
   check:1,
   checkmate:1,
@@ -6201,10 +6201,26 @@ function loadAudioMix() {
           )
         ) {
 
-          mix[key] =
-            clampAudioMixValue(
-              savedValue
-            );
+          if (
+            key === "analysisTheme" &&
+            Math.abs(
+              savedValue - .15
+            ) < .001
+          ) {
+
+            mix[key] =
+              AUDIO_MIX_DEFAULTS.analysisTheme;
+
+          }
+
+          else {
+
+            mix[key] =
+              clampAudioMixValue(
+                savedValue
+              );
+
+          }
 
         }
 
@@ -9648,7 +9664,7 @@ function playRandomKingCaptureSound(
   trackVoicePlayback(
     playBufferedSound(
       "kingcapture" + nextIndex,
-      0.10,
+      0.075,
       "kingVoice",
       buffer => {
 
