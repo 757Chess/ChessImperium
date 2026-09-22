@@ -4891,39 +4891,39 @@ const DIFFICULTY_GUIDES = {
       "Players who want the toughest computer challenge currently available."
   },
 
-  campaign700: {
+  campaign500: {
     title:"Dominus",
-    elo:"700",
+    elo:"500",
     bestFor:"Campaign stage I."
   },
 
-  campaign950: {
+  campaign700: {
     title:"Centurion",
-    elo:"950",
+    elo:"700",
     bestFor:"Campaign stage II."
   },
 
-  campaign1200: {
+  campaign900: {
     title:"Tribune",
-    elo:"1200",
+    elo:"900",
     bestFor:"Campaign stage III."
   },
 
-  campaign1450: {
+  campaign1100: {
     title:"Praetor",
-    elo:"1450",
+    elo:"1100",
     bestFor:"Campaign stage IV."
   },
 
-  campaign1700: {
+  campaign1350: {
     title:"Consul",
-    elo:"1700",
+    elo:"1350",
     bestFor:"Campaign stage V."
   },
 
-  campaign2000: {
+  campaign1600: {
     title:"Caesar",
-    elo:"2000",
+    elo:"1600",
     bestFor:"Campaign stage VI."
   }
 
@@ -5074,45 +5074,45 @@ const DIFFICULTIES = {
     randomMoveChance:0
   },
 
-  campaign700:{
+  campaign500:{
     label:"Dominus",
+    skill:0,
+    nodes:80,
+    randomMoveChance:.42
+  },
+
+  campaign700:{
+    label:"Centurion",
     skill:0,
     nodes:120,
     randomMoveChance:.38
   },
 
-  campaign950:{
-    label:"Centurion",
+  campaign900:{
+    label:"Tribune",
     skill:2,
-    nodes:600,
+    nodes:500,
     randomMoveChance:.08
   },
 
-  campaign1200:{
-    label:"Tribune",
-    skill:5,
-    nodes:1500,
-    randomMoveChance:0
-  },
-
-  campaign1450:{
+  campaign1100:{
     label:"Praetor",
-    skill:8,
-    nodes:3000,
+    skill:4,
+    nodes:1000,
     randomMoveChance:0
   },
 
-  campaign1700:{
+  campaign1350:{
     label:"Consul",
-    skill:12,
-    nodes:6500,
+    skill:8,
+    nodes:2500,
     randomMoveChance:0
   },
 
-  campaign2000:{
+  campaign1600:{
     label:"Caesar",
-    skill:16,
-    nodes:12000,
+    skill:10,
+    nodes:4500,
     randomMoveChance:0
   }
 
@@ -5294,8 +5294,8 @@ const CAMPAIGN_OPPONENTS = [
     id:"cassian-varro",
     rank:"Dominus",
     name:"Dominus Cassian Varro",
-    rating:700,
-    difficultyKey:"campaign700",
+    rating:500,
+    difficultyKey:"campaign500",
     formation:"RNB",
     initials:"CV",
     portrait:"./Graphics/Campaign/Opponents/cassian-varro.png",
@@ -5309,8 +5309,8 @@ const CAMPAIGN_OPPONENTS = [
     id:"marcus-drusus",
     rank:"Centurion",
     name:"Centurion Marcus Drusus",
-    rating:950,
-    difficultyKey:"campaign950",
+    rating:700,
+    difficultyKey:"campaign700",
     formation:"NRB",
     initials:"MD",
     portrait:"./Graphics/Campaign/Opponents/marcus-drusus.png",
@@ -5324,8 +5324,8 @@ const CAMPAIGN_OPPONENTS = [
     id:"livia-corvina",
     rank:"Tribune",
     name:"Tribune Livia Corvina",
-    rating:1200,
-    difficultyKey:"campaign1200",
+    rating:900,
+    difficultyKey:"campaign900",
     formation:"RBN",
     initials:"LC",
     portrait:"./Graphics/Campaign/Opponents/livia-corvina.png",
@@ -5339,8 +5339,8 @@ const CAMPAIGN_OPPONENTS = [
     id:"gaius-severan",
     rank:"Praetor",
     name:"Praetor Gaius Severan",
-    rating:1450,
-    difficultyKey:"campaign1450",
+    rating:1100,
+    difficultyKey:"campaign1100",
     formation:"BRN",
     initials:"GS",
     portrait:"./Graphics/Campaign/Opponents/gaius-severan.png",
@@ -5354,8 +5354,8 @@ const CAMPAIGN_OPPONENTS = [
     id:"titus-marcellus",
     rank:"Consul",
     name:"Consul Titus Marcellus",
-    rating:1700,
-    difficultyKey:"campaign1700",
+    rating:1350,
+    difficultyKey:"campaign1350",
     formation:"BNR",
     initials:"TM",
     portrait:"./Graphics/Campaign/Opponents/titus-marcellus.png",
@@ -5369,8 +5369,8 @@ const CAMPAIGN_OPPONENTS = [
     id:"augustus-caesar",
     rank:"Augustus",
     name:"Augustus Caesar",
-    rating:2000,
-    difficultyKey:"campaign2000",
+    rating:1600,
+    difficultyKey:"campaign1600",
     formation:"NBR",
     initials:"AC",
     portrait:"./Graphics/Campaign/Opponents/augustus-caesar.png",
