@@ -3808,6 +3808,11 @@ if (
           </label>
           <select id="campaignOpponentSelect"
                   class="campaign-select"></select>
+          <label class="label" for="campaignDifficultyTierSelect">
+            Campaign Difficulty
+          </label>
+          <select id="campaignDifficultyTierSelect"
+                  class="campaign-select"></select>
           <div class="campaign-dev-note">
             Dev shortcut: enter an opponent's full name as player name.
           </div>
@@ -5267,13 +5272,48 @@ function buildComputerDifficultyFromRating(
 
 function getActiveDifficulty() {
 
-  return gameMode === "campaign"
-    ? DIFFICULTIES[
-        difficultyKey
-      ]
-    : buildComputerDifficultyFromRating(
-        computerStrengthRating
+  if (
+    gameMode === "campaign"
+  ) {
+
+    const opponent =
+      activeCampaignOpponent ||
+      getSelectedCampaignOpponent();
+
+    const baseDifficulty =
+      buildComputerDifficultyFromRating(
+        opponent
+          ? opponent.rating
+          : 700
       );
+
+    const configuredDifficulty =
+      DIFFICULTIES[
+        difficultyKey
+      ];
+
+    return Object.assign(
+      {},
+      baseDifficulty,
+      configuredDifficulty || {},
+      {
+        label:opponent
+          ? opponent.rank
+          : baseDifficulty.label,
+        elo:opponent
+          ? String(
+              opponent.rating
+            )
+          : baseDifficulty.elo
+      }
+    );
+
+  }
+
+
+  return buildComputerDifficultyFromRating(
+    computerStrengthRating
+  );
 
 }
 
@@ -5281,11 +5321,138 @@ function getActiveDifficulty() {
 const CAMPAIGN_PROGRESS_KEY =
   "chessImperiumCampaignUnlockedStage";
 
+const CAMPAIGN_DIFFICULTY_TIER_KEY =
+  "chessImperiumCampaignDifficultyTier";
+
+
+const CAMPAIGN_DIFFICULTY_TIERS = [
+  {
+    id:"standard",
+    label:"Campaign",
+    shortLabel:"Standard",
+    ratings:[
+      500,
+      700,
+      900,
+      1100,
+      1350,
+      1600
+    ],
+    description:"A fair road to freedom."
+  },
+  {
+    id:"imperiumPlus",
+    label:"Imperium+",
+    shortLabel:"Imperium+",
+    ratings:[
+      700,
+      950,
+      1200,
+      1450,
+      1700,
+      2000
+    ],
+    description:"The old imperial climb."
+  },
+  {
+    id:"caesarsTrueTrial",
+    label:"Caesar's True Trial",
+    shortLabel:"True Trial",
+    ratings:[
+      900,
+      1200,
+      1500,
+      1800,
+      2150,
+      2500
+    ],
+    description:"Rome offers no mercy."
+  }
+];
+
 const DEFAULT_BANNER_SRC =
   "./Graphics/cibanner-arena.png?v=arena-title-overlay-20260915";
 
 const CAMPAIGN_BANNER_VERSION =
   "campaign-banners-20260915";
+
+
+function getCampaignDifficultyTier(
+  tierId = campaignDifficultyTier
+) {
+
+  return CAMPAIGN_DIFFICULTY_TIERS.find(
+    tier =>
+      tier.id === tierId
+  ) ||
+  CAMPAIGN_DIFFICULTY_TIERS[0];
+
+}
+
+
+function getCampaignProgressStorageKey() {
+
+  const tier =
+    getCampaignDifficultyTier();
+
+  return tier.id === "standard"
+    ? CAMPAIGN_PROGRESS_KEY
+    : CAMPAIGN_PROGRESS_KEY +
+      ":" +
+      tier.id;
+
+}
+
+
+function getCampaignRatingForStage(
+  stage
+) {
+
+  const tier =
+    getCampaignDifficultyTier();
+
+  return (
+    tier.ratings[
+      stage - 1
+    ] ||
+    tier.ratings[
+      tier.ratings.length - 1
+    ] ||
+    700
+  );
+
+}
+
+
+function getCampaignOpponentForCurrentTier(
+  opponent
+) {
+
+  if (
+    !opponent
+  ) {
+    return null;
+  }
+
+
+  const rating =
+    getCampaignRatingForStage(
+      opponent.stage
+    );
+
+  return Object.assign(
+    {},
+    opponent,
+    {
+      rating,
+      difficultyKey:"campaign" +
+        rating,
+      difficultyTier:
+        getCampaignDifficultyTier().id
+    }
+  );
+
+}
 
 
 const CAMPAIGN_OPPONENTS = [
@@ -7977,6 +8144,9 @@ const campaignPanel =
 const campaignOpponentSelect =
   document.getElementById("campaignOpponentSelect");
 
+const campaignDifficultyTierSelect =
+  document.getElementById("campaignDifficultyTierSelect");
+
 const campaignDossier =
   document.getElementById("campaignDossier");
 
@@ -8265,6 +8435,9 @@ if (
 
 let gameMode =
   "computer";
+
+let campaignDifficultyTier =
+  loadCampaignDifficultyTier();
 
 let campaignUnlockedStage =
   loadCampaignUnlockedStage();
@@ -11441,12 +11614,36 @@ function getOnlineRole(
 /* CAMPAIGN                                              */
 /* ===================================================== */
 
+function loadCampaignDifficultyTier() {
+
+  const savedTier =
+    localStorage.getItem(
+      CAMPAIGN_DIFFICULTY_TIER_KEY
+    );
+
+  return getCampaignDifficultyTier(
+    savedTier
+  ).id;
+
+}
+
+
+function saveCampaignDifficultyTier() {
+
+  localStorage.setItem(
+    CAMPAIGN_DIFFICULTY_TIER_KEY,
+    campaignDifficultyTier
+  );
+
+}
+
+
 function loadCampaignUnlockedStage() {
 
   const savedStage =
     Number(
       localStorage.getItem(
-        CAMPAIGN_PROGRESS_KEY
+        getCampaignProgressStorageKey()
       )
     );
 
@@ -11478,7 +11675,7 @@ function loadCampaignUnlockedStage() {
 function saveCampaignUnlockedStage() {
 
   localStorage.setItem(
-    CAMPAIGN_PROGRESS_KEY,
+    getCampaignProgressStorageKey(),
     String(
       campaignUnlockedStage
     )
@@ -11491,11 +11688,13 @@ function getCampaignOpponentByStage(
   stage
 ) {
 
-  return CAMPAIGN_OPPONENTS.find(
-    opponent =>
-      opponent.stage === stage
-  ) ||
-  CAMPAIGN_OPPONENTS[0];
+  return getCampaignOpponentForCurrentTier(
+    CAMPAIGN_OPPONENTS.find(
+      opponent =>
+        opponent.stage === stage
+    ) ||
+    CAMPAIGN_OPPONENTS[0]
+  );
 
 }
 
@@ -11780,31 +11979,36 @@ function applyCampaignOpponent(
   opponent
 ) {
 
+  const campaignOpponent =
+    getCampaignOpponentForCurrentTier(
+      opponent
+    );
+
   if (
-    !opponent
+    !campaignOpponent
   ) {
     return;
   }
 
 
   selectedCampaignStage =
-    opponent.stage;
+    campaignOpponent.stage;
 
   computerFormationChoice =
-    opponent.formation;
+    campaignOpponent.formation;
 
   previewComputerFormation =
-    opponent.formation;
+    campaignOpponent.formation;
 
   difficultyKey =
-    opponent.difficultyKey;
+    campaignOpponent.difficultyKey;
 
   if (
     computerFormationSelect
   ) {
 
     computerFormationSelect.value =
-      opponent.formation;
+      campaignOpponent.formation;
 
   }
 
@@ -11934,7 +12138,8 @@ function renderCampaignPanel() {
 
   if (
     !campaignDossier ||
-    !campaignOpponentSelect
+    !campaignOpponentSelect ||
+    !campaignDifficultyTierSelect
   ) {
     return;
   }
@@ -11947,6 +12152,9 @@ function renderCampaignPanel() {
     getFormationDisplayText(
       opponent.formation
     );
+
+  const campaignTier =
+    getCampaignDifficultyTier();
 
   const portraitContent =
     opponent.portrait
@@ -11974,6 +12182,8 @@ function renderCampaignPanel() {
         "</div>" +
         "<div class='campaign-meta'>Rating " +
           opponent.rating +
+          " · " +
+          campaignTier.shortLabel +
           " · " +
           formationText +
         "</div>" +
@@ -12016,12 +12226,46 @@ function renderCampaignPanel() {
   campaignOpponentSelect.innerHTML =
     "";
 
+  campaignDifficultyTierSelect.innerHTML =
+    "";
+
+  CAMPAIGN_DIFFICULTY_TIERS.forEach(
+    tier => {
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        tier.id;
+
+      option.textContent =
+        tier.label +
+        " - " +
+        tier.description;
+
+      campaignDifficultyTierSelect.appendChild(
+        option
+      );
+
+    }
+  );
+
+  campaignDifficultyTierSelect.value =
+    getCampaignDifficultyTier().id;
+
   CAMPAIGN_OPPONENTS.forEach(
     entry => {
 
+      const campaignEntry =
+        getCampaignOpponentForCurrentTier(
+          entry
+        );
+
       const available =
         isCampaignOpponentAvailable(
-          entry
+          campaignEntry
         );
 
       const option =
@@ -12038,13 +12282,13 @@ function renderCampaignPanel() {
       option.textContent =
         (
           available
-            ? getCampaignStageLabel(entry.stage)
+            ? getCampaignStageLabel(campaignEntry.stage)
             : "Locked"
         ) +
         " - " +
-        entry.name +
+        campaignEntry.name +
         " - " +
-        entry.rating;
+        campaignEntry.rating;
 
       campaignOpponentSelect.appendChild(
         option
@@ -19119,6 +19363,50 @@ function initializeControls() {
         );
 
       }
+
+    }
+  );
+
+  campaignDifficultyTierSelect.addEventListener(
+    "change",
+    function() {
+
+      const tier =
+        getCampaignDifficultyTier(
+          campaignDifficultyTierSelect.value
+        );
+
+      playMenuClick();
+
+      campaignDifficultyTier =
+        tier.id;
+
+      saveCampaignDifficultyTier();
+
+      campaignUnlockedStage =
+        loadCampaignUnlockedStage();
+
+      if (
+        selectedCampaignStage >
+        campaignUnlockedStage &&
+        !campaignDevOpponentId
+      ) {
+
+        selectedCampaignStage =
+          campaignUnlockedStage;
+
+      }
+
+      applyCampaignOpponent(
+        getSelectedCampaignOpponent()
+      );
+
+      setStatus(
+        tier.label +
+        " selected — challenge " +
+        getSelectedCampaignOpponent().name +
+        "."
+      );
 
     }
   );
