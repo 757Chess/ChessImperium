@@ -9039,6 +9039,17 @@ function fadeOutCampaignTheme(
 }
 
 
+function isLongThemePlaying() {
+
+  return Boolean(
+    openingThemeSource ||
+    analysisThemeSource ||
+    campaignThemeSource
+  );
+
+}
+
+
 function playRandomMoveSound() {
 
   if (
@@ -30507,7 +30518,11 @@ window.addEventListener(
 
 window.addEventListener(
   "blur",
-  recoverAudioAfterBackground
+  function() {
+
+    recoverAudioAfterBackground();
+
+  }
 );
 
 
@@ -30522,8 +30537,9 @@ document.addEventListener(
       audioGesturePrimed =
         false;
 
-      audioNeedsHardReset =
-        true;
+      recoverAudioAfterBackground(
+        true
+      );
 
       return;
 
@@ -30628,7 +30644,9 @@ function primeAudioContextSilently() {
 }
 
 
-async function recoverAudioAfterBackground() {
+async function recoverAudioAfterBackground(
+  allowHardReset = false
+) {
 
   if (
     !AudioContextClass
@@ -30640,16 +30658,46 @@ async function recoverAudioAfterBackground() {
 
 
   /*
-   * Safari can leave a resumed AudioContext in a state where it
-   * appears to be running but produces no audible output after
-   * the page has been backgrounded. Do not trust that old context.
-   * Mark it for replacement on the next genuine user gesture.
+   * Safari can leave a resumed AudioContext silent after true
+   * backgrounding, but Bluetooth route changes can also trigger
+   * focus/blur-style events. Avoid rebuilding during active theme
+   * playback, because that stops the current music buffer.
    */
   audioGesturePrimed =
     false;
 
-  audioNeedsHardReset =
-    true;
+  if (
+    allowHardReset &&
+    !isLongThemePlaying()
+  ) {
+
+    audioNeedsHardReset =
+      true;
+
+    return;
+
+  }
+
+
+  if (
+    audioContext &&
+    audioContext.state !== "closed" &&
+    audioContext.state !== "running"
+  ) {
+
+    try {
+
+      await audioContext.resume();
+
+    }
+    catch(error) {
+
+      audioNeedsHardReset =
+        true;
+
+    }
+
+  }
 
 }
 
