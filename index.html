@@ -13357,6 +13357,9 @@ function handleTrainingMoveResult(
       "victory"
     );
 
+    updateCenterPostGameActions();
+    updateSetupControlAvailability();
+
     return;
 
   }
@@ -23273,6 +23276,30 @@ function updateCenterPostGameActions() {
         centerPostGameMessage.textContent
       )
     );
+
+  }
+
+
+  if (
+    rematchBtn
+  ) {
+
+    rematchBtn.style.display =
+      trainingFinished
+        ? "none"
+        : "";
+
+  }
+
+
+  if (
+    analyzeGameBtn
+  ) {
+
+    analyzeGameBtn.style.display =
+      trainingFinished
+        ? "none"
+        : "";
 
   }
 
