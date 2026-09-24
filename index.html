@@ -783,7 +783,8 @@ select {
   display:flex;
 }
 
-.training-beta-overlay {
+.training-beta-overlay,
+.multiplayer-beta-overlay {
   position:fixed;
   inset:0;
   display:none;
@@ -794,11 +795,13 @@ select {
   z-index:1160;
 }
 
-.training-beta-overlay.visible {
+.training-beta-overlay.visible,
+.multiplayer-beta-overlay.visible {
   display:flex;
 }
 
-.training-beta-card {
+.training-beta-card,
+.multiplayer-beta-card {
   width:430px;
   max-width:100%;
   position:relative;
@@ -809,29 +812,35 @@ select {
   box-shadow:0 18px 60px rgba(0,0,0,.26);
 }
 
-.training-beta-card h2 {
+.training-beta-card h2,
+.multiplayer-beta-card h2 {
   margin:0 34px 10px 0;
   color:var(--green);
   font-size:22px;
 }
 
-.training-beta-card p {
+.training-beta-card p,
+.multiplayer-beta-card p {
   margin:0 0 12px;
   color:var(--text);
   font-size:13px;
   line-height:1.5;
 }
 
-.training-beta-card p:last-of-type {
+.training-beta-card p:last-of-type,
+.multiplayer-beta-card p:last-of-type {
   margin-bottom:16px;
 }
 
-.training-beta-actions {
+.training-beta-actions,
+.multiplayer-beta-actions {
   display:flex;
   justify-content:flex-end;
+  gap:8px;
 }
 
-.training-beta-ok {
+.training-beta-ok,
+.multiplayer-beta-ok {
   min-height:40px;
   padding:8px 16px;
   border:1px solid var(--green);
@@ -843,8 +852,37 @@ select {
   cursor:pointer;
 }
 
-.training-beta-ok:hover {
+.training-beta-ok:hover,
+.multiplayer-beta-ok:hover {
   background:#285742;
+}
+
+.multiplayer-beta-fields {
+  display:grid;
+  gap:9px;
+  margin:12px 0 14px;
+}
+
+.multiplayer-beta-field label {
+  display:block;
+  margin-bottom:4px;
+  color:#6e6559;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+
+.multiplayer-beta-field input,
+.multiplayer-beta-field select {
+  width:100%;
+  box-sizing:border-box;
+  padding:9px 10px;
+  border:1px solid var(--button-border);
+  border-radius:9px;
+  background:#fff;
+  color:var(--text);
+  font-size:13px;
 }
 
 .how-to-play-card {
@@ -4595,6 +4633,73 @@ if (
 
       </div>
 
+    </div>
+
+  </div>
+
+</div>
+
+
+<div id="multiplayerBetaOverlay" class="multiplayer-beta-overlay">
+
+  <div
+    class="multiplayer-beta-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="multiplayerBetaTitle">
+
+    <button
+      id="multiplayerBetaClose"
+      class="how-to-play-close"
+      type="button"
+      aria-label="Close Multiplayer notice">
+      ×
+    </button>
+
+    <h2 id="multiplayerBetaTitle">Multiplayer Beta</h2>
+
+    <p>
+      Multiplayer is in early beta. Quick Match, rooms, chat, and rematches
+      are working, but games should be treated as unranked while we keep
+      testing the system.
+    </p>
+
+    <p>
+      Adding a gamertag and estimated Elo helps opponents know who they are
+      facing. If you are not sure, choose Uncertain.
+    </p>
+
+    <div class="multiplayer-beta-fields">
+      <div class="multiplayer-beta-field">
+        <label for="multiplayerNameInput">Gamertag or name</label>
+        <input
+          id="multiplayerNameInput"
+          type="text"
+          maxlength="24"
+          placeholder="e.g. Rut, TheHitman, Jonathan">
+      </div>
+
+      <div class="multiplayer-beta-field">
+        <label for="multiplayerEloSelect">Estimated Elo</label>
+        <select id="multiplayerEloSelect">
+          <option value="uncertain">Uncertain</option>
+          <option value="beginner">Under 500</option>
+          <option value="700">Around 700</option>
+          <option value="1000">Around 1000</option>
+          <option value="1300">Around 1300</option>
+          <option value="1600">Around 1600</option>
+          <option value="1900">Around 1900+</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="multiplayer-beta-actions">
+      <button
+        id="multiplayerBetaOk"
+        class="multiplayer-beta-ok"
+        type="button">
+        Enter Multiplayer
+      </button>
     </div>
 
   </div>
@@ -8399,6 +8504,21 @@ const trainingBetaClose =
 const trainingBetaOk =
   document.getElementById("trainingBetaOk");
 
+const multiplayerBetaOverlay =
+  document.getElementById("multiplayerBetaOverlay");
+
+const multiplayerBetaClose =
+  document.getElementById("multiplayerBetaClose");
+
+const multiplayerBetaOk =
+  document.getElementById("multiplayerBetaOk");
+
+const multiplayerNameInput =
+  document.getElementById("multiplayerNameInput");
+
+const multiplayerEloSelect =
+  document.getElementById("multiplayerEloSelect");
+
 
 const promotionOverlay =
   document.getElementById("promotionOverlay");
@@ -8746,6 +8866,12 @@ const ONLINE_ROOM_CODE_KEY =
 
 const PLAYER_DISPLAY_NAME_KEY =
   "chessImperiumPlayerDisplayName";
+
+const MULTIPLAYER_BETA_NOTICE_KEY =
+  "chessImperiumMultiplayerBetaNoticeSeen";
+
+const MULTIPLAYER_ESTIMATED_ELO_KEY =
+  "chessImperiumMultiplayerEstimatedElo";
 
 let playerDisplayName =
   (
@@ -13038,6 +13164,134 @@ function maybeShowTrainingBetaNotice() {
 
 
   trainingBetaOverlay.classList.add(
+    "visible"
+  );
+
+}
+
+
+function saveMultiplayerOnboardingFields() {
+
+  const nextName =
+    multiplayerNameInput
+      ? multiplayerNameInput.value
+          .replace(
+            /\s+/g,
+            " "
+          )
+          .trim()
+          .slice(
+            0,
+            24
+          )
+      : "";
+
+
+  if (
+    nextName
+  ) {
+
+    playerDisplayName =
+      nextName;
+
+    playerNameInput.value =
+      nextName;
+
+    localStorage.setItem(
+      PLAYER_DISPLAY_NAME_KEY,
+      nextName
+    );
+
+  }
+
+
+  if (
+    multiplayerEloSelect
+  ) {
+
+    localStorage.setItem(
+      MULTIPLAYER_ESTIMATED_ELO_KEY,
+      multiplayerEloSelect.value ||
+      "uncertain"
+    );
+
+  }
+
+
+  updateInfoPanel();
+  updateStatus();
+  renderOnlineChat();
+
+}
+
+
+function hideMultiplayerBetaNotice(
+  remember = true
+) {
+
+  saveMultiplayerOnboardingFields();
+
+  if (
+    multiplayerBetaOverlay
+  ) {
+
+    multiplayerBetaOverlay.classList.remove(
+      "visible"
+    );
+
+  }
+
+
+  if (
+    remember
+  ) {
+
+    localStorage.setItem(
+      MULTIPLAYER_BETA_NOTICE_KEY,
+      "1"
+    );
+
+  }
+
+}
+
+
+function maybeShowMultiplayerBetaNotice() {
+
+  if (
+    !multiplayerBetaOverlay ||
+    localStorage.getItem(
+      MULTIPLAYER_BETA_NOTICE_KEY
+    )
+  ) {
+    return;
+  }
+
+
+  if (
+    multiplayerNameInput
+  ) {
+
+    multiplayerNameInput.value =
+      playerDisplayName;
+
+  }
+
+
+  if (
+    multiplayerEloSelect
+  ) {
+
+    multiplayerEloSelect.value =
+      localStorage.getItem(
+        MULTIPLAYER_ESTIMATED_ELO_KEY
+      ) ||
+      "uncertain";
+
+  }
+
+
+  multiplayerBetaOverlay.classList.add(
     "visible"
   );
 
@@ -21656,6 +21910,46 @@ function initializeControls() {
   );
 
 
+  multiplayerBetaClose.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      hideMultiplayerBetaNotice();
+
+    }
+  );
+
+
+  multiplayerBetaOk.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      hideMultiplayerBetaNotice();
+
+    }
+  );
+
+
+  multiplayerBetaOverlay.addEventListener(
+    "click",
+    function(event) {
+
+      if (
+        event.target === multiplayerBetaOverlay
+      ) {
+
+        hideMultiplayerBetaNotice();
+
+      }
+
+    }
+  );
+
+
   computerModeBtn.addEventListener(
     "click",
     async function() {
@@ -22042,6 +22336,8 @@ function initializeControls() {
       setOnlineStatus(
         "Create a room or join with a room code."
       );
+
+      maybeShowMultiplayerBetaNotice();
 
     }
   );
@@ -32304,6 +32600,20 @@ document.addEventListener(
     ) {
 
       hideTrainingBetaNotice();
+
+      return;
+
+    }
+
+
+    if (
+      event.key === "Escape" &&
+      multiplayerBetaOverlay.classList.contains(
+        "visible"
+      )
+    ) {
+
+      hideMultiplayerBetaNotice();
 
       return;
 
