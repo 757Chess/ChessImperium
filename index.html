@@ -5979,6 +5979,12 @@ const CHAT_BEEP_VOLUME = .36;
 const ONLINE_NO_CLOCK_TURN_PULSE_DELAY_MS =
   180000;
 
+const QUICK_MATCH_HEARTBEAT_MS =
+  12000;
+
+const QUICK_MATCH_STALE_MS =
+  35000;
+
 const TRAINING_PUZZLES = [
   {
     title:"The Queen's Verdict",
@@ -8811,6 +8817,9 @@ let onlineRoom =
 
 let onlineQuickMatchSearching =
   false;
+
+let onlineQuickMatchHeartbeatTimer =
+  null;
 
 let onlineChannel =
   null;
@@ -16007,11 +16016,12 @@ function refreshQuickMatchButton() {
 
 
   quickMatchOnlineBtn.disabled =
-    inOnlineRoom;
+    inOnlineRoom &&
+    !onlineQuickMatchSearching;
 
   quickMatchOnlineBtn.textContent =
     onlineQuickMatchSearching
-      ? "Searching..."
+      ? "Cancel Search"
       : "Quick Match";
 
 }
@@ -16026,6 +16036,194 @@ function getOnlineRoomTimeControl(
     room.time_control
       ? room.time_control
       : "none"
+  );
+
+}
+
+
+function stopQuickMatchHeartbeat() {
+
+  if (
+    onlineQuickMatchHeartbeatTimer
+  ) {
+
+    clearInterval(
+      onlineQuickMatchHeartbeatTimer
+    );
+
+  }
+
+
+  onlineQuickMatchHeartbeatTimer =
+    null;
+
+}
+
+
+async function sendQuickMatchHeartbeat() {
+
+  if (
+    gameMode !== "online" ||
+    !onlineQuickMatchSearching ||
+    !onlineRoom ||
+    onlineRoom.status !== "waiting" ||
+    onlineRole !== "white" ||
+    !String(
+      onlineRoom.room_code || ""
+    ).startsWith(
+      "Q"
+    )
+  ) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .update({
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        onlineRoom.id
+      )
+      .eq(
+        "status",
+        "waiting"
+      )
+      .eq(
+        "white_player_id",
+        onlinePlayerId
+      )
+      .is(
+        "black_player_id",
+        null
+      )
+      .select()
+      .single();
+
+
+  if (
+    error ||
+    !data
+  ) {
+    return;
+  }
+
+
+  onlineRoom =
+    data;
+
+}
+
+
+function startQuickMatchHeartbeat() {
+
+  stopQuickMatchHeartbeat();
+
+  onlineQuickMatchHeartbeatTimer =
+    setInterval(
+      sendQuickMatchHeartbeat,
+      QUICK_MATCH_HEARTBEAT_MS
+    );
+
+}
+
+
+async function cleanupStaleQuickMatchRooms() {
+
+  const staleBefore =
+    new Date(
+      Date.now() -
+      QUICK_MATCH_STALE_MS
+    ).toISOString();
+
+
+  await supabase
+    .from("rooms")
+    .delete()
+    .eq(
+      "status",
+      "waiting"
+    )
+    .is(
+      "black_player_id",
+      null
+    )
+    .like(
+      "room_code",
+      "Q%"
+    )
+    .lt(
+      "updated_at",
+      staleBefore
+    );
+
+}
+
+
+async function cancelQuickMatchSearch() {
+
+  if (
+    !onlineQuickMatchSearching
+  ) {
+    return;
+  }
+
+
+  stopQuickMatchHeartbeat();
+
+  const roomToCancel =
+    onlineRoom;
+
+  onlineQuickMatchSearching =
+    false;
+
+  refreshQuickMatchButton();
+
+
+  if (
+    roomToCancel &&
+    roomToCancel.status === "waiting" &&
+    String(
+      roomToCancel.room_code || ""
+    ).startsWith(
+      "Q"
+    )
+  ) {
+
+    await supabase
+      .from("rooms")
+      .delete()
+      .eq(
+        "id",
+        roomToCancel.id
+      )
+      .eq(
+        "status",
+        "waiting"
+      )
+      .eq(
+        "white_player_id",
+        onlinePlayerId
+      )
+      .is(
+        "black_player_id",
+        null
+      );
+
+  }
+
+
+  await leaveOnlineRoom();
+
+  setOnlineStatus(
+    "Quick match search cancelled."
   );
 
 }
@@ -16092,6 +16290,8 @@ async function acceptQuickMatchRoom(
   onlineQuickMatchSearching =
     false;
 
+  stopQuickMatchHeartbeat();
+
   onlineRoom =
     joined;
 
@@ -16155,7 +16355,9 @@ async function createQuickMatchWaitingRoom() {
             getOnlineTimeControlConfig()
               .initialMs,
           clock_running_color:null,
-          clock_started_at:null
+          clock_started_at:null,
+          updated_at:
+            new Date().toISOString()
         })
         .select()
         .single();
@@ -16192,6 +16394,10 @@ async function createQuickMatchWaitingRoom() {
         false;
 
       refreshQuickMatchButton();
+
+      startQuickMatchHeartbeat();
+
+      await sendQuickMatchHeartbeat();
 
       await watchOnlineRoom(
         data.id
@@ -16267,6 +16473,8 @@ async function startQuickMatch() {
     "Searching for quick match..."
   );
 
+  await cleanupStaleQuickMatchRooms();
+
 
   const {
     data:waitingRooms,
@@ -16302,6 +16510,8 @@ async function startQuickMatch() {
 
     onlineQuickMatchSearching =
       false;
+
+    stopQuickMatchHeartbeat();
 
     refreshQuickMatchButton();
 
@@ -17008,6 +17218,8 @@ async function applyOnlineRoomUpdate(
 
   onlineQuickMatchSearching =
     false;
+
+  stopQuickMatchHeartbeat();
 
   refreshQuickMatchButton();
 
@@ -18249,6 +18461,8 @@ async function leaveOnlineRoom() {
 
   onlineQuickMatchSearching =
     false;
+
+  stopQuickMatchHeartbeat();
 
   onlineRole =
     null;
@@ -21883,6 +22097,17 @@ function initializeControls() {
     function() {
 
       playMenuClick();
+
+      if (
+        onlineQuickMatchSearching
+      ) {
+
+        cancelQuickMatchSearch();
+
+        return;
+
+      }
+
 
       startQuickMatch();
 
