@@ -284,6 +284,17 @@ h1 {
   gap:6px;
 }
 
+.formation-grid.multiplayer-guidance {
+  position:relative;
+  padding:6px;
+  margin:-6px;
+  border-radius:12px;
+  box-shadow:
+    0 0 0 2px rgba(201,162,78,.36),
+    0 0 20px rgba(201,162,78,.22);
+  animation:multiplayerGuidancePulse 1.8s ease-in-out infinite;
+}
+
 .random-formation-wrap {
   margin-top:7px;
 }
@@ -1104,9 +1115,30 @@ select {
   border-color:var(--green);
 }
 
+.online-action.multiplayer-guidance {
+  box-shadow:
+    0 0 0 3px rgba(201,162,78,.34),
+    0 0 24px rgba(201,162,78,.26);
+  animation:multiplayerGuidancePulse 1.8s ease-in-out infinite;
+}
+
 .online-action:disabled {
   opacity:.48;
   cursor:not-allowed;
+}
+
+@keyframes multiplayerGuidancePulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(201,162,78,.32),
+      0 0 16px rgba(201,162,78,.16);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(201,162,78,.58),
+      0 0 28px rgba(201,162,78,.34);
+  }
 }
 
 .online-status {
@@ -4245,7 +4277,7 @@ if (
                 type="button"
                 style="width:100%;margin-top:7px;"
                 disabled>
-          Leave Online Room
+          Leave Multiplayer Room
         </button>
 
         <button id="onlineUndoBtn"
@@ -4680,7 +4712,7 @@ if (
       </div>
 
       <div class="multiplayer-beta-field">
-        <label for="multiplayerEloSelect">Estimated Elo</label>
+        <label for="multiplayerEloSelect">Estimated Elo shown to opponent</label>
         <select id="multiplayerEloSelect">
           <option value="uncertain">Uncertain</option>
           <option value="beginner">Under 500</option>
@@ -8956,6 +8988,9 @@ let onlineRole =
 let onlineFormationLocked =
   false;
 
+let multiplayerFormationGuideStep =
+  "idle";
+
 let onlineApplyingRemoteMove =
   false;
 
@@ -11035,7 +11070,7 @@ function updateLocalOnlineDisplayName() {
 
 
   const displayName =
-    normalizedPlayerDisplayName() ||
+    getOnlineProfileDisplayName() ||
     null;
 
 
@@ -11096,7 +11131,7 @@ async function syncOnlineDisplayName() {
 
 
   const displayName =
-    normalizedPlayerDisplayName() ||
+    getOnlineProfileDisplayName() ||
     null;
 
   const roleColumn =
@@ -12017,6 +12052,63 @@ function normalizedPlayerDisplayName() {
       0,
       24
     );
+
+}
+
+
+function getStoredMultiplayerEstimatedElo() {
+
+  return localStorage.getItem(
+    MULTIPLAYER_ESTIMATED_ELO_KEY
+  ) ||
+    "uncertain";
+
+}
+
+
+function formatMultiplayerEstimatedElo(
+  value = getStoredMultiplayerEstimatedElo()
+) {
+
+  if (
+    value === "beginner"
+  ) {
+    return "<500 Elo";
+  }
+
+
+  if (
+    value === "uncertain"
+  ) {
+    return "Elo uncertain";
+  }
+
+
+  const rating =
+    Number.parseInt(
+      value,
+      10
+    );
+
+
+  return Number.isFinite(
+    rating
+  )
+    ? "~" + rating + " Elo"
+    : "Elo uncertain";
+
+}
+
+
+function getOnlineProfileDisplayName() {
+
+  const name =
+    normalizedPlayerDisplayName() ||
+    "Player";
+
+  return name +
+    " - " +
+    formatMultiplayerEstimatedElo();
 
 }
 
@@ -13221,6 +13313,7 @@ function saveMultiplayerOnboardingFields() {
   updateInfoPanel();
   updateStatus();
   renderOnlineChat();
+  scheduleOnlineDisplayNameSync();
 
 }
 
@@ -14185,6 +14278,84 @@ function setOnlineFormationControlsLocked(
 
 
   updateSetupControlAvailability();
+
+  updateMultiplayerFormationGuidance();
+
+}
+
+
+function markMultiplayerFormationChoiceTouched() {
+
+  if (
+    gameMode !== "online" ||
+    !onlineRoom ||
+    onlineRoom.status !== "formation_selection" ||
+    onlineFormationLocked
+  ) {
+    return;
+  }
+
+
+  multiplayerFormationGuideStep =
+    "lock";
+
+  updateMultiplayerFormationGuidance();
+
+}
+
+
+function updateMultiplayerFormationGuidance() {
+
+  const shouldGuide =
+    gameMode === "online" &&
+    onlineRoom &&
+    onlineRoom.status === "formation_selection" &&
+    !onlineFormationLocked;
+
+
+  if (
+    !shouldGuide
+  ) {
+
+    formationButtonsEl.classList.remove(
+      "multiplayer-guidance"
+    );
+
+    lockOnlineFormationBtn.classList.remove(
+      "multiplayer-guidance"
+    );
+
+    if (
+      !onlineRoom ||
+      onlineRoom.status !== "formation_selection"
+    ) {
+      multiplayerFormationGuideStep =
+        "idle";
+    }
+
+    return;
+
+  }
+
+
+  if (
+    multiplayerFormationGuideStep === "idle"
+  ) {
+    multiplayerFormationGuideStep =
+      "formation";
+  }
+
+
+  formationButtonsEl.classList.toggle(
+    "multiplayer-guidance",
+    multiplayerFormationGuideStep === "formation"
+  );
+
+  lockOnlineFormationBtn.classList.toggle(
+    "multiplayer-guidance",
+    multiplayerFormationGuideStep === "lock" &&
+    !lockOnlineFormationBtn.disabled
+  );
 
 }
 
@@ -16184,7 +16355,7 @@ function updateOnlineExitButton(
   leaveOnlineRoomBtn.textContent =
     active
       ? "Resign Game"
-      : "Leave Online Room";
+      : "Leave Multiplayer Room";
 
 }
 
@@ -16510,7 +16681,7 @@ async function acceptQuickMatchRoom(
         black_player_id:
           onlinePlayerId,
         black_display_name:
-          normalizedPlayerDisplayName() ||
+          getOnlineProfileDisplayName() ||
           null,
         status:
           "formation_selection",
@@ -16593,7 +16764,7 @@ async function createQuickMatchWaitingRoom() {
             onlinePlayerId,
           black_player_id:null,
           white_display_name:
-            normalizedPlayerDisplayName() ||
+            getOnlineProfileDisplayName() ||
             null,
           black_display_name:null,
           white_formation:null,
@@ -17176,6 +17347,20 @@ async function applyOnlineRoomUpdate(
       room
     );
 
+  if (
+    room.status === "formation_selection" &&
+    (
+      !previousRoom ||
+      previousRoom.id !== room.id ||
+      previousRoom.status !== "formation_selection"
+    )
+  ) {
+
+    multiplayerFormationGuideStep =
+      "formation";
+
+  }
+
 
   updateOnlineChatAvailability();
 
@@ -17292,6 +17477,8 @@ async function applyOnlineRoomUpdate(
     leaveOnlineRoomBtn.disabled =
       false;
 
+    updateMultiplayerFormationGuidance();
+
     return;
 
   }
@@ -17339,7 +17526,7 @@ async function applyOnlineRoomUpdate(
       setOnlineStatus(
         "Room " +
         room.room_code +
-        "\nOpponent connected — choose and lock your formation."
+        "\nOpponent connected — choose a formation, then press Lock Formation."
       );
 
     }
@@ -17347,6 +17534,8 @@ async function applyOnlineRoomUpdate(
 
     leaveOnlineRoomBtn.disabled =
       false;
+
+    updateMultiplayerFormationGuidance();
 
     return;
 
@@ -17948,7 +18137,7 @@ async function createOnlineRoom() {
             onlinePlayerId,
           black_player_id:null,
           white_display_name:
-            normalizedPlayerDisplayName() ||
+            getOnlineProfileDisplayName() ||
             null,
           black_display_name:null,
           white_formation:null,
@@ -18158,7 +18347,7 @@ async function joinOnlineRoom() {
         black_player_id:
           onlinePlayerId,
         black_display_name:
-          normalizedPlayerDisplayName() ||
+          getOnlineProfileDisplayName() ||
           null,
         status:
           "formation_selection",
@@ -18790,7 +18979,7 @@ async function leaveOnlineRoom() {
     true;
 
   leaveOnlineRoomBtn.textContent =
-    "Leave Online Room";
+    "Leave Multiplayer Room";
 
   onlineUndoBtn.disabled =
     true;
@@ -21599,6 +21788,8 @@ function initializeControls() {
           playerFormationChoice =
             formation.code;
 
+          markMultiplayerFormationChoiceTouched();
+
 
           previewPlayerFormation =
             formation.code;
@@ -21680,6 +21871,8 @@ function initializeControls() {
 
       playerFormationChoice =
         "RANDOM";
+
+      markMultiplayerFormationChoiceTouched();
 
 
       previewPlayerFormation =
@@ -23469,6 +23662,8 @@ function refreshFormationButtons() {
     playerFormationChoice ===
     "RANDOM"
   );
+
+  updateMultiplayerFormationGuidance();
 
 }
 
