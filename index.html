@@ -5749,6 +5749,7 @@ const STACKING_SOUND_VOLUME = .05;
 const KNIGHT_COMMAND_CAPTURE_VOLUME = .20;
 const PAWN_CAPTURE_VOICE_VOLUME = .045;
 const PAWN_VS_ROOK_VOICE_VOLUME = .045;
+const PAWN_VS_ROOK_COLLAPSE_VOLUME = .030;
 const PAWN_VS_KNIGHT_VOICE_VOLUME = .045;
 const PAWN_MOVE_VOICE_VOLUME = .14;
 const PAWN_FIRST_MOVE_VOICE_VOLUME = .14;
@@ -5830,6 +5831,11 @@ const PAWN_CAPTURE_SOUND_FILES = [
 
 const PAWN_VS_ROOK_SOUND_FILE =
   "./Audio/pawnvsrook.wav";
+
+const PAWN_VS_ROOK_COLLAPSE_SOUND_FILES = [
+  "./Audio/Storage Bin/Captured Sounds/rookcaptured1.wav",
+  "./Audio/Storage Bin/Captured Sounds/rookcaptured2.wav"
+];
 
 const PAWN_VS_KNIGHT_SOUND_FILE =
   "./Audio/pawnvsknight.wav";
@@ -6091,6 +6097,9 @@ let lastKnightCommandCaptureIndex =
 let lastPawnCaptureIndex =
   -1;
 
+let lastPawnVsRookCollapseIndex =
+  -1;
+
 let lastPawnMoveVoiceKey =
   null;
 
@@ -6310,6 +6319,18 @@ function reloadAudioBuffersForCurrentContext() {
     "pawnvsrook",
     PAWN_VS_ROOK_SOUND_FILE,
     generation
+  );
+
+  PAWN_VS_ROOK_COLLAPSE_SOUND_FILES.forEach(
+    (file,index) => {
+
+      registerAudioBuffer(
+        "pawnvsrookcollapse" + index,
+        file,
+        generation
+      );
+
+    }
   );
 
   registerAudioBuffer(
@@ -9307,6 +9328,8 @@ function playPawnCaptureSound(
       "pawnVoice"
     );
 
+    playPawnVsRookCollapseLayer();
+
     return;
 
   }
@@ -9370,6 +9393,57 @@ function playPawnCaptureSound(
   playBufferedSound(
     "pawncapture" + nextIndex,
     PAWN_CAPTURE_VOICE_VOLUME,
+    "pawnVoice"
+  );
+
+}
+
+
+function playPawnVsRookCollapseLayer() {
+
+  if (
+    PAWN_VS_ROOK_COLLAPSE_SOUND_FILES.length === 0
+  ) {
+    return;
+  }
+
+
+  let nextIndex =
+    Math.floor(
+      Math.random() *
+      PAWN_VS_ROOK_COLLAPSE_SOUND_FILES.length
+    );
+
+
+  if (
+    PAWN_VS_ROOK_COLLAPSE_SOUND_FILES.length > 1 &&
+    nextIndex === lastPawnVsRookCollapseIndex
+  ) {
+
+    nextIndex =
+      (
+        nextIndex +
+        1 +
+        Math.floor(
+          Math.random() *
+          (
+            PAWN_VS_ROOK_COLLAPSE_SOUND_FILES.length -
+            1
+          )
+        )
+      ) %
+      PAWN_VS_ROOK_COLLAPSE_SOUND_FILES.length;
+
+  }
+
+
+  lastPawnVsRookCollapseIndex =
+    nextIndex;
+
+
+  playBufferedSound(
+    "pawnvsrookcollapse" + nextIndex,
+    PAWN_VS_ROOK_COLLAPSE_VOLUME,
     "pawnVoice"
   );
 
@@ -22450,6 +22524,9 @@ async function beginGame(
     0;
 
   lastPawnCaptureIndex =
+    -1;
+
+  lastPawnVsRookCollapseIndex =
     -1;
 
   lastPawnMoveVoiceKey =
