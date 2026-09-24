@@ -4162,10 +4162,17 @@ if (
           </div>
         </div>
 
-        <button id="createOnlineRoomBtn"
+        <button id="quickMatchOnlineBtn"
                 class="online-action primary"
                 type="button"
-                style="width:100%;">
+                style="width:100%;margin-top:7px;">
+          Quick Match
+        </button>
+
+        <button id="createOnlineRoomBtn"
+                class="online-action"
+                type="button"
+                style="width:100%;margin-top:7px;">
           Create Room
         </button>
 
@@ -8495,6 +8502,9 @@ const gameActionsWrap =
 const createOnlineRoomBtn =
   document.getElementById("createOnlineRoomBtn");
 
+const quickMatchOnlineBtn =
+  document.getElementById("quickMatchOnlineBtn");
+
 const joinOnlineRoomBtn =
   document.getElementById("joinOnlineRoomBtn");
 
@@ -8798,6 +8808,9 @@ let activeCampaignOpponent =
 
 let onlineRoom =
   null;
+
+let onlineQuickMatchSearching =
+  false;
 
 let onlineChannel =
   null;
@@ -11802,6 +11815,12 @@ function makeOnlineRoomCode() {
   const chars =
     "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
+  const firstChars =
+    chars.replace(
+      "Q",
+      ""
+    );
+
   let code =
     "";
 
@@ -11813,10 +11832,18 @@ function makeOnlineRoomCode() {
   ) {
 
     code +=
-      chars[
+      (
+        i === 0
+          ? firstChars
+          : chars
+      )[
         Math.floor(
           Math.random() *
-          chars.length
+          (
+            i === 0
+              ? firstChars.length
+              : chars.length
+          )
         )
       ];
 
@@ -11824,6 +11851,18 @@ function makeOnlineRoomCode() {
 
 
   return code;
+
+}
+
+
+function makeQuickMatchRoomCode() {
+
+  return "Q" +
+    makeOnlineRoomCode()
+      .slice(
+        0,
+        5
+      );
 
 }
 
@@ -13748,6 +13787,9 @@ function updateGameModeUI() {
     !online
   ) {
 
+    onlineQuickMatchSearching =
+      false;
+
     stopOnlineClockTicker();
 
     onlineClockTop.classList.remove(
@@ -13822,6 +13864,8 @@ function updateGameModeUI() {
       ? onlineRoom
       : null
   );
+
+  refreshQuickMatchButton();
 
   updateBannerArt();
 
@@ -15946,6 +15990,383 @@ function updateOnlineRematchButton(
 }
 
 
+function refreshQuickMatchButton() {
+
+  if (
+    !quickMatchOnlineBtn
+  ) {
+    return;
+  }
+
+
+  const inOnlineRoom =
+    Boolean(
+      gameMode === "online" &&
+      onlineRoom
+    );
+
+
+  quickMatchOnlineBtn.disabled =
+    inOnlineRoom;
+
+  quickMatchOnlineBtn.textContent =
+    onlineQuickMatchSearching
+      ? "Searching..."
+      : "Quick Match";
+
+}
+
+
+function getOnlineRoomTimeControl(
+  room
+) {
+
+  return (
+    room &&
+    room.time_control
+      ? room.time_control
+      : "none"
+  );
+
+}
+
+
+async function acceptQuickMatchRoom(
+  room
+) {
+
+  if (
+    !room ||
+    room.white_player_id === onlinePlayerId ||
+    !String(
+      room.room_code || ""
+    ).startsWith(
+      "Q"
+    )
+  ) {
+    return false;
+  }
+
+
+  const {
+    data:joined,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .update({
+        black_player_id:
+          onlinePlayerId,
+        black_display_name:
+          normalizedPlayerDisplayName() ||
+          null,
+        status:
+          "formation_selection",
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        room.id
+      )
+      .eq(
+        "status",
+        "waiting"
+      )
+      .is(
+        "black_player_id",
+        null
+      )
+      .select()
+      .single();
+
+
+  if (
+    error ||
+    !joined
+  ) {
+    return false;
+  }
+
+
+  onlineQuickMatchSearching =
+    false;
+
+  onlineRoom =
+    joined;
+
+  onlineRole =
+    "black";
+
+  onlineFormationLocked =
+    false;
+
+  await watchOnlineRoom(
+    joined.id
+  );
+
+  await applyOnlineRoomUpdate(
+    joined
+  );
+
+  return true;
+
+}
+
+
+async function createQuickMatchWaitingRoom() {
+
+  for (
+    let attempt=0;
+    attempt<5;
+    attempt++
+  ) {
+
+    const roomCode =
+      makeQuickMatchRoomCode();
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from("rooms")
+        .insert({
+          room_code:roomCode,
+          status:"waiting",
+          white_player_id:
+            onlinePlayerId,
+          black_player_id:null,
+          white_display_name:
+            normalizedPlayerDisplayName() ||
+            null,
+          black_display_name:null,
+          white_formation:null,
+          black_formation:null,
+          fen:null,
+          move_history:[],
+          time_control:
+            selectedOnlineTimeControl,
+          white_clock_ms:
+            getOnlineTimeControlConfig()
+              .initialMs,
+          black_clock_ms:
+            getOnlineTimeControlConfig()
+              .initialMs,
+          clock_running_color:null,
+          clock_started_at:null
+        })
+        .select()
+        .single();
+
+
+    if (
+      !error &&
+      data
+    ) {
+
+      onlineQuickMatchSearching =
+        true;
+
+      onlineRoom =
+        data;
+
+      onlineRole =
+        "white";
+
+      onlineFormationLocked =
+        false;
+
+      onlineRoomCodeInput.value =
+        data.room_code;
+
+      refreshRoomCodeCopyButton();
+
+      localStorage.setItem(
+        ONLINE_ROOM_CODE_KEY,
+        data.room_code
+      );
+
+      leaveOnlineRoomBtn.disabled =
+        false;
+
+      refreshQuickMatchButton();
+
+      await watchOnlineRoom(
+        data.id
+      );
+
+      await applyOnlineRoomUpdate(
+        data
+      );
+
+      return true;
+
+    }
+
+
+    if (
+      !error ||
+      error.code !== "23505"
+    ) {
+
+      setOnlineStatus(
+        "Unable to enter quick match." +
+        (
+          error
+            ? "\n" + error.message
+            : ""
+        )
+      );
+
+      return false;
+
+    }
+
+  }
+
+
+  setOnlineStatus(
+    "Unable to generate a quick match room."
+  );
+
+  return false;
+
+}
+
+
+async function startQuickMatch() {
+
+  if (
+    gameMode !== "online"
+  ) {
+    return;
+  }
+
+
+  if (
+    onlineRoom
+  ) {
+
+    setOnlineStatus(
+      "Leave your current online room before entering quick match."
+    );
+
+    return;
+
+  }
+
+
+  onlineQuickMatchSearching =
+    true;
+
+  refreshQuickMatchButton();
+
+  setOnlineStatus(
+    "Searching for quick match..."
+  );
+
+
+  const {
+    data:waitingRooms,
+    error
+  } =
+    await supabase
+      .from("rooms")
+      .select("*")
+      .eq(
+        "status",
+        "waiting"
+      )
+      .eq(
+        "time_control",
+        selectedOnlineTimeControl
+      )
+      .is(
+        "black_player_id",
+        null
+      )
+      .like(
+        "room_code",
+        "Q%"
+      )
+      .limit(
+        8
+      );
+
+
+  if (
+    error
+  ) {
+
+    onlineQuickMatchSearching =
+      false;
+
+    refreshQuickMatchButton();
+
+    setOnlineStatus(
+      "Quick match search failed.\n" +
+      error.message
+    );
+
+    return;
+
+  }
+
+
+  const candidates =
+    Array.isArray(
+      waitingRooms
+    )
+      ? waitingRooms.filter(
+          room =>
+            room.white_player_id !==
+              onlinePlayerId &&
+            getOnlineRoomTimeControl(
+              room
+            ) === selectedOnlineTimeControl
+        )
+      : [];
+
+
+  for (
+    const candidate of candidates
+  ) {
+
+    if (
+      await acceptQuickMatchRoom(
+        candidate
+      )
+    ) {
+      return;
+    }
+
+  }
+
+
+  if (
+    await createQuickMatchWaitingRoom()
+  ) {
+
+    setOnlineStatus(
+      "Quick Match\nSearching for opponent..."
+    );
+
+  }
+
+  else {
+
+    onlineQuickMatchSearching =
+      false;
+
+    refreshQuickMatchButton();
+
+  }
+
+}
+
+
 async function resetOnlineRoomForRematch(
   room
 ) {
@@ -16306,6 +16727,8 @@ async function applyOnlineRoomUpdate(
     room
   );
 
+  refreshQuickMatchButton();
+
   refreshOnlineTimeControlButtons(
     room
   );
@@ -16392,9 +16815,11 @@ async function applyOnlineRoomUpdate(
   ) {
 
     setOnlineStatus(
-      "Room " +
-      room.room_code +
-      "\nWaiting for opponent..."
+      onlineQuickMatchSearching
+        ? "Quick Match\nSearching for opponent..."
+        : "Room " +
+          room.room_code +
+          "\nWaiting for opponent..."
     );
 
     lockOnlineFormationBtn.disabled =
@@ -16411,6 +16836,11 @@ async function applyOnlineRoomUpdate(
   if (
     room.status === "formation_selection"
   ) {
+
+    onlineQuickMatchSearching =
+      false;
+
+    refreshQuickMatchButton();
 
     const myFormation =
       onlineRole === "white"
@@ -16575,6 +17005,11 @@ async function applyOnlineRoomUpdate(
 
   onlineWinnerColor =
     null;
+
+  onlineQuickMatchSearching =
+    false;
+
+  refreshQuickMatchButton();
 
   leaveOnlineRoomBtn.disabled =
     false;
@@ -17013,6 +17448,11 @@ async function createOnlineRoom() {
     return;
   }
 
+  onlineQuickMatchSearching =
+    false;
+
+  refreshQuickMatchButton();
+
 
   setOnlineStatus(
     "Creating room..."
@@ -17139,6 +17579,11 @@ async function joinOnlineRoom() {
   ) {
     return;
   }
+
+  onlineQuickMatchSearching =
+    false;
+
+  refreshQuickMatchButton();
 
 
   const code =
@@ -17802,6 +18247,9 @@ async function leaveOnlineRoom() {
   onlineRoom =
     null;
 
+  onlineQuickMatchSearching =
+    false;
+
   onlineRole =
     null;
 
@@ -17855,6 +18303,8 @@ async function leaveOnlineRoom() {
   refreshOnlineTimeControlButtons(
     null
   );
+
+  refreshQuickMatchButton();
 
 
   localStorage.removeItem(
@@ -21423,6 +21873,18 @@ function initializeControls() {
       playMenuClick();
 
       createOnlineRoom();
+
+    }
+  );
+
+
+  quickMatchOnlineBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      startQuickMatch();
 
     }
   );
