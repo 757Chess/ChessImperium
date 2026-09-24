@@ -3907,7 +3907,7 @@ if (
             Training Grounds
           </button>
           <button id="onlineModeBtn" class="mode-btn wide" type="button">
-            Online
+            Multiplayer
           </button>
         </div>
 
@@ -4114,7 +4114,7 @@ if (
 
       <div id="onlinePanel" class="section online-panel">
 
-        <div class="label">Online Room</div>
+        <div class="label">Multiplayer</div>
 
         <div id="timeControlWrap" class="online-time-control">
           <div class="online-mini-label">Time Control</div>
@@ -4697,11 +4697,11 @@ if (
 
     <div class="how-to-play-divider"></div>
 
-    <h3 class="how-to-play-subheading">Online Multiplayer</h3>
+    <h3 class="how-to-play-subheading">Multiplayer</h3>
 
     <ol class="how-to-play-list how-to-play-multiplayer-list">
       <li>
-        Select <strong>Online Multiplayer</strong>.
+        Select <strong>Multiplayer</strong>.
       </li>
       <li>
         Player 1 chooses <strong>Create Room</strong> and shares
@@ -13827,8 +13827,8 @@ function updateGameModeUI() {
 
     engineBox.textContent =
       onlineRoom
-        ? "Online multiplayer · connected"
-        : "Online multiplayer";
+        ? "Multiplayer · connected"
+        : "Multiplayer";
 
   }
 
@@ -15226,7 +15226,7 @@ function setupOnlineGameFromRoom(
 
 
   engineBox.textContent =
-    "Online multiplayer · connected";
+    "Multiplayer · connected";
 
 
   showRuleToast();
@@ -22036,7 +22036,7 @@ function initializeControls() {
       updateInfoPanel();
 
       setStatus(
-        "Online Multiplayer — create a room or join one."
+        "Multiplayer — quick match, create a room, or join one."
       );
 
       setOnlineStatus(
@@ -28760,7 +28760,7 @@ function buildGameSummaryText() {
 
   const summaryModeText =
     gameMode === "online"
-      ? "Online Multiplayer"
+      ? "Multiplayer"
       : gameMode === "campaign"
         ? "Campaign"
         : "Computer";
@@ -32543,8 +32543,8 @@ function(event) {
       gameMode === "online"
         ? (
             onlineRoom
-              ? "Online multiplayer · connected"
-              : "Online multiplayer"
+              ? "Multiplayer · connected"
+              : "Multiplayer"
           )
         : gameMode === "campaign"
           ? "Campaign opponent ready."
@@ -32632,8 +32632,8 @@ function(error) {
 
     engineBox.textContent =
       onlineRoom
-        ? "Online multiplayer · connected"
-        : "Online multiplayer";
+        ? "Multiplayer · connected"
+        : "Multiplayer";
 
   }
 
