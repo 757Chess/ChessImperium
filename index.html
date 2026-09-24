@@ -21799,6 +21799,19 @@ challengeNextCampaignBtn.addEventListener(
 
     playMenuClick();
 
+    if (
+      gameMode === "training"
+    ) {
+
+      startTrainingPuzzle(
+        selectedTrainingPuzzleIndex + 1
+      );
+
+      return;
+
+    }
+
+
     const nextOpponent =
       getNextCampaignOpponentAfterActive();
 
@@ -23195,6 +23208,10 @@ function updateCenterPostGameActions() {
     onlineRoom &&
     onlineRoom.status === "finished";
 
+  const trainingFinished =
+    gameMode === "training" &&
+    trainingSolved;
+
 
   const finished =
     Boolean(
@@ -23203,7 +23220,8 @@ function updateCenterPostGameActions() {
       (
         game.isGameOver() ||
         onlineFinished ||
-        localGameFinished()
+        localGameFinished() ||
+        trainingFinished
       )
     );
 
@@ -23227,7 +23245,9 @@ function updateCenterPostGameActions() {
   ) {
 
     centerPostGameTitle.textContent =
-      finalCampaignVictory
+      trainingFinished
+        ? "Drill Complete"
+        : finalCampaignVictory
         ? "Freedom Won"
         : "Match Complete";
 
@@ -23239,7 +23259,9 @@ function updateCenterPostGameActions() {
   ) {
 
     centerPostGameMessage.textContent =
-      finalCampaignVictory
+      trainingFinished
+        ? "Pattern recognized. Carry the lesson into the next position."
+        : finalCampaignVictory
         ? "Caesar rises from his gilded seat as the coliseum falls silent. Before noble, soldier, and citizen alike, your chains are struck away, and Rome witnesses what steel alone could not win: a gladiator's mind earning his freedom."
         : nextOpponent
           ? "Victory carries you higher through the ranks of Rome."
@@ -23260,10 +23282,17 @@ function updateCenterPostGameActions() {
   ) {
 
     challengeNextCampaignBtn.style.display =
-      nextOpponent ? "" : "none";
+      (
+        trainingFinished ||
+        nextOpponent
+      )
+        ? ""
+        : "none";
 
     challengeNextCampaignBtn.textContent =
-      nextOpponent
+      trainingFinished
+        ? "Next Drill"
+        : nextOpponent
         ? "Challenge " + nextOpponent.name
         : "Challenge Next";
 
