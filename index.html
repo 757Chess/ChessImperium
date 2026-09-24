@@ -951,7 +951,7 @@ select {
 
 .training-actions {
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:6px;
 }
 
@@ -3920,6 +3920,11 @@ if (
                     type="button">
               Next
             </button>
+            <button id="trainingGenerateBtn"
+                    class="training-btn"
+                    type="button">
+              Generate
+            </button>
           </div>
         </div>
 
@@ -5895,6 +5900,21 @@ const TRAINING_PUZZLES = [
     hint:"The bishop's road runs from g2 through f3, e4, d5, and c6.",
     explanation:"Bxb7 wins the queen along the long diagonal."
   }
+];
+
+const STOCKFISH_TRAINING_CANDIDATE_FENS = [
+  "6k1/6pp/5n2/3Q4/8/8/6PP/6K1 w - - 0 1",
+  "4k3/1q6/8/8/8/4B3/4K3/8 w - - 0 1",
+  "4k3/8/8/8/3q4/8/4K3/3R4 w - - 0 1",
+  "6k1/6pp/8/5N2/8/8/6PP/6Kq w - - 0 1",
+  "4k3/8/8/8/2n5/8/4K3/3Q4 w - - 0 1",
+  "6k1/5ppp/8/8/8/1B6/5PPP/6K1 w - - 0 1",
+  "4k3/8/8/8/8/3r4/4K3/3Q4 w - - 0 1",
+  "6k1/6pp/8/8/8/2b5/6PP/3R2K1 w - - 0 1",
+  "4k3/8/8/8/8/4n3/4K3/2B5 w - - 0 1",
+  "6k1/6pp/8/8/8/8/5PPP/5RK1 w - - 0 1",
+  "4k3/8/8/8/8/4K3/3Q4/7r w - - 0 1",
+  "6k1/6pp/8/8/8/8/5PPP/5QK1 w - - 0 1"
 ];
 
 /*
@@ -8339,6 +8359,9 @@ const trainingResetBtn =
 const trainingNextBtn =
   document.getElementById("trainingNextBtn");
 
+const trainingGenerateBtn =
+  document.getElementById("trainingGenerateBtn");
+
 const playAsSection =
   document.getElementById("playAsSection");
 
@@ -8633,6 +8656,12 @@ let trainingSolved =
 
 let trainingAttempts =
   0;
+
+let trainingGeneratorCursor =
+  0;
+
+let trainingGeneratorBusy =
+  false;
 
 let campaignDifficultyTier =
   loadCampaignDifficultyTier();
@@ -12777,7 +12806,368 @@ function renderTrainingPanel() {
     TRAINING_PUZZLES.length +
     " · " +
     puzzle.theme +
-    " · Stockfish-assisted starter set";
+    " · " +
+    (
+      puzzle.generated
+        ? "Stockfish-generated drill"
+        : "Stockfish-assisted starter set"
+    );
+
+  if (
+    trainingGenerateBtn
+  ) {
+
+    trainingGenerateBtn.disabled =
+      trainingGeneratorBusy;
+
+    trainingGenerateBtn.textContent =
+      trainingGeneratorBusy
+        ? "Thinking..."
+        : "Generate";
+
+  }
+
+}
+
+
+function trainingSideNameFromFen(
+  fen
+) {
+
+  return (
+    fen.split(" ")[1] === "b"
+      ? "Black"
+      : "White"
+  );
+
+}
+
+
+function getNextTrainingCandidateFen() {
+
+  const usedFens =
+    new Set(
+      TRAINING_PUZZLES.map(
+        puzzle => puzzle.fen
+      )
+    );
+
+  for (
+    let i=0;
+    i<STOCKFISH_TRAINING_CANDIDATE_FENS.length;
+    i++
+  ) {
+
+    const fen =
+      STOCKFISH_TRAINING_CANDIDATE_FENS[
+        trainingGeneratorCursor %
+        STOCKFISH_TRAINING_CANDIDATE_FENS.length
+      ];
+
+    trainingGeneratorCursor++;
+
+    if (
+      !usedFens.has(
+        fen
+      )
+    ) {
+      return fen;
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+function getGeneratedTrainingTheme(
+  bestMoveInfo
+) {
+
+  if (
+    bestMoveInfo.givesMate
+  ) {
+    return "Mate in 1";
+  }
+
+  if (
+    bestMoveInfo.captured
+  ) {
+    return "Win " +
+      PIECE_NAMES[
+        bestMoveInfo.captured
+      ];
+  }
+
+  if (
+    bestMoveInfo.givesCheck
+  ) {
+    return "Forcing Check";
+  }
+
+  if (
+    bestMoveInfo.promotion
+  ) {
+    return "Promotion";
+  }
+
+  return "Best Move";
+
+}
+
+
+function getGeneratedTrainingPrompt(
+  sideName,
+  theme
+) {
+
+  if (
+    theme === "Mate in 1"
+  ) {
+    return sideName +
+      " to move. Deliver checkmate in one move.";
+  }
+
+  if (
+    theme.startsWith(
+      "Win "
+    )
+  ) {
+    return sideName +
+      " to move. Find the clean material win.";
+  }
+
+  if (
+    theme === "Forcing Check"
+  ) {
+    return sideName +
+      " to move. Find the forcing check.";
+  }
+
+  return sideName +
+    " to move. Find Stockfish's preferred move.";
+
+}
+
+
+function getGeneratedTrainingHint(
+  bestMoveInfo
+) {
+
+  if (
+    bestMoveInfo.givesMate ||
+    bestMoveInfo.givesCheck
+  ) {
+    return "Start by examining every legal check.";
+  }
+
+  if (
+    bestMoveInfo.captured
+  ) {
+    return "Look for loose material and forcing captures.";
+  }
+
+  return "Use the classic order: checks, captures, then threats.";
+
+}
+
+
+function buildStockfishTrainingPuzzle(
+  fen,
+  analysisResult
+) {
+
+  if (
+    !analysisResult ||
+    !analysisResult.bestmove ||
+    analysisResult.bestmove === "(none)"
+  ) {
+    return null;
+  }
+
+
+  const bestMoveInfo =
+    analysisBestMoveInfo(
+      fen,
+      analysisResult.bestmove
+    );
+
+  if (
+    !bestMoveInfo
+  ) {
+    return null;
+  }
+
+
+  const sideName =
+    trainingSideNameFromFen(
+      fen
+    );
+
+  const theme =
+    getGeneratedTrainingTheme(
+      bestMoveInfo
+    );
+
+  const line =
+    analysisPvToSan(
+      fen,
+      analysisResult.pv,
+      4
+    );
+
+
+  return {
+    title:
+      "Stockfish Drill " +
+      (
+        TRAINING_PUZZLES.length + 1
+      ),
+    theme,
+    fen,
+    generated:true,
+    solution:
+      analysisResult.bestmove,
+    prompt:
+      getGeneratedTrainingPrompt(
+        sideName,
+        theme
+      ),
+    hint:
+      getGeneratedTrainingHint(
+        bestMoveInfo
+      ),
+    explanation:
+      bestMoveInfo.san +
+      " is Stockfish's choice." +
+      (
+        line
+          ? " Principal line: " + line + "."
+          : ""
+      )
+  };
+
+}
+
+
+async function generateStockfishTrainingPuzzle() {
+
+  if (
+    trainingGeneratorBusy
+  ) {
+    return;
+  }
+
+
+  trainingGeneratorBusy =
+    true;
+
+  renderTrainingPanel();
+
+  setStatus(
+    "Stockfish is forging a new drill..."
+  );
+
+
+  try {
+
+    analysisCancelled =
+      false;
+
+    for (
+      let i=0;
+      i<STOCKFISH_TRAINING_CANDIDATE_FENS.length;
+      i++
+    ) {
+
+      const fen =
+        getNextTrainingCandidateFen();
+
+      if (
+        !fen
+      ) {
+        break;
+      }
+
+
+      try {
+
+        const position =
+          new Chess(
+            fen
+          );
+
+        if (
+          position.isGameOver()
+        ) {
+          continue;
+        }
+
+
+        const analysisResult =
+          await analyzeFen(
+            fen
+          );
+
+        const puzzle =
+          buildStockfishTrainingPuzzle(
+            fen,
+            analysisResult
+          );
+
+        if (
+          !puzzle
+        ) {
+          continue;
+        }
+
+
+        TRAINING_PUZZLES.push(
+          puzzle
+        );
+
+        trainingGeneratorBusy =
+          false;
+
+        startTrainingPuzzle(
+          TRAINING_PUZZLES.length - 1
+        );
+
+        setStatus(
+          "Stockfish forged a new drill. " +
+          puzzle.prompt
+        );
+
+        return;
+
+      }
+      catch(error) {
+
+        console.warn(
+          "Training puzzle candidate failed:",
+          error
+        );
+
+      }
+
+    }
+
+
+    setStatus(
+      "Stockfish could not find a fresh drill from the current bank."
+    );
+
+  }
+  finally {
+
+    trainingGeneratorBusy =
+      false;
+
+    renderTrainingPanel();
+
+  }
 
 }
 
@@ -20721,6 +21111,18 @@ function initializeControls() {
       startTrainingPuzzle(
         selectedTrainingPuzzleIndex + 1
       );
+
+    }
+  );
+
+
+  trainingGenerateBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      generateStockfishTrainingPuzzle();
 
     }
   );
