@@ -871,7 +871,7 @@ select {
 
 .mode-grid {
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:6px;
   margin-bottom:11px;
 }
@@ -906,6 +906,69 @@ select {
 
 .online-panel.visible {
   display:block;
+}
+
+.training-panel {
+  display:none;
+}
+
+.training-panel.visible {
+  display:block;
+}
+
+.training-card {
+  margin:0 0 9px;
+  padding:9px 10px;
+  border:1px solid #e0d4be;
+  border-radius:8px;
+  background:#fffaf0;
+  color:#4f473d;
+  font-size:11px;
+  line-height:1.42;
+}
+
+.training-card strong {
+  display:block;
+  margin-bottom:3px;
+  color:#8a6a33;
+  font-size:10px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.training-title {
+  color:var(--green);
+  font-size:13px;
+  font-weight:900;
+}
+
+.training-meta {
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+}
+
+.training-actions {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+}
+
+.training-btn {
+  min-height:36px;
+  padding:7px 8px;
+  border:1px solid var(--button-border);
+  border-radius:8px;
+  background:var(--button);
+  color:var(--text);
+  cursor:pointer;
+  font-size:11px;
+  font-weight:900;
+}
+
+.training-btn:hover:not(:disabled) {
+  background:#eee9df;
 }
 
 .online-row {
@@ -3776,6 +3839,9 @@ if (
           <button id="campaignModeBtn" class="mode-btn" type="button">
             Campaign
           </button>
+          <button id="trainingModeBtn" class="mode-btn" type="button">
+            Training Grounds
+          </button>
           <button id="onlineModeBtn" class="mode-btn wide" type="button">
             Online
           </button>
@@ -3822,6 +3888,38 @@ if (
                   class="campaign-select"></select>
           <div class="campaign-dev-note">
             Dev shortcut: enter an opponent's first name as player name.
+          </div>
+        </div>
+
+        <div id="trainingPanel" class="training-panel">
+          <div class="training-card">
+            <strong>Training Grounds</strong>
+            <div id="trainingTitle" class="training-title">
+              Tactical drill
+            </div>
+            <div id="trainingPrompt">
+              Find the best move.
+            </div>
+            <div id="trainingMeta" class="training-meta">
+              Stockfish-assisted starter drill
+            </div>
+          </div>
+          <div class="training-actions">
+            <button id="trainingHintBtn"
+                    class="training-btn"
+                    type="button">
+              Hint
+            </button>
+            <button id="trainingResetBtn"
+                    class="training-btn"
+                    type="button">
+              Reset
+            </button>
+            <button id="trainingNextBtn"
+                    class="training-btn"
+                    type="button">
+              Next
+            </button>
           </div>
         </div>
 
@@ -5759,6 +5857,45 @@ const MAX_PAWN_MOVE_VOICE_USES_PER_PAWN = 2;
 const CHAT_BEEP_VOLUME = .36;
 const ONLINE_NO_CLOCK_TURN_PULSE_DELAY_MS =
   180000;
+
+const TRAINING_PUZZLES = [
+  {
+    title:"The Queen's Verdict",
+    theme:"Mate in 1",
+    fen:"6k1/6pp/8/7Q/8/8/6PP/6K1 w - - 0 1",
+    solution:"h5e8",
+    prompt:"White to move. Deliver checkmate in one move.",
+    hint:"The queen can reach the back rank and command the whole line.",
+    explanation:"Qe8# cuts off every flight square and ends the game immediately."
+  },
+  {
+    title:"Loose Royalty",
+    theme:"Win Material",
+    fen:"4k3/8/8/8/8/8/4K3/3Q3q w - - 0 1",
+    solution:"d1h1",
+    prompt:"White to move. Take the undefended queen.",
+    hint:"Look along the first rank. The path is clear.",
+    explanation:"Qxh1 removes Black's queen for free."
+  },
+  {
+    title:"The Low Blade",
+    theme:"Knight Capture",
+    fen:"4k3/8/8/8/8/8/4KN2/7q w - - 0 1",
+    solution:"f2h1",
+    prompt:"White to move. Use the knight to win the queen.",
+    hint:"Knights attack in an L shape, even into the corner.",
+    explanation:"Nxh1 wins the queen. The knight's corner jump is easy to miss."
+  },
+  {
+    title:"Diagonal Discipline",
+    theme:"Bishop Capture",
+    fen:"4k3/1q6/8/8/8/8/4K1B1/8 w - - 0 1",
+    solution:"g2b7",
+    prompt:"White to move. Follow the diagonal and win material.",
+    hint:"The bishop's road runs from g2 through f3, e4, d5, and c6.",
+    explanation:"Bxb7 wins the queen along the long diagonal."
+  }
+];
 
 /*
  * Global game-audio boost.
@@ -8160,6 +8297,9 @@ const computerModeBtn =
 const campaignModeBtn =
   document.getElementById("campaignModeBtn");
 
+const trainingModeBtn =
+  document.getElementById("trainingModeBtn");
+
 const onlineModeBtn =
   document.getElementById("onlineModeBtn");
 
@@ -8177,6 +8317,27 @@ const campaignDifficultyTierSelect =
 
 const campaignDossier =
   document.getElementById("campaignDossier");
+
+const trainingPanel =
+  document.getElementById("trainingPanel");
+
+const trainingTitle =
+  document.getElementById("trainingTitle");
+
+const trainingPrompt =
+  document.getElementById("trainingPrompt");
+
+const trainingMeta =
+  document.getElementById("trainingMeta");
+
+const trainingHintBtn =
+  document.getElementById("trainingHintBtn");
+
+const trainingResetBtn =
+  document.getElementById("trainingResetBtn");
+
+const trainingNextBtn =
+  document.getElementById("trainingNextBtn");
 
 const playAsSection =
   document.getElementById("playAsSection");
@@ -8463,6 +8624,15 @@ if (
 
 let gameMode =
   "computer";
+
+let selectedTrainingPuzzleIndex =
+  0;
+
+let trainingSolved =
+  false;
+
+let trainingAttempts =
+  0;
 
 let campaignDifficultyTier =
   loadCampaignDifficultyTier();
@@ -12570,6 +12740,311 @@ function updateCampaignProgressAfterGame() {
 }
 
 
+function getSelectedTrainingPuzzle() {
+
+  return TRAINING_PUZZLES[
+    selectedTrainingPuzzleIndex
+  ] ||
+  TRAINING_PUZZLES[0];
+
+}
+
+
+function renderTrainingPanel() {
+
+  const puzzle =
+    getSelectedTrainingPuzzle();
+
+  if (
+    !puzzle
+  ) {
+    return;
+  }
+
+
+  trainingTitle.textContent =
+    puzzle.title;
+
+  trainingPrompt.textContent =
+    puzzle.prompt;
+
+  trainingMeta.textContent =
+    "Drill " +
+    (
+      selectedTrainingPuzzleIndex + 1
+    ) +
+    " of " +
+    TRAINING_PUZZLES.length +
+    " · " +
+    puzzle.theme +
+    " · Stockfish-assisted starter set";
+
+}
+
+
+function startTrainingPuzzle(
+  puzzleIndex = selectedTrainingPuzzleIndex
+) {
+
+  const clampedIndex =
+    (
+      puzzleIndex +
+      TRAINING_PUZZLES.length
+    ) %
+    TRAINING_PUZZLES.length;
+
+  selectedTrainingPuzzleIndex =
+    clampedIndex;
+
+  const puzzle =
+    getSelectedTrainingPuzzle();
+
+  if (
+    !puzzle
+  ) {
+    return;
+  }
+
+
+  clearMoveGhost();
+  cancelPieceDrag();
+  clearFormationAnimationTimers();
+  clearEngineMoveTimer();
+  hideRuleToast();
+  hideHonorResignPrompt();
+  hideGameOverSummary();
+  clearCaptureToast();
+  stopPawnCoronationSound();
+  promotedQueenSquares.clear();
+
+  engine.postMessage(
+    "stop"
+  );
+
+  engineSearchActive =
+    false;
+
+  game =
+    new Chess(
+      puzzle.fen
+    );
+
+  gameStarted =
+    true;
+
+  trainingSolved =
+    false;
+
+  trainingAttempts =
+    0;
+
+  localResultReason =
+    null;
+
+  engineThinking =
+    false;
+
+  moveAnimating =
+    false;
+
+  selectedSquare =
+    null;
+
+  legalMoves =
+    [];
+
+  lastMove =
+    null;
+
+  appMoveHistory =
+    [];
+
+  imperialStepUsed = {
+    w:true,
+    b:true
+  };
+
+  kingHasBeenChecked = {
+    w:false,
+    b:false
+  };
+
+  promotionPending =
+    null;
+
+  playerColor =
+    game.turn();
+
+  actualPlayerColor =
+    playerColor;
+
+  actualPlayerFormation =
+    null;
+
+  actualComputerFormation =
+    null;
+
+  hidePromotion();
+  renderTrainingPanel();
+  updateBannerArt();
+
+  previewBar.innerHTML =
+    "<strong>Training Grounds:</strong>&nbsp;" +
+    escapeHtml(
+      puzzle.title
+    ) +
+    " — " +
+    escapeHtml(
+      puzzle.theme
+    );
+
+  drawBoard();
+  renderMoveList();
+  updateCapturedPieces();
+  updateInfoPanel();
+  updateStatus();
+  updateUndoButton();
+  updateEndGameButton();
+  updateCenterPostGameActions();
+  updateSetupControlAvailability();
+
+}
+
+
+function showTrainingHint() {
+
+  const puzzle =
+    getSelectedTrainingPuzzle();
+
+  if (
+    !puzzle
+  ) {
+    return;
+  }
+
+  setStatus(
+    "Hint — " +
+    puzzle.hint
+  );
+
+}
+
+
+function handleTrainingMoveResult(
+  move
+) {
+
+  const puzzle =
+    getSelectedTrainingPuzzle();
+
+  if (
+    !puzzle ||
+    !move
+  ) {
+    return;
+  }
+
+  const uciMove =
+    move.from +
+    move.to +
+    (
+      move.promotion ||
+      ""
+    );
+
+  trainingAttempts++;
+
+  if (
+    uciMove === puzzle.solution
+  ) {
+
+    trainingSolved =
+      true;
+
+    setStatus(
+      "Correct — " +
+      puzzle.explanation,
+      "victory"
+    );
+
+    return;
+
+  }
+
+
+  if (
+    game
+  ) {
+
+    game.undo();
+
+  }
+
+  appMoveHistory.pop();
+
+  lastMove =
+    null;
+
+  selectedSquare =
+    null;
+
+  legalMoves =
+    [];
+
+  drawBoard();
+  renderMoveList();
+  updateCapturedPieces();
+  updateInfoPanel();
+
+  setStatus(
+    trainingAttempts >= 2
+      ? "Not quite. " + puzzle.hint
+      : "Not quite. Try to find the forcing move."
+  );
+
+}
+
+
+function leaveTrainingGrounds() {
+
+  if (
+    gameMode !== "training"
+  ) {
+    return;
+  }
+
+
+  gameStarted =
+    false;
+
+  trainingSolved =
+    false;
+
+  trainingAttempts =
+    0;
+
+  game =
+    null;
+
+  selectedSquare =
+    null;
+
+  legalMoves =
+    [];
+
+  lastMove =
+    null;
+
+  appMoveHistory =
+    [];
+
+  hidePromotion();
+  clearCaptureToast();
+  hideGameOverSummary();
+
+}
+
+
 function updateGameModeUI() {
 
   const online =
@@ -12577,6 +13052,9 @@ function updateGameModeUI() {
 
   const campaign =
     gameMode === "campaign";
+
+  const training =
+    gameMode === "training";
 
 
   computerModeBtn.classList.toggle(
@@ -12589,6 +13067,11 @@ function updateGameModeUI() {
     campaign
   );
 
+  trainingModeBtn.classList.toggle(
+    "active",
+    training
+  );
+
   onlineModeBtn.classList.toggle(
     "active",
     online
@@ -12598,7 +13081,8 @@ function updateGameModeUI() {
   computerFormationWrap.classList.toggle(
     "online-hidden",
     online ||
-    campaign
+    campaign ||
+    training
   );
 
   campaignPanel.classList.toggle(
@@ -12606,26 +13090,35 @@ function updateGameModeUI() {
     campaign
   );
 
+  trainingPanel.classList.toggle(
+    "visible",
+    training
+  );
+
   playAsSection.classList.toggle(
     "online-hidden",
     online ||
-    campaign
+    campaign ||
+    training
   );
 
   difficultySection.classList.toggle(
     "online-hidden",
     online ||
-    campaign
+    campaign ||
+    training
   );
 
   gameActionsWrap.classList.toggle(
     "online-hidden",
-    online
+    online ||
+    training
   );
 
   undoBtn.classList.toggle(
     "online-hidden",
-    campaign
+    campaign ||
+    training
   );
 
   onlinePanel.classList.toggle(
@@ -12642,7 +13135,8 @@ function updateGameModeUI() {
   computerFormationWrap.style.display =
     (
       online ||
-      campaign
+      campaign ||
+      training
     )
       ? "none"
       : "";
@@ -12650,10 +13144,14 @@ function updateGameModeUI() {
   campaignPanel.style.display =
     campaign ? "block" : "none";
 
+  trainingPanel.style.display =
+    training ? "block" : "none";
+
   playAsSection.style.display =
     (
       online ||
-      campaign
+      campaign ||
+      training
     )
       ? "none"
       : "";
@@ -12661,16 +13159,27 @@ function updateGameModeUI() {
   difficultySection.style.display =
     (
       online ||
-      campaign
+      campaign ||
+      training
     )
       ? "none"
       : "";
 
   gameActionsWrap.style.display =
-    online ? "none" : "";
+    (
+      online ||
+      training
+    )
+      ? "none"
+      : "";
 
   undoBtn.style.display =
-    campaign ? "none" : "";
+    (
+      campaign ||
+      training
+    )
+      ? "none"
+      : "";
 
   onlinePanel.style.display =
     online ? "block" : "none";
@@ -12723,6 +13232,17 @@ function updateGameModeUI() {
         engineReady
           ? "Campaign opponent ready."
           : "Campaign opponent loading...";
+
+    }
+
+    else if (
+      training
+    ) {
+
+      engineBox.textContent =
+        engineReady
+          ? "Training engine ready."
+          : "Training engine loading...";
 
     }
 
@@ -19921,6 +20441,8 @@ function initializeControls() {
 
       await stopOnlineRealtime();
 
+      leaveTrainingGrounds();
+
       gameMode =
         "computer";
 
@@ -20026,6 +20548,8 @@ function initializeControls() {
 
       await stopOnlineRealtime();
 
+      leaveTrainingGrounds();
+
       gameMode =
         "campaign";
 
@@ -20070,6 +20594,138 @@ function initializeControls() {
   );
 
 
+  trainingModeBtn.addEventListener(
+    "click",
+    async function() {
+
+      playMenuClick();
+
+      if (
+        gameMode === "training"
+      ) {
+        return;
+      }
+
+
+      if (
+        onlineRoom &&
+        onlineRoom.status === "active"
+      ) {
+
+        const confirmed =
+          window.confirm(
+            "Switch to Training Grounds? This will resign your current online game."
+          );
+
+
+        if (
+          !confirmed
+        ) {
+          return;
+        }
+
+
+        const resigned =
+          await resignOnlineGame(
+            false
+          );
+
+
+        if (
+          !resigned
+        ) {
+          return;
+        }
+
+      }
+
+
+      await stopOnlineRealtime();
+
+      gameMode =
+        "training";
+
+      fadeOutCampaignTheme();
+
+      activeCampaignOpponent =
+        null;
+
+      campaignDevOpponentId =
+        null;
+
+      onlineRoom =
+        null;
+
+      onlineRole =
+        null;
+
+      onlineStartedRoomId =
+        null;
+
+      onlineResultReason =
+        null;
+
+      onlineWinnerColor =
+        null;
+
+      localStorage.removeItem(
+        ONLINE_ROOM_CODE_KEY
+      );
+
+      setOnlineFormationControlsLocked(
+        false
+      );
+
+      updateGameModeUI();
+
+      startTrainingPuzzle(
+        selectedTrainingPuzzleIndex
+      );
+
+    }
+  );
+
+
+  trainingHintBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      showTrainingHint();
+
+    }
+  );
+
+
+  trainingResetBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      startTrainingPuzzle(
+        selectedTrainingPuzzleIndex
+      );
+
+    }
+  );
+
+
+  trainingNextBtn.addEventListener(
+    "click",
+    function() {
+
+      playMenuClick();
+
+      startTrainingPuzzle(
+        selectedTrainingPuzzleIndex + 1
+      );
+
+    }
+  );
+
+
   onlineModeBtn.addEventListener(
     "click",
     function() {
@@ -20081,6 +20737,8 @@ function initializeControls() {
       ) {
         return;
       }
+
+      leaveTrainingGrounds();
 
       gameMode =
         "online";
@@ -21526,6 +22184,18 @@ function updateStartGameAttention() {
 
 
   if (
+    gameMode === "training"
+  ) {
+
+    newGameBtn.textContent =
+      "Training Grounds";
+
+    return;
+
+  }
+
+
+  if (
     !gameStarted
   ) {
 
@@ -22682,6 +23352,46 @@ function applyDifficulty() {
   if (
     !engineReady
   ) {
+
+    return;
+
+  }
+
+
+  if (
+    gameMode === "training"
+  ) {
+
+    const puzzle =
+      getSelectedTrainingPuzzle();
+
+    const sideText =
+      playerColor === "b"
+        ? "Black"
+        : "White";
+
+    infoBox.innerHTML =
+      "<div class='matchup-title'>Training Grounds</div>" +
+      "<div class='match-line'><strong>Drill:</strong> " +
+      escapeHtml(
+        puzzle
+          ? puzzle.title
+          : "Tactical drill"
+      ) +
+      "</div>" +
+      "<div class='match-line'><strong>Theme:</strong> " +
+      escapeHtml(
+        puzzle
+          ? puzzle.theme
+          : "Pattern recognition"
+      ) +
+      "</div>" +
+      "<div class='match-line'><strong>Side to move:</strong> " +
+      sideText +
+      "</div>" +
+      "<div class='match-line'><strong>Attempts:</strong> " +
+      trainingAttempts +
+      "</div>";
 
     return;
 
@@ -25254,6 +25964,16 @@ async function completePlayerMove(
 
 
     if (
+      gameMode === "training"
+    ) {
+
+      handleTrainingMoveResult(
+        move
+      );
+
+    }
+
+    else if (
       gameMode === "online"
     ) {
 
@@ -29537,6 +30257,44 @@ function updateStatus() {
 
 
   if (
+    gameMode === "training"
+  ) {
+
+    const puzzle =
+      getSelectedTrainingPuzzle();
+
+    if (
+      trainingSolved
+    ) {
+
+      setStatus(
+        "Correct — " +
+        (
+          puzzle
+            ? puzzle.explanation
+            : "Drill complete."
+        ),
+        "victory"
+      );
+
+    }
+
+    else {
+
+      setStatus(
+        puzzle
+          ? puzzle.prompt
+          : "Find the best move."
+      );
+
+    }
+
+    return;
+
+  }
+
+
+  if (
     !gameStarted
   ) {
 
@@ -30423,12 +31181,15 @@ function(event) {
           )
         : gameMode === "campaign"
           ? "Campaign opponent ready."
+          : gameMode === "training"
+            ? "Training engine ready."
           : "Engine ready";
 
 
     if (
       !gameStarted &&
-      gameMode !== "online"
+      gameMode !== "online" &&
+      gameMode !== "training"
     ) {
 
       setStatus(
