@@ -1203,6 +1203,26 @@ select {
   font-weight:700;
 }
 
+.online-chat-heading-actions {
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+
+.online-chat-toggle {
+  display:none;
+  width:28px;
+  height:24px;
+  border:1px solid #d4c8b6;
+  border-radius:7px;
+  background:#fffaf0;
+  color:var(--green);
+  cursor:pointer;
+  font-size:16px;
+  font-weight:900;
+  line-height:1;
+}
+
 .online-chat-messages {
   height:158px;
   max-height:calc(100vh - 180px);
@@ -3875,6 +3895,56 @@ th {
     height:13px;
   }
 
+  .online-chat.visible {
+    left:10px !important;
+    right:10px !important;
+    bottom:10px !important;
+    top:auto !important;
+    width:auto;
+    max-height:56vh;
+    padding:9px;
+  }
+
+  .online-chat-heading {
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+
+  .online-chat-toggle {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .online-chat.mobile-minimized {
+    left:auto !important;
+    right:10px !important;
+    bottom:10px !important;
+    top:auto !important;
+    width:auto;
+    min-width:132px;
+    max-width:calc(100vw - 20px);
+    padding:8px 10px;
+    border-radius:999px;
+  }
+
+  .online-chat.mobile-minimized .online-chat-heading {
+    margin-bottom:0;
+  }
+
+  .online-chat.mobile-minimized .online-chat-messages,
+  .online-chat.mobile-minimized .online-chat-compose,
+  .online-chat.mobile-minimized .online-chat-error {
+    display:none;
+  }
+
+  .online-chat.mobile-minimized .online-chat-toggle {
+    width:22px;
+    height:22px;
+    border-radius:999px;
+    font-size:14px;
+  }
+
   .selected::after,
   .check::after {
     inset:3px;
@@ -4304,9 +4374,17 @@ if (
 
           <div class="online-chat-heading">
             <div class="online-chat-title">Game Chat</div>
-            <div id="onlineChatCount"
-                 class="online-chat-count">
-              0 messages
+            <div class="online-chat-heading-actions">
+              <div id="onlineChatCount"
+                   class="online-chat-count">
+                0 messages
+              </div>
+              <button id="onlineChatToggleBtn"
+                      class="online-chat-toggle"
+                      type="button"
+                      aria-label="Minimize game chat">
+                −
+              </button>
             </div>
           </div>
 
@@ -6121,6 +6199,9 @@ const QUICK_MATCH_HEARTBEAT_MS =
 
 const QUICK_MATCH_STALE_MS =
   35000;
+
+const MOBILE_CHAT_AUTO_MINIMIZE_MS =
+  12000;
 
 const TRAINING_PUZZLES = [
   {
@@ -8697,6 +8778,9 @@ const onlineChatMessages =
 const onlineChatCount =
   document.getElementById("onlineChatCount");
 
+const onlineChatToggleBtn =
+  document.getElementById("onlineChatToggleBtn");
+
 const onlineChatInput =
   document.getElementById("onlineChatInput");
 
@@ -9043,6 +9127,12 @@ let onlineChatDragState =
   null;
 
 let onlineChatFloatingPosition =
+  null;
+
+let onlineChatMobileMinimized =
+  false;
+
+let onlineChatMobileIdleTimer =
   null;
 
 let onlineRuleToastShownKey =
@@ -11350,12 +11440,124 @@ function applyOnlineChatPosition() {
 }
 
 
+function isMobileOnlineChatLayout() {
+
+  return window.matchMedia(
+    "(max-width:700px)"
+  ).matches;
+
+}
+
+
+function clearOnlineChatMobileIdleTimer() {
+
+  if (
+    onlineChatMobileIdleTimer
+  ) {
+
+    clearTimeout(
+      onlineChatMobileIdleTimer
+    );
+
+  }
+
+
+  onlineChatMobileIdleTimer =
+    null;
+
+}
+
+
+function scheduleOnlineChatMobileIdleMinimize() {
+
+  clearOnlineChatMobileIdleTimer();
+
+  if (
+    !isMobileOnlineChatLayout() ||
+    onlineChatMobileMinimized ||
+    !onlineChat.classList.contains(
+      "visible"
+    )
+  ) {
+    return;
+  }
+
+
+  onlineChatMobileIdleTimer =
+    setTimeout(
+      () => {
+
+        if (
+          document.activeElement === onlineChatInput
+        ) {
+          scheduleOnlineChatMobileIdleMinimize();
+          return;
+        }
+
+
+        setOnlineChatMobileMinimized(
+          true
+        );
+
+      },
+      MOBILE_CHAT_AUTO_MINIMIZE_MS
+    );
+
+}
+
+
+function setOnlineChatMobileMinimized(
+  minimized
+) {
+
+  onlineChatMobileMinimized =
+    Boolean(
+      minimized
+    );
+
+  onlineChat.classList.toggle(
+    "mobile-minimized",
+    onlineChatMobileMinimized
+  );
+
+  if (
+    onlineChatToggleBtn
+  ) {
+
+    onlineChatToggleBtn.textContent =
+      onlineChatMobileMinimized
+        ? "+"
+        : "−";
+
+    onlineChatToggleBtn.setAttribute(
+      "aria-label",
+      onlineChatMobileMinimized
+        ? "Open game chat"
+        : "Minimize game chat"
+    );
+
+  }
+
+
+  if (
+    onlineChatMobileMinimized
+  ) {
+    clearOnlineChatMobileIdleTimer();
+  }
+  else {
+    scheduleOnlineChatMobileIdleMinimize();
+  }
+
+}
+
+
 function beginOnlineChatDrag(
   event
 ) {
 
   if (
     !onlineChat ||
+    isMobileOnlineChatLayout() ||
     (
       event.pointerType === "mouse" &&
       event.button !== 0
@@ -11728,6 +11930,17 @@ function appendOnlineChatMessage(
 
   renderOnlineChat();
 
+  if (
+    item.sender_id !== onlinePlayerId
+  ) {
+    setOnlineChatMobileMinimized(
+      false
+    );
+  }
+  else {
+    scheduleOnlineChatMobileIdleMinimize();
+  }
+
   playOnlineChatBeep();
 
 }
@@ -11747,6 +11960,21 @@ function updateOnlineChatAvailability() {
     "visible",
     available
   );
+
+  if (
+    !available
+  ) {
+
+    setOnlineChatMobileMinimized(
+      false
+    );
+
+    clearOnlineChatMobileIdleTimer();
+
+  }
+  else {
+    scheduleOnlineChatMobileIdleMinimize();
+  }
 
   applyOnlineChatPosition();
 
@@ -22738,6 +22966,24 @@ function initializeControls() {
   ) {
 
     onlineChatHeading.addEventListener(
+      "click",
+      function() {
+
+        if (
+          isMobileOnlineChatLayout() &&
+          onlineChatMobileMinimized
+        ) {
+
+          setOnlineChatMobileMinimized(
+            false
+          );
+
+        }
+
+      }
+    );
+
+    onlineChatHeading.addEventListener(
       "pointerdown",
       beginOnlineChatDrag
     );
@@ -22758,6 +23004,51 @@ function initializeControls() {
     );
 
   }
+
+
+  if (
+    onlineChatToggleBtn
+  ) {
+
+    onlineChatToggleBtn.addEventListener(
+      "click",
+      function(event) {
+
+        event.stopPropagation();
+
+        if (
+          !isMobileOnlineChatLayout()
+        ) {
+          return;
+        }
+
+
+        setOnlineChatMobileMinimized(
+          !onlineChatMobileMinimized
+        );
+
+      }
+    );
+
+  }
+
+
+  onlineChatInput.addEventListener(
+    "focus",
+    function() {
+
+      setOnlineChatMobileMinimized(
+        false
+      );
+
+    }
+  );
+
+
+  onlineChatInput.addEventListener(
+    "input",
+    scheduleOnlineChatMobileIdleMinimize
+  );
 
 
   onlineRoomCodeInput.addEventListener(
