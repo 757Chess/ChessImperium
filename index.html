@@ -9924,8 +9924,6 @@ function playPawnCaptureSound(
       "pawnVoice"
     );
 
-    playPawnVsRookCollapseLayer();
-
     return;
 
   }
@@ -9995,7 +9993,7 @@ function playPawnCaptureSound(
 }
 
 
-function playPawnVsRookCollapseLayer() {
+function playRookCapturedCollapseLayer() {
 
   if (
     PAWN_VS_ROOK_COLLAPSE_SOUND_FILES.length === 0
@@ -20461,6 +20459,19 @@ async function animateLegalMove(
    */
   if (
     plannedMove &&
+    plannedMove.captured === "r" &&
+    !moveHasCheckPriority(
+      plannedMove
+    )
+  ) {
+
+    playRookCapturedCollapseLayer();
+
+  }
+
+
+  if (
+    plannedMove &&
     plannedMove.piece === "k" &&
     plannedMove.captured &&
     !moveHasCheckPriority(
@@ -27964,6 +27975,20 @@ async function completePlayerMove(
    * animateLegalMove(). Fire the capture vocal here for that direct-drag
    * path; animated king captures still fire inside animateLegalMove().
    */
+  if (
+    skipAnimation &&
+    plannedMove &&
+    plannedMove.captured === "r" &&
+    !moveHasCheckPriority(
+      plannedMove
+    )
+  ) {
+
+    playRookCapturedCollapseLayer();
+
+  }
+
+
   if (
     skipAnimation &&
     plannedMove &&
