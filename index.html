@@ -4040,7 +4040,11 @@ if (
           <button id="computerModeBtn" class="mode-btn active" type="button">
             Vs Computer
           </button>
-          <button id="campaignModeBtn" class="mode-btn" type="button">
+          <button
+            id="campaignModeBtn"
+            class="mode-btn"
+            type="button"
+            title="Rise through Rome's gauntlet, face Caesar, and win your freedom.">
             Campaign
           </button>
           <button id="trainingModeBtn" class="mode-btn" type="button">
@@ -21214,6 +21218,32 @@ function getImperialStepTooltipHTML() {
 }
 
 
+function getCampaignModeTooltipHTML() {
+
+  return (
+
+    "<div class='tooltip-title'>" +
+    "Campaign" +
+    "</div>" +
+
+    "<div class='tooltip-description'>" +
+    "Rise from the arena through Rome's gauntlet of power." +
+    "</div>" +
+
+    "<div class='tooltip-line'>" +
+    "<strong>Goal:</strong> " +
+    "Defeat five imperial rivals, earn your audience with Caesar, and win the freedom denied to you." +
+    "</div>" +
+
+    "<div class='tooltip-note'>" +
+    "Each opponent brings a fixed formation, rank, portrait, and trial." +
+    "</div>"
+
+  );
+
+}
+
+
 function attachImperialStepTooltip(
   element
 ) {
@@ -21467,6 +21497,100 @@ function hideTooltip() {
 /* ===================================================== */
 /* TOOLTIP ATTACHMENTS                                   */
 /* ===================================================== */
+
+function attachStaticTooltip(
+  button,
+  getHTML
+) {
+
+  button.addEventListener(
+    "mouseenter",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        showTooltip(
+          button,
+          getHTML()
+        );
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "mouseleave",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+        hideTooltip();
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "focus",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+
+        showTooltip(
+          button,
+          getHTML()
+        );
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "blur",
+    function() {
+
+      if (
+        !isTouchStyleDevice()
+      ) {
+        hideTooltip();
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    "click",
+    function(event) {
+
+      if (
+        isTouchStyleDevice()
+      ) {
+
+        event.stopPropagation();
+
+        showTooltip(
+          button,
+          getHTML()
+        );
+
+      }
+
+    }
+  );
+
+}
+
 
 function attachFormationTooltip(
   button,
@@ -21827,6 +21951,12 @@ function refreshPreviewAfterSetupChange(
 /* ===================================================== */
 
 function initializeControls() {
+
+  attachStaticTooltip(
+    campaignModeBtn,
+    getCampaignModeTooltipHTML
+  );
+
 
   playerNameInput.value =
     playerDisplayName;
