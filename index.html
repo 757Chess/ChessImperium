@@ -4570,6 +4570,12 @@ if (
                       type="button">
                 ♟ Analyze Game
               </button>
+              <button id="changeFormationBtn"
+                      class="center-postgame-btn"
+                      type="button"
+                      style="display:none;">
+                Change Formation
+              </button>
               <button id="challengeNextCampaignBtn"
                       class="center-postgame-btn primary campaign-next-btn"
                       type="button"
@@ -8484,6 +8490,9 @@ const gameOverDetails =
 
 const rematchBtn =
   document.getElementById("rematchBtn");
+
+const changeFormationBtn =
+  document.getElementById("changeFormationBtn");
 
 const challengeNextCampaignBtn =
   document.getElementById("challengeNextCampaignBtn");
@@ -23616,6 +23625,18 @@ rematchBtn.addEventListener(
 );
 
 
+changeFormationBtn.addEventListener(
+  "click",
+  function() {
+
+    playMenuClick();
+
+    returnToFormationSelection();
+
+  }
+);
+
+
 challengeNextCampaignBtn.addEventListener(
   "click",
   function() {
@@ -25129,6 +25150,22 @@ function updateCenterPostGameActions() {
 
 
   if (
+    changeFormationBtn
+  ) {
+
+    changeFormationBtn.style.display =
+      (
+        finished &&
+        !trainingFinished &&
+        gameMode !== "online"
+      )
+        ? ""
+        : "none";
+
+  }
+
+
+  if (
     challengeNextCampaignBtn
   ) {
 
@@ -25292,6 +25329,62 @@ async function rematchCurrentGame() {
   await beginGame(
     true
   );
+
+}
+
+
+function returnToFormationSelection() {
+
+  if (
+    gameMode === "online"
+  ) {
+    return;
+  }
+
+
+  if (
+    gameMode === "campaign"
+  ) {
+
+    const opponent =
+      activeCampaignOpponent ||
+      getSelectedCampaignOpponent();
+
+    activeCampaignOpponent =
+      null;
+
+    applyCampaignOpponent(
+      opponent
+    );
+
+  }
+
+
+  renderPreview();
+
+
+  requestAnimationFrame(
+    () => {
+
+      animateFormationAssembly(
+        "player"
+      );
+
+    }
+  );
+
+
+  if (
+    gameMode === "campaign"
+  ) {
+
+    setStatus(
+      "Choose your formation, then challenge " +
+      getSelectedCampaignOpponent().rank +
+      "."
+    );
+
+  }
 
 }
 
