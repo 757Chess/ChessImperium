@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "Chess Imperium",
+  "short_name": "Chess Imperium",
+  "description": "Play Chess Imperium against the computer or challenge another player.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#355c4d",
+  "icons": [
+    {
+      "src": "./Graphics/wN.png",
+      "sizes": "1255x1255",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

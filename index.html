@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#355c4d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chess Imperium">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./Graphics/wN.png">
 
 <title>Chess Imperium</title>
 
@@ -35,6 +40,7 @@ html {
 
 body {
   margin:0;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   font-family:Arial,Helvetica,sans-serif;
   background:var(--bg);
   color:var(--text);
@@ -3713,7 +3719,7 @@ th {
 
 }
 
-@media (max-width:1120px) {
+@media (max-width:1240px) {
 
   :root {
     --play-area-size:700px;
@@ -3997,6 +4003,59 @@ th {
     overflow:auto;
   }
 
+}
+
+.board-view-controls {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:12px;
+  margin-bottom:8px;
+}
+
+#focusModeBtn {
+  min-height:44px;
+  padding:8px 14px;
+}
+
+.focus-status { display:none; }
+
+body.board-focus .app > .panel,
+body.board-focus .chess-imperium-banner-wrap,
+body.board-focus .preview-bar { display:none; }
+
+body.board-focus {
+  --play-area-size:min(100%, max(240px, calc(100dvh - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom))));
+}
+
+body.board-focus:has(.online-clock.visible) {
+  --play-area-size:min(100%, max(240px, calc(100dvh - 210px - env(safe-area-inset-top) - env(safe-area-inset-bottom))));
+}
+
+body.board-focus .app { grid-template-columns:minmax(0, 100%); }
+body.board-focus .page { width:min(1000px, calc(100% - 16px)); padding:8px 0; }
+body.board-focus .board-panel {
+  width:100%;
+  padding:8px;
+  background:transparent;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+}
+body.board-focus .focus-status { display:block; flex:1; font-size:14px; }
+
+@media (orientation:portrait) {
+  body.board-focus .app {
+    min-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    align-items:center;
+  }
+}
+
+body.board-focus #captureToast {
+  position:fixed;
+  top:auto;
+  right:max(16px, env(safe-area-inset-right));
+  bottom:max(16px, env(safe-area-inset-bottom));
 }
 
 </style>
@@ -4518,6 +4577,11 @@ if (
     <!-- BOARD -->
 
     <div class="board-panel">
+
+      <div class="board-view-controls">
+        <span id="focusStatus" class="focus-status" role="status" aria-live="polite"></span>
+        <button id="focusModeBtn" class="action-btn" type="button" aria-pressed="false">Focus mode</button>
+      </div>
 
       <div class="chess-imperium-banner-wrap">
         <img
@@ -5250,6 +5314,31 @@ from "https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm";
 
 import { createClient }
 from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const focusModeBtn = document.getElementById("focusModeBtn");
+const focusStatus = document.getElementById("focusStatus");
+const sourceStatus = document.getElementById("statusBox");
+function setBoardFocus(enabled) {
+  document.body.classList.toggle("board-focus", enabled);
+  focusModeBtn.setAttribute("aria-pressed", String(enabled));
+  focusModeBtn.textContent = enabled ? "Show menus" : "Focus mode";
+  focusStatus.textContent = sourceStatus.textContent;
+  if (enabled) window.scrollTo({top:0, behavior:"instant"});
+  else focusModeBtn.scrollIntoView({block:"nearest"});
+  window.dispatchEvent(new Event("resize"));
+}
+focusModeBtn.addEventListener("click", () => {
+  setBoardFocus(!document.body.classList.contains("board-focus"));
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && document.body.classList.contains("board-focus")) {
+    setBoardFocus(false);
+    focusModeBtn.focus();
+  }
+});
+new MutationObserver(() => {
+  focusStatus.textContent = sourceStatus.textContent;
+}).observe(sourceStatus, {childList:true, characterData:true, subtree:true});
 
 
 /* ===================================================== */
@@ -9019,6 +9108,19 @@ let playerDisplayName =
       24
     );
 
+// randomUUID requires HTTPS; local-network previews still support getRandomValues.
+function createGameUUID() {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 let onlinePlayerId =
   localStorage.getItem(
     ONLINE_PLAYER_ID_KEY
@@ -9029,7 +9131,7 @@ if (
 ) {
 
   onlinePlayerId =
-    crypto.randomUUID();
+    createGameUUID();
 
   localStorage.setItem(
     ONLINE_PLAYER_ID_KEY,
@@ -14864,7 +14966,7 @@ async function requestOnlineUndo() {
 
 
   const requestId =
-    crypto.randomUUID();
+    createGameUUID();
 
 
   const historyLength =
